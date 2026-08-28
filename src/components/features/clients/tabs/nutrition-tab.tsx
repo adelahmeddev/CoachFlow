@@ -56,55 +56,9 @@ export async function NutritionTab({ clientId }: { clientId: string }) {
     }
   }
 
-  const initial = plan
-    ? {
-        name: plan.template?.name ?? t.nutrition.customPlanBadge,
-        calories: plan.calories,
-        proteinGrams: plan.proteinGrams,
-        carbsGrams: plan.carbsGrams,
-        fatsGrams: plan.fatsGrams,
-        waterLiters: plan.waterLiters,
-        coachMessage: plan.coachMessage ?? "",
-        guidelines: [...plan.guidelines],
-        avoidFoods: [...plan.avoidFoods],
-        recommendedFoods: [...plan.recommendedFoods],
-        supplementDefs: plan.supplementDefs.map((def) => ({
-          name: def.name,
-          nameAr: def.nameAr ?? "",
-          definition: def.definition ?? "",
-          definitionAr: def.definitionAr ?? "",
-          importance: def.importance ?? "",
-          importanceAr: def.importanceAr ?? "",
-        })),
-        substituteGroups: plan.substituteGroups.map((group) => ({
-          category: group.category,
-          caloriesLabel: group.caloriesLabel ?? "",
-          items: group.items.map((item) => ({
-            name: item.name,
-            nameAr: item.nameAr ?? "",
-            amount: item.amount,
-            unit: item.unit,
-          })),
-        })),
-        meals: plan.meals.map((meal) => ({
-          kind: meal.kind,
-          name: meal.name,
-          nameAr: meal.nameAr ?? "",
-          items: meal.items.map((item) => ({
-            foodName: item.foodName,
-            foodNameAr: item.foodNameAr ?? "",
-            amount: item.amount,
-            unit: item.unit,
-            calories: item.calories,
-            groupNumber: item.groupNumber,
-          })),
-        })),
-      }
-    : null
-
   return (
     <div className="space-y-6">
-      {!initial ? (
+      {!plan ? (
         <AssignTemplateFromClient
           clientId={clientId}
           templates={templates.map(tpl => ({
@@ -122,35 +76,35 @@ export async function NutritionTab({ clientId }: { clientId: string }) {
             <Card className="p-4">
               <CardContent className="p-0">
                 <p className="text-xs text-muted-foreground">{t.nutrition.calories}</p>
-                <p className="mt-1 text-2xl font-semibold">{plan.calories ?? "—"}</p>
+                <p className="mt-1 text-2xl font-semibold">{plan!.calories ?? "—"}</p>
                 <p className="text-[10px] text-muted-foreground">kcal</p>
               </CardContent>
             </Card>
             <Card className="p-4">
               <CardContent className="p-0">
                 <p className="text-xs text-muted-foreground">Protein</p>
-                <p className="mt-1 text-2xl font-semibold">{plan.proteinGrams ?? "—"}</p>
+                <p className="mt-1 text-2xl font-semibold">{plan!.proteinGrams ?? "—"}</p>
                 <p className="text-[10px] text-muted-foreground">g</p>
               </CardContent>
             </Card>
             <Card className="p-4">
               <CardContent className="p-0">
                 <p className="text-xs text-muted-foreground">Carbs</p>
-                <p className="mt-1 text-2xl font-semibold">{plan.carbsGrams ?? "—"}</p>
+                <p className="mt-1 text-2xl font-semibold">{plan!.carbsGrams ?? "—"}</p>
                 <p className="text-[10px] text-muted-foreground">g</p>
               </CardContent>
             </Card>
             <Card className="p-4">
               <CardContent className="p-0">
                 <p className="text-xs text-muted-foreground">Fats</p>
-                <p className="mt-1 text-2xl font-semibold">{plan.fatsGrams ?? "—"}</p>
+                <p className="mt-1 text-2xl font-semibold">{plan!.fatsGrams ?? "—"}</p>
                 <p className="text-[10px] text-muted-foreground">g</p>
               </CardContent>
             </Card>
             <Card className="p-4">
               <CardContent className="p-0">
                 <p className="text-xs text-muted-foreground">Water</p>
-                <p className="mt-1 text-2xl font-semibold">{plan.waterLiters ?? "—"}</p>
+                <p className="mt-1 text-2xl font-semibold">{plan!.waterLiters ?? "—"}</p>
                 <p className="text-[10px] text-muted-foreground">L</p>
               </CardContent>
             </Card>
@@ -163,7 +117,7 @@ export async function NutritionTab({ clientId }: { clientId: string }) {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {plan.meals.map((meal) => (
+                {plan!.meals.map((meal) => (
                   <div key={meal.id} className="rounded-xl border bg-card p-4">
                     <p className="font-medium">{meal.name}</p>
                     <p className="text-xs text-muted-foreground mb-2">{meal.items.length} items</p>
@@ -193,19 +147,19 @@ export async function NutritionTab({ clientId }: { clientId: string }) {
                     plan?.template?.name ?? t.nutrition.customPlanBadge
                   )}
                 </Badge>
-                <RefreshFromTemplateButton planId={plan.id} clientId={clientId} />
-                <ChangePlanDialog clientId={clientId} templates={templates.map(tpl => ({ id: tpl.id, name: tpl.name, calories: tpl.calories, mealsCount: tpl._count.meals, isGlobal: tpl.isGlobal }))} />
+                <RefreshFromTemplateButton planId={plan!.id} clientId={clientId} />
+                <ChangePlanDialog clientId={clientId} templates={templates.map(tpl => ({ id: tpl.id, name: tpl.name, calories: tpl.calories ?? 0, mealsCount: tpl._count.meals, isGlobal: tpl.isGlobal }))} />
                 <a href={`/clients/${clientId}/nutrition/edit?section=basic`} target="_blank" className="inline-flex items-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">Edit</a>
               </div>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div><p className="text-muted-foreground">Calories</p><p className="font-medium">{plan.calories} kcal</p></div>
-                <div><p className="text-muted-foreground">Protein</p><p className="font-medium">{plan.proteinGrams} g</p></div>
-                <div><p className="text-muted-foreground">Carbs</p><p className="font-medium">{plan.carbsGrams} g</p></div>
-                <div><p className="text-muted-foreground">Fats</p><p className="font-medium">{plan.fatsGrams} g</p></div>
+                <div><p className="text-muted-foreground">Calories</p><p className="font-medium">{plan!.calories} kcal</p></div>
+                <div><p className="text-muted-foreground">Protein</p><p className="font-medium">{plan!.proteinGrams} g</p></div>
+                <div><p className="text-muted-foreground">Carbs</p><p className="font-medium">{plan!.carbsGrams} g</p></div>
+                <div><p className="text-muted-foreground">Fats</p><p className="font-medium">{plan!.fatsGrams} g</p></div>
               </div>
-              {plan.coachMessage && <p className="text-sm whitespace-pre-wrap">{plan.coachMessage}</p>}
+              {plan!.coachMessage && <p className="text-sm whitespace-pre-wrap">{plan!.coachMessage}</p>}
             </CardContent>
           </Card>
 
@@ -215,11 +169,11 @@ export async function NutritionTab({ clientId }: { clientId: string }) {
               <a href={`/clients/${clientId}/nutrition/edit?section=supplements`} target="_blank" className="inline-flex items-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">Edit</a>
             </CardHeader>
             <CardContent>
-              {plan.supplementDefs.length === 0 ? (
+              {plan!.supplementDefs.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No supplements defined</p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {plan.supplementDefs.map((def) => (
+                  {plan!.supplementDefs.map((def) => (
                     <div key={def.id} className="rounded-lg border p-3">
                       <p className="font-medium">{def.name}</p>
                       <p className="text-xs text-muted-foreground">{def.importance}</p>
@@ -237,11 +191,11 @@ export async function NutritionTab({ clientId }: { clientId: string }) {
               <a href={`/clients/${clientId}/nutrition/edit?section=substitutes`} target="_blank" className="inline-flex items-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">Edit</a>
             </CardHeader>
             <CardContent>
-              {plan.substituteGroups.length === 0 ? (
+              {plan!.substituteGroups.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No substitutes defined</p>
               ) : (
                 <div className="space-y-3">
-                  {plan.substituteGroups.map((g) => (
+                  {plan!.substituteGroups.map((g) => (
                     <div key={g.id} className="rounded-lg border p-3">
                       <p className="font-medium">{g.category}</p>
                       <ul className="list-disc pl-5 text-sm mt-1">
@@ -261,7 +215,7 @@ export async function NutritionTab({ clientId }: { clientId: string }) {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {plan.meals.map((meal) => (
+                {plan!.meals.map((meal) => (
                   <div key={meal.id} className="rounded-lg border p-3">
                     <p className="font-medium">{meal.name}</p>
                     <ul className="text-sm mt-1 list-disc pl-5">

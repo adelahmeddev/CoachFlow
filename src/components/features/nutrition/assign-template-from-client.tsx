@@ -38,7 +38,7 @@ export function AssignTemplateFromClient({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t.nutrition.assignToClient}</CardTitle>
+        <CardTitle>{t.nutrition.assignToClients}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {templates.map((tpl) => (
