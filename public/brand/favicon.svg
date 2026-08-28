@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <rect width="32" height="32" rx="7" fill="#F26A1B"/>
+  <!-- 45° barbell -->
+  <g transform="rotate(-45 16 16)">
+    <!-- Bar -->
+    <rect x="6.5" y="14.75" width="19" height="2.5" rx="1.25" fill="white"/>
+    <!-- Left plate (ellipse perpendicular to bar) -->
+    <ellipse cx="6.5" cy="16" rx="2.5" ry="7" fill="white"/>
+    <ellipse cx="6.5" cy="16" rx="1.2" ry="4.5" fill="#F26A1B"/>
+    <!-- Right plate -->
+    <ellipse cx="25.5" cy="16" rx="2.5" ry="7" fill="white"/>
+    <ellipse cx="25.5" cy="16" rx="1.2" ry="4.5" fill="#F26A1B"/>
+  </g>
+  <!-- Lightning bolt accent (top-right) -->
+  <path d="M22 5 L20 10 L21.5 10 L19.5 14.5 L25.5 8 L23.5 8 L25.5 5 Z" fill="white" opacity="0.9"/>
+</svg>

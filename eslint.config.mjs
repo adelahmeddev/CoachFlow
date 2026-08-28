@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated Prisma client:
+    "src/generated/**",
+    // Dev/setup scripts:
+    "scripts/**",
+    // Local portable postgres install:
+    ".pg/**",
   ]),
 ]);
 

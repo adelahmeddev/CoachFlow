@@ -1,0 +1,34 @@
+import { getI18n } from "@/lib/i18n"
+import Link from "next/link"
+import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Home, Users } from "lucide-react"
+
+export default async function TrainerRouteNotFound() {
+  const { t } = await getI18n()
+
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-muted/30 p-4">
+      <Card className="w-full max-w-md">
+        <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
+          <CardTitle className="text-xl">{t.common.notFound}</CardTitle>
+          <CardDescription>{t.clients.emptyDescription}</CardDescription>
+          <div className="flex gap-2">
+            <Button asChild>
+              <Link href="/clients">
+                <Users className="size-4 me-2" />
+                {t.nav.clients}
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/dashboard">
+                <Home className="size-4 me-2" />
+                {t.nav.dashboard}
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
