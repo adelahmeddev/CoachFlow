@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && rm -rf .next/cache",
+    "build": "next build",
+    "postbuild": "rm -rf .next/cache",
     "start": "next start",
     "analyze": "next build",
     "lint": "eslint",
