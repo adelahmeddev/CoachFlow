@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256],
   },
+  // Disable Turbopack for production builds to avoid large .next/cache files
+  // that exceed Cloudflare Pages 25 MiB asset limit
+  experimental: {
+    turbo: false,
+  },
   // NOTE: turbopackMemoryEviction: "full" was removed — it evicts all cached
   // module graphs after every snapshot and reloads them from .next/dev/cache,
   // where superseded chunk lookups can deadlock forever (profile page et al.
