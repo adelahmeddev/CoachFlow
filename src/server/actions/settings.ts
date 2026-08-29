@@ -1,10 +1,10 @@
 "use server"
 
-import bcrypt from "bcryptjs"
+import { comparePassword, hashPassword } from "@/lib/auth"
 import { cookies } from "next/headers"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
-import { prisma } from "@/lib/prisma"
+import { pool, withTransaction } from "@/lib/db"
 import { getCurrentSession } from "@/server/auth"
 import { LOCALE_COOKIE, isLocale } from "@/lib/i18n/config"
 import {
@@ -46,17 +46,13 @@ export async function updateProfileAction(input: unknown): Promise<ActionResult>
 
   const { fullName, phone } = parsed.data
 
-  const existing = await prisma.user.findFirst({
-    where: { phone, id: { not: userId } },
-  })
+  const existingRes = await pool.query(`SELECT "id" FROM "User" WHERE "phone"=$1 AND "id" <> $2 LIMIT 1`, [phone, userId])
+  const existing = existingRes.rows[0]
   if (existing) {
     return { ok: false, error: "PHONE_EXISTS" }
   }
 
-  await prisma.trainerProfile.update({
-    where: { id: trainerProfileId },
-    data: { fullName, phone },
-  })
+  await pool.query(`UPDATE "TrainerProfile" SET "fullName"=$1, "phone"=$2, "updatedAt"=NOW() WHERE "id"=$3`, [fullName, phone, trainerProfileId])
 
   revalidatePath("/settings")
   return { ok: true }
@@ -78,12 +74,13 @@ export async function updateSecurityAction(
 
   const { currentPassword, newPassword } = parsed.data
 
-  const user = await prisma.user.findUnique({ where: { id: userId } })
+  const userRes = await pool.query(`SELECT * FROM "User" WHERE "id"=$1 LIMIT 1`, [userId])
+  const user = userRes.rows[0] as { passwordHash: string } | undefined
   if (!user) {
     return { ok: false, error: "UNAUTHORIZED" }
   }
 
-  const passwordValid = await bcrypt.compare(
+  const passwordValid = await comparePassword(
     currentPassword,
     user.passwordHash
   )
@@ -91,11 +88,8 @@ export async function updateSecurityAction(
     return { ok: false, error: "WRONG_CURRENT_PASSWORD" }
   }
 
-  const passwordHash = await bcrypt.hash(newPassword, 10)
-  await prisma.user.update({
-    where: { id: userId },
-    data: { passwordHash },
-  })
+  const passwordHash = await hashPassword(newPassword)
+  await pool.query(`UPDATE "User" SET "passwordHash"=$1, "updatedAt"=NOW() WHERE "id"=$2`, [passwordHash, userId])
 
   return { ok: true }
 }
@@ -116,14 +110,10 @@ export async function updatePreferencesAction(
 
   const { language, units, weekStartDay, timezone } = parsed.data
 
-  await prisma.trainerProfile.update({
-    where: { id: trainerProfileId },
-    data: {
-      units,
-      weekStartDay,
-      timezone: timezone || null,
-    },
-  })
+  await pool.query(
+    `UPDATE "TrainerProfile" SET "units"=$1::"Units", "weekStartDay"=$2::"WeekStartDay", "timezone"=$3, "updatedAt"=NOW() WHERE "id"=$4`,
+    [units, weekStartDay, timezone || null, trainerProfileId]
+  )
 
   if (isLocale(language)) {
     const cookieStore = await cookies()
@@ -152,10 +142,23 @@ export async function updateNotificationsAction(
     return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors }
   }
 
-  await prisma.trainerProfile.update({
-    where: { id: trainerProfileId },
-    data: parsed.data,
-  })
+  const fields: string[] = []
+  const values: unknown[] = []
+  let idx = 1
+  if (parsed.data.notifyReassessment !== undefined) {
+    fields.push(`"notifyReassessment"=$${idx++}`)
+    values.push(parsed.data.notifyReassessment)
+  }
+  fields.push(`"notifyInactivity"=$${idx++}`)
+  values.push(parsed.data.notifyInactivity)
+  fields.push(`"notifySubscription"=$${idx++}`)
+  values.push(parsed.data.notifySubscription)
+  fields.push(`"weeklySummary"=$${idx++}`)
+  values.push(parsed.data.weeklySummary)
+  fields.push(`"updatedAt"=NOW()`)
+  const sql = `UPDATE "TrainerProfile" SET ${fields.join(", ")} WHERE "id"=$${idx} RETURNING *`
+  values.push(trainerProfileId)
+  await pool.query(sql, values)
 
   revalidatePath("/settings")
   return { ok: true }
@@ -175,10 +178,10 @@ export async function updateBusinessAction(
     return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors }
   }
 
-  await prisma.trainerProfile.update({
-    where: { id: trainerProfileId },
-    data: { businessName: parsed.data.businessName || null },
-  })
+  await pool.query(`UPDATE "TrainerProfile" SET "businessName"=$1, "updatedAt"=NOW() WHERE "id"=$2`, [
+    parsed.data.businessName || null,
+    trainerProfileId,
+  ])
 
   revalidatePath("/settings")
   return { ok: true }
@@ -192,15 +195,13 @@ export async function deleteAccountAction(): Promise<ActionResult> {
   const userId = session!.user!.id
 
   try {
-    await prisma.$transaction(async (tx) => {
-      const profile = await tx.trainerProfile.findUnique({
-        where: { userId },
-        select: { id: true },
-      })
+    await withTransaction(async (client) => {
+      const profileRes = await client.query(`SELECT "id" FROM "TrainerProfile" WHERE "userId"=$1 LIMIT 1`, [userId])
+      const profile = profileRes.rows[0] as { id: string } | undefined
       if (profile) {
-        await tx.client.deleteMany({ where: { trainerId: profile.id } })
+        await client.query(`DELETE FROM "Client" WHERE "trainerId"=$1`, [profile.id])
       }
-      await tx.user.delete({ where: { id: userId } })
+      await client.query(`DELETE FROM "User" WHERE "id"=$1`, [userId])
     })
 
     const cookieStore = await cookies()

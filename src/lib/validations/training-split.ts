@@ -5,11 +5,11 @@ import {
   SplitType,
   TrainingDayFocus,
   Weekday,
-} from "@/generated/prisma/enums"
+} from "@/lib/db/enums"
 import {
   MAX_TRAINING_DAYS,
   MIN_TRAINING_DAYS,
-} from "@/lib/constants/training-split"
+} from "@/lib/constants"
 import {
   MAX_EXERCISES_PER_DAY,
   splitDayExerciseSchema,

@@ -1,5 +1,5 @@
 import Link from "next/link"
-import type { TrainingSplit } from "@/generated/prisma/client"
+import type { TrainingSplit } from "@/lib/db/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -10,8 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { getPlanStatusBadgeVariant, getPlanStatusLabel } from "@/lib/client-labels"
-import { SPLIT_TYPE_LABELS } from "@/lib/constants/training-split"
+import { getPlanStatusBadgeVariant, getPlanStatusLabel, SPLIT_TYPE_LABELS } from "@/lib/constants"
 import { formatDate } from "@/lib/format"
 
 interface SplitHistoryTableProps {

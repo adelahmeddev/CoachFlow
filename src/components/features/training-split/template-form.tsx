@@ -31,13 +31,13 @@ import {
   type TrainingSplitTemplateInput,
 } from "@/lib/validations/training-split-template"
 import type { TrainingSplitDayInput } from "@/lib/validations/training-split"
-import { SPLIT_TYPE_OPTIONS } from "@/lib/constants/training-split"
+import { SPLIT_TYPE_OPTIONS } from "@/lib/constants"
 import { DaysEditor, toExerciseDraft } from "@/components/features/training-split/days-editor"
 import {
   createTrainingSplitTemplateAction,
   updateTrainingSplitTemplateAction,
 } from "@/server/actions/training-split-template"
-import { Goal, SplitType } from "@/generated/prisma/enums"
+import { Goal, SplitType } from "@/lib/db/enums"
 import type { ExerciseOption } from "@/lib/exercise-safety"
 
 interface TemplateFormProps {

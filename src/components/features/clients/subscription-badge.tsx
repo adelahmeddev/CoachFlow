@@ -1,10 +1,10 @@
-﻿"use client"
+"use client"
 
 import { Badge } from "@/components/ui/badge"
 import { useI18n } from "@/lib/i18n/client"
 import { getSubscriptionStatusLabel } from "@/lib/i18n/labels"
 import { SUBSCRIPTION_STATUS_BADGE_VARIANTS } from "@/lib/constants"
-import type { SubscriptionStatus } from "@/generated/prisma/enums"
+import type { SubscriptionStatus } from "@/lib/db/enums"
 
 export function SubscriptionBadge({
   planName,

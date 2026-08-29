@@ -1,10 +1,10 @@
 "use server"
 
-import bcrypt from "bcryptjs"
+import { hashPassword } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 import { invalidate } from "@/lib/cache"
 import { getCurrentSession } from "@/server/auth"
-import { prisma } from "@/lib/prisma"
+import { pool } from "@/lib/db"
 
 export async function resetClientPasswordAction(
   clientId: string,
@@ -19,14 +19,13 @@ export async function resetClientPasswordAction(
     return { ok: false, error: "UNAUTHORIZED" }
   }
 
-  const client = await prisma.client.findUnique({
-    where: { id: clientId },
-    select: {
-      id: true,
-      userId: true,
-      trainerId: true,
-    },
-  })
+  const clientRes = await pool.query(
+    `SELECT "id", "userId", "trainerId" FROM "Client" WHERE "id"=$1 LIMIT 1`,
+    [clientId]
+  )
+  const client = clientRes.rows[0] as
+    | { id: string; userId: string | null; trainerId: string }
+    | undefined
 
   if (!client) {
     return { ok: false, error: "CLIENT_NOT_FOUND" }
@@ -43,11 +42,12 @@ export async function resetClientPasswordAction(
     return { ok: false, error: "CLIENT_NO_ACCOUNT" }
   }
 
-  const passwordHash = await bcrypt.hash(newPassword, 10)
-  await prisma.user.update({
-    where: { id: client.userId },
-    data: { passwordHash, mustChangePassword: forceChange },
-  })
+  const passwordHash = await hashPassword(newPassword)
+  await pool.query(`UPDATE "User" SET "passwordHash"=$1, "mustChangePassword"=$2, "updatedAt"=NOW() WHERE "id"=$3`, [
+    passwordHash,
+    forceChange,
+    client.userId,
+  ])
 
   revalidatePath(`/clients/${clientId}`)
   invalidate([`client:${clientId}:profile`])

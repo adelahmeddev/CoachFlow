@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useMemo } from "react"
 import {
@@ -22,13 +22,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { DAY_FOCUS_OPTIONS, MAX_TRAINING_DAYS } from "@/lib/constants/training-split"
+import { DAY_FOCUS_OPTIONS, MAX_TRAINING_DAYS } from "@/lib/constants"
 import { WEEKDAY_CYCLE } from "@/lib/calculations/week-schedule"
 import type { TrainingSplitDayInput } from "@/lib/validations/training-split"
 import type { SplitDayExerciseInput } from "@/lib/validations/exercise"
 import { MAX_EXERCISES_PER_DAY } from "@/lib/validations/exercise"
-import type { TrainingDayFocus, Weekday } from "@/generated/prisma/enums"
-import { ScheduleMode } from "@/generated/prisma/enums"
+import type { TrainingDayFocus, Weekday } from "@/lib/db/enums"
+import { ScheduleMode } from "@/lib/db/enums"
 import { ExercisePicker } from "@/components/features/training-split/exercise-picker"
 import type { ExerciseOption } from "@/lib/exercise-safety"
 

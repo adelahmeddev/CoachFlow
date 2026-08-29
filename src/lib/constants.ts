@@ -1,14 +1,21 @@
+import type { VariantProps } from "class-variance-authority"
+import { badgeVariants } from "@/components/ui/badge"
 import {
   BodyCompositionSource,
   ClientStatus,
   Goal,
   PaymentStatus,
   PlanStatus,
+  PlanType,
   Role,
   SplitType,
   SubscriptionStatus,
   TrainingDayFocus,
-} from "@/generated/prisma/enums"
+} from "@/lib/db/enums"
+
+export type BadgeVariant = VariantProps<typeof badgeVariants>["variant"]
+
+// ─── Labels ──────────────────────────────────────────────────────────────────
 
 export const ROLE_LABELS: Record<Role, string> = {
   ADMIN: "Admin",
@@ -64,7 +71,7 @@ export const DAY_FOCUS_LABELS: Record<TrainingDayFocus, string> = {
 }
 
 export const SUBSCRIPTION_STATUS_LABELS: Record<SubscriptionStatus, string> = {
-  NONE: "None",
+  NONE: "No Subscription",
   ACTIVE: "Active",
   EXPIRED: "Expired",
   PAUSED: "Paused",
@@ -78,35 +85,10 @@ export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   NOT_REQUIRED: "Not Required",
 }
 
-export const CLIENT_STATUS_OPTIONS = [
-  { value: ClientStatus.INVITED, label: CLIENT_STATUS_LABELS.INVITED },
-  {
-    value: ClientStatus.PENDING_ASSESSMENT,
-    label: CLIENT_STATUS_LABELS.PENDING_ASSESSMENT,
-  },
-  { value: ClientStatus.ACTIVE, label: CLIENT_STATUS_LABELS.ACTIVE },
-  { value: ClientStatus.PAUSED, label: CLIENT_STATUS_LABELS.PAUSED },
-  { value: ClientStatus.COMPLETED, label: CLIENT_STATUS_LABELS.COMPLETED },
-  { value: ClientStatus.ARCHIVED, label: CLIENT_STATUS_LABELS.ARCHIVED },
-]
-
-export const GOAL_OPTIONS = [
-  { value: Goal.WEIGHT_LOSS, label: GOAL_LABELS.WEIGHT_LOSS },
-  { value: Goal.MUSCLE_BUILDING, label: GOAL_LABELS.MUSCLE_BUILDING },
-  { value: Goal.STRENGTH, label: GOAL_LABELS.STRENGTH },
-  { value: Goal.GENERAL_FITNESS, label: GOAL_LABELS.GENERAL_FITNESS },
-  { value: Goal.WEIGHT_GAIN, label: GOAL_LABELS.WEIGHT_GAIN },
-]
-
 export const BODY_COMPOSITION_SOURCE_LABELS: Record<BodyCompositionSource, string> = {
   COACH: "Coach",
   CLIENT: "Client",
 }
-
-export const BODY_COMPOSITION_SOURCE_OPTIONS = [
-  { value: BodyCompositionSource.COACH, label: BODY_COMPOSITION_SOURCE_LABELS.COACH },
-  { value: BodyCompositionSource.CLIENT, label: BODY_COMPOSITION_SOURCE_LABELS.CLIENT },
-]
 
 export const BODY_COMPOSITION_FIELD_LABELS: Record<string, string> = {
   weightKg: "الوزن (كجم) | WEIGHT (KG)",
@@ -120,6 +102,22 @@ export const BODY_COMPOSITION_FIELD_LABELS: Record<string, string> = {
   visceralFatLevel: "مستوى الدهون الحشوية | VISCERAL FAT LEVEL",
 }
 
+// ─── Options (label+value pairs for selects) ─────────────────────────────────
+
+export const CLIENT_STATUS_OPTIONS = [
+  { value: ClientStatus.INVITED, label: CLIENT_STATUS_LABELS.INVITED },
+  { value: ClientStatus.PENDING_ASSESSMENT, label: CLIENT_STATUS_LABELS.PENDING_ASSESSMENT },
+  { value: ClientStatus.ACTIVE, label: CLIENT_STATUS_LABELS.ACTIVE },
+  { value: ClientStatus.PAUSED, label: CLIENT_STATUS_LABELS.PAUSED },
+  { value: ClientStatus.COMPLETED, label: CLIENT_STATUS_LABELS.COMPLETED },
+  { value: ClientStatus.ARCHIVED, label: CLIENT_STATUS_LABELS.ARCHIVED },
+]
+
+export const BODY_COMPOSITION_SOURCE_OPTIONS = [
+  { value: BodyCompositionSource.COACH, label: BODY_COMPOSITION_SOURCE_LABELS.COACH },
+  { value: BodyCompositionSource.CLIENT, label: BODY_COMPOSITION_SOURCE_LABELS.CLIENT },
+]
+
 export const PLAN_STATUS_OPTIONS = [
   { value: PlanStatus.DRAFT, label: PLAN_STATUS_LABELS.DRAFT },
   { value: PlanStatus.ACTIVE, label: PLAN_STATUS_LABELS.ACTIVE },
@@ -130,10 +128,7 @@ export const PLAN_STATUS_OPTIONS = [
 export const SPLIT_TYPE_OPTIONS = [
   { value: SplitType.FULL_BODY, label: SPLIT_TYPE_LABELS.FULL_BODY },
   { value: SplitType.UPPER_LOWER, label: SPLIT_TYPE_LABELS.UPPER_LOWER },
-  {
-    value: SplitType.PUSH_PULL_LEGS,
-    label: SPLIT_TYPE_LABELS.PUSH_PULL_LEGS,
-  },
+  { value: SplitType.PUSH_PULL_LEGS, label: SPLIT_TYPE_LABELS.PUSH_PULL_LEGS },
   { value: SplitType.BRO_SPLIT, label: SPLIT_TYPE_LABELS.BRO_SPLIT },
   { value: SplitType.CUSTOM, label: SPLIT_TYPE_LABELS.CUSTOM },
 ]
@@ -146,10 +141,7 @@ export const DAY_FOCUS_OPTIONS = [
   { value: TrainingDayFocus.PUSH, label: DAY_FOCUS_LABELS.PUSH },
   { value: TrainingDayFocus.PULL, label: DAY_FOCUS_LABELS.PULL },
   { value: TrainingDayFocus.LEGS, label: DAY_FOCUS_LABELS.LEGS },
-  {
-    value: TrainingDayFocus.SHOULDERS_ARMS,
-    label: DAY_FOCUS_LABELS.SHOULDERS_ARMS,
-  },
+  { value: TrainingDayFocus.SHOULDERS_ARMS, label: DAY_FOCUS_LABELS.SHOULDERS_ARMS },
   { value: TrainingDayFocus.CARDIO, label: DAY_FOCUS_LABELS.CARDIO },
   { value: TrainingDayFocus.MOBILITY, label: DAY_FOCUS_LABELS.MOBILITY },
   { value: TrainingDayFocus.CUSTOM, label: DAY_FOCUS_LABELS.CUSTOM },
@@ -157,58 +149,141 @@ export const DAY_FOCUS_OPTIONS = [
 
 export const SUBSCRIPTION_STATUS_OPTIONS = [
   { value: SubscriptionStatus.NONE, label: SUBSCRIPTION_STATUS_LABELS.NONE },
-  {
-    value: SubscriptionStatus.ACTIVE,
-    label: SUBSCRIPTION_STATUS_LABELS.ACTIVE,
-  },
-  {
-    value: SubscriptionStatus.EXPIRED,
-    label: SUBSCRIPTION_STATUS_LABELS.EXPIRED,
-  },
-  {
-    value: SubscriptionStatus.PAUSED,
-    label: SUBSCRIPTION_STATUS_LABELS.PAUSED,
-  },
+  { value: SubscriptionStatus.ACTIVE, label: SUBSCRIPTION_STATUS_LABELS.ACTIVE },
   { value: SubscriptionStatus.TRIAL, label: SUBSCRIPTION_STATUS_LABELS.TRIAL },
+  { value: SubscriptionStatus.PAUSED, label: SUBSCRIPTION_STATUS_LABELS.PAUSED },
+  { value: SubscriptionStatus.EXPIRED, label: SUBSCRIPTION_STATUS_LABELS.EXPIRED },
 ]
 
 export const PAYMENT_STATUS_OPTIONS = [
   { value: PaymentStatus.PAID, label: PAYMENT_STATUS_LABELS.PAID },
   { value: PaymentStatus.PENDING, label: PAYMENT_STATUS_LABELS.PENDING },
   { value: PaymentStatus.FAILED, label: PAYMENT_STATUS_LABELS.FAILED },
-  {
-    value: PaymentStatus.NOT_REQUIRED,
-    label: PAYMENT_STATUS_LABELS.NOT_REQUIRED,
-  },
+  { value: PaymentStatus.NOT_REQUIRED, label: PAYMENT_STATUS_LABELS.NOT_REQUIRED },
 ]
 
-export const CLIENT_STATUS_BADGE_VARIANTS: Record<
-  ClientStatus,
-  "default" | "secondary" | "outline" | "destructive"
-> = {
+// ─── Badge variants ──────────────────────────────────────────────────────────
+
+export const CLIENT_STATUS_BADGE_VARIANTS: Record<ClientStatus, BadgeVariant> = {
   INVITED: "secondary",
   PENDING_ASSESSMENT: "outline",
   ACTIVE: "default",
   PAUSED: "secondary",
   COMPLETED: "outline",
-  ARCHIVED: "outline",
+  ARCHIVED: "destructive",
 }
 
-export const SUBSCRIPTION_STATUS_BADGE_VARIANTS: Record<
-  SubscriptionStatus,
-  "default" | "secondary" | "outline" | "destructive"
-> = {
+export const SUBSCRIPTION_STATUS_BADGE_VARIANTS: Record<SubscriptionStatus, BadgeVariant> = {
   NONE: "outline",
   ACTIVE: "default",
   EXPIRED: "destructive",
   PAUSED: "secondary",
-  TRIAL: "outline",
+  TRIAL: "secondary",
 }
 
-export const GOAL_OPTIONS_PUBLIC = [
-  { value: Goal.WEIGHT_LOSS, label: GOAL_LABELS.WEIGHT_LOSS },
-  { value: Goal.MUSCLE_BUILDING, label: GOAL_LABELS.MUSCLE_BUILDING },
-  { value: Goal.STRENGTH, label: GOAL_LABELS.STRENGTH },
-  { value: Goal.GENERAL_FITNESS, label: GOAL_LABELS.GENERAL_FITNESS },
-  { value: Goal.WEIGHT_GAIN, label: GOAL_LABELS.WEIGHT_GAIN },
-]
+export const PLAN_STATUS_BADGE_VARIANTS: Record<PlanStatus, BadgeVariant> = {
+  ACTIVE: "default",
+  DRAFT: "outline",
+  PAUSED: "secondary",
+  COMPLETED: "outline",
+}
+
+export const PLAN_TYPE_BADGE_VARIANTS: Record<PlanType, BadgeVariant> = {
+  SESSIONS: "secondary",
+  PERIOD: "outline",
+}
+
+export const PAYMENT_STATUS_BADGE_VARIANTS: Record<PaymentStatus, BadgeVariant> = {
+  PAID: "default",
+  PENDING: "secondary",
+  FAILED: "destructive",
+  NOT_REQUIRED: "outline",
+}
+
+// ─── Badge variant helpers ───────────────────────────────────────────────────
+
+export function getClientStatusBadgeVariant(status: ClientStatus): BadgeVariant {
+  return CLIENT_STATUS_BADGE_VARIANTS[status]
+}
+
+export function getPlanStatusBadgeVariant(status: PlanStatus): BadgeVariant {
+  return PLAN_STATUS_BADGE_VARIANTS[status]
+}
+
+export function getSubscriptionStatusBadgeVariant(status: SubscriptionStatus): BadgeVariant {
+  return SUBSCRIPTION_STATUS_BADGE_VARIANTS[status]
+}
+
+export function getGoalBadgeVariant(goal: Goal | null | undefined): BadgeVariant {
+  switch (goal) {
+    case "WEIGHT_LOSS":
+    case "WEIGHT_GAIN":
+      return "secondary"
+    case "MUSCLE_BUILDING":
+    case "STRENGTH":
+      return "default"
+    default:
+      return "outline"
+  }
+}
+
+// ─── Label helpers ───────────────────────────────────────────────────────────
+
+export function getGoalLabel(goal: Goal | null | undefined): string | null {
+  return goal ? GOAL_LABELS[goal] : null
+}
+
+export function getClientStatusLabel(status: ClientStatus): string {
+  return CLIENT_STATUS_LABELS[status]
+}
+
+export function getPlanStatusLabel(status: PlanStatus): string {
+  return PLAN_STATUS_LABELS[status]
+}
+
+export function getSubscriptionStatusLabel(status: SubscriptionStatus): string {
+  return SUBSCRIPTION_STATUS_LABELS[status]
+}
+
+export function getSplitTypeLabel(type: SplitType): string {
+  return SPLIT_TYPE_LABELS[type]
+}
+
+// ─── Training split templates ────────────────────────────────────────────────
+
+export interface SplitTypeTemplate {
+  daysPerWeek: number
+  days: TrainingDayFocus[]
+}
+
+export const SPLIT_TYPE_DEFAULT_TEMPLATES: Record<SplitType, SplitTypeTemplate> = {
+  [SplitType.FULL_BODY]: {
+    daysPerWeek: 3,
+    days: [TrainingDayFocus.FULL_BODY, TrainingDayFocus.FULL_BODY, TrainingDayFocus.FULL_BODY],
+  },
+  [SplitType.UPPER_LOWER]: {
+    daysPerWeek: 4,
+    days: [TrainingDayFocus.UPPER, TrainingDayFocus.LOWER, TrainingDayFocus.UPPER, TrainingDayFocus.LOWER],
+  },
+  [SplitType.PUSH_PULL_LEGS]: {
+    daysPerWeek: 6,
+    days: [
+      TrainingDayFocus.PUSH, TrainingDayFocus.PULL, TrainingDayFocus.LEGS,
+      TrainingDayFocus.PUSH, TrainingDayFocus.PULL, TrainingDayFocus.LEGS,
+    ],
+  },
+  [SplitType.BRO_SPLIT]: {
+    daysPerWeek: 5,
+    days: [
+      TrainingDayFocus.PUSH, TrainingDayFocus.PULL, TrainingDayFocus.LEGS,
+      TrainingDayFocus.SHOULDERS_ARMS, TrainingDayFocus.UPPER,
+    ],
+  },
+  [SplitType.CUSTOM]: {
+    daysPerWeek: 3,
+    days: [TrainingDayFocus.CUSTOM, TrainingDayFocus.CUSTOM, TrainingDayFocus.CUSTOM],
+  },
+}
+
+export const MAX_TRAINING_DAYS = 7
+export const MIN_TRAINING_DAYS = 1

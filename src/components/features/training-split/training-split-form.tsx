@@ -33,7 +33,7 @@ import {
 import {
   SPLIT_TYPE_OPTIONS,
   SPLIT_TYPE_DEFAULT_TEMPLATES,
-} from "@/lib/constants/training-split"
+} from "@/lib/constants"
 import { autoAssignWeekdays } from "@/lib/calculations/week-schedule"
 import {
   createTrainingSplitAction,
@@ -45,8 +45,8 @@ import {
   SplitType,
   Weekday,
   type Goal,
-} from "@/generated/prisma/enums"
-import type { TrainingSplit } from "@/generated/prisma/client"
+} from "@/lib/db/enums"
+import type { TrainingSplit } from "@/lib/db/types"
 import { PLAN_STATUS_OPTIONS } from "@/lib/constants"
 import {
   DaysEditor,

@@ -16,8 +16,8 @@ import { Badge } from "@/components/ui/badge"
 import { useI18n } from "@/lib/i18n/client"
 import { formatPlanSize, getPlanTypeLabel } from "@/lib/i18n/labels"
 import { assignSubscriptionPlanAction } from "@/server/actions/subscription-plan"
-import { PLAN_TYPE_BADGE_VARIANTS } from "@/lib/constants/subscription"
-import type { PlanType } from "@/generated/prisma/enums"
+import { PLAN_TYPE_BADGE_VARIANTS } from "@/lib/constants"
+import type { PlanType } from "@/lib/db/enums"
 
 export interface AssignablePlanRow {
   id: string

@@ -2,7 +2,7 @@ import Link from "next/link"
 import { Pencil, Plus } from "lucide-react"
 import { getCurrentSession } from "@/server/auth"
 import { getClientSubscriptionData } from "@/server/services/subscription.service"
-import type { Subscription } from "@/generated/prisma/client"
+import type { Subscription } from "@/lib/db/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -25,7 +25,7 @@ import {
   SUBSCRIPTION_STATUS_BADGE_VARIANTS,
   PAYMENT_STATUS_BADGE_VARIANTS,
   PLAN_TYPE_BADGE_VARIANTS,
-} from "@/lib/constants/subscription"
+} from "@/lib/constants"
 import { CurrentSubscriptionCard } from "@/components/features/subscription/current-subscription-card"
 
 interface SubscriptionTabProps {

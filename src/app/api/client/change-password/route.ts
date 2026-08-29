@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
-import bcrypt from "bcryptjs"
+import { hashPassword } from "@/lib/auth"
 import { getCurrentSession } from "@/server/auth"
-import { prisma } from "@/lib/prisma"
+import { pool } from "@/lib/db"
 
 export async function POST(request: Request) {
   const session = await getCurrentSession()
@@ -19,20 +19,15 @@ export async function POST(request: Request) {
     )
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, mustChangePassword: true },
-  })
+  const userRes = await pool.query(`SELECT "id", "mustChangePassword" FROM "User" WHERE "id" = $1 LIMIT 1`, [session.user.id])
+  const user = userRes.rows[0] as { id: string; mustChangePassword: boolean } | undefined
 
   if (!user) {
     return NextResponse.json({ ok: false, error: "User not found" }, { status: 404 })
   }
 
-  const passwordHash = await bcrypt.hash(newPassword, 10)
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { passwordHash, mustChangePassword: false },
-  })
+  const passwordHash = await hashPassword(newPassword)
+  await pool.query(`UPDATE "User" SET "passwordHash" = $1, "mustChangePassword" = false, "updatedAt" = NOW() WHERE "id" = $2`, [passwordHash, user.id])
 
   return NextResponse.json({ ok: true })
 }

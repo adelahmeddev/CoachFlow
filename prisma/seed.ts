@@ -1,7 +1,6 @@
 import "dotenv/config"
-import bcrypt from "bcryptjs"
-import { PrismaClient } from "../src/generated/prisma/client"
-import { PrismaPg } from "@prisma/adapter-pg"
+import bcrypt from "@node-rs/bcrypt"
+import { pool, generateId, withTransaction } from "../src/lib/db"
 import {
   ClientStatus,
   Goal,
@@ -11,11 +10,7 @@ import {
   SplitType,
   TrainingDayFocus,
   BodyCompositionSource,
-} from "../src/generated/prisma/enums"
-
-const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
-})
+} from "../src/lib/db/enums"
 
 async function main() {
   const adminUsername = process.env.ADMIN_USERNAME ?? "admin"
@@ -23,20 +18,18 @@ async function main() {
   const adminEmail = process.env.ADMIN_EMAIL ?? "admin@coach.local"
   const seedDemo = process.env.SEED_DEMO === "true"
 
-  const existingAdmin = await prisma.user.findUnique({
-    where: { username: adminUsername },
-  })
+  const existingAdminRes = await pool.query(
+    `SELECT "id" FROM "User" WHERE "username" = $1 LIMIT 1`,
+    [adminUsername]
+  )
 
-  if (!existingAdmin) {
+  if (existingAdminRes.rowCount === 0) {
     const passwordHash = await bcrypt.hash(adminPassword, 10)
-    await prisma.user.create({
-      data: {
-        username: adminUsername,
-        email: adminEmail,
-        passwordHash,
-        role: "ADMIN",
-      },
-    })
+    const id = generateId()
+    await pool.query(
+      `INSERT INTO "User" ("id","username","email","passwordHash","role","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5::"Role",NOW(),NOW())`,
+      [id, adminUsername, adminEmail, passwordHash, "ADMIN"]
+    )
     console.log(`Created admin user "${adminUsername}" (role ADMIN)`)
   } else {
     console.log(`Admin user "${adminUsername}" already exists, skipping`)
@@ -70,13 +63,16 @@ async function main() {
   ]
 
   for (const template of globalTemplates) {
-    const exists = await prisma.nutritionTemplate.findFirst({
-      where: { name: template.name, isGlobal: true },
-    })
-    if (!exists) {
-      await prisma.nutritionTemplate.create({
-        data: { ...template, isGlobal: true },
-      })
+    const exists = await pool.query(
+      `SELECT "id" FROM "NutritionTemplate" WHERE "name" = $1 AND "isGlobal" = true LIMIT 1`,
+      [template.name]
+    )
+    if (exists.rowCount === 0) {
+      const id = generateId()
+      await pool.query(
+        `INSERT INTO "NutritionTemplate" ("id","name","calories","proteinGrams","carbsGrams","fatsGrams","waterLiters","isGlobal","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,true,NOW(),NOW())`,
+        [id, template.name, template.calories, template.proteinGrams, template.carbsGrams, template.fatsGrams, template.waterLiters]
+      )
       console.log(`Created global nutrition template "${template.name}"`)
     }
   }
@@ -93,310 +89,182 @@ async function main() {
 }
 
 async function seedDemoData() {
-  // Create demo trainer
+  // Create demo trainer — SELECT then INSERT (upsert)
   const trainerPassword = await bcrypt.hash("demo123", 10)
-  const trainerUser = await prisma.user.upsert({
-    where: { username: "trainer1" },
-    update: {},
-    create: {
-      username: "trainer1",
-      email: "trainer1@demo.local",
-      passwordHash: trainerPassword,
-      phone: "+1555000111",
-      role: "TRAINER",
-      trainerProfile: {
-        create: {
-          fullName: "المدرب التجريبي",
-          phone: "+1555000111",
-        },
-      },
-    },
-  })
+  let trainerUserRow = await pool.query(`SELECT * FROM "User" WHERE "username" = $1 LIMIT 1`, ["trainer1"])
+  let trainerUser: any
+  if (trainerUserRow.rowCount === 0) {
+    const userId = generateId()
+    const profileId = generateId()
+    await withTransaction(async (client) => {
+      await client.query(
+        `INSERT INTO "User" ("id","username","email","passwordHash","phone","role","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6::"Role",NOW(),NOW())`,
+        [userId, "trainer1", "trainer1@demo.local", trainerPassword, "+1555000111", "TRAINER"]
+      )
+      await client.query(
+        `INSERT INTO "TrainerProfile" ("id","userId","fullName","phone","createdAt","updatedAt") VALUES ($1,$2,$3,$4,NOW(),NOW())`,
+        [profileId, userId, "المدرب التجريبي", "+1555000111"]
+      )
+    })
+    const fresh = await pool.query(`SELECT * FROM "User" WHERE "id" = $1`, [userId])
+    trainerUser = fresh.rows[0]
+  } else {
+    trainerUser = trainerUserRow.rows[0]
+  }
 
-  const trainerProfile = await prisma.trainerProfile.findUnique({
-    where: { userId: trainerUser.id },
-  })
-
-  if (!trainerProfile) {
+  const trainerProfileRes = await pool.query(`SELECT * FROM "TrainerProfile" WHERE "userId" = $1 LIMIT 1`, [trainerUser.id])
+  if (trainerProfileRes.rowCount === 0) {
     console.log("Trainer profile not found, skipping demo data")
     return
   }
+  const trainerProfile = trainerProfileRes.rows[0]
 
   // Create demo client
-  const client = await prisma.client.create({
-    data: {
-      trainerId: trainerProfile.id,
-      fullName: "العميل التجريبي",
-      phone: "+1555000222",
-      birthDate: new Date("1990-01-15"),
-      goal: Goal.MUSCLE_BUILDING,
-      status: ClientStatus.ACTIVE,
-      basicInfoCompletedAt: new Date(),
-    },
-  })
+  const clientId = generateId()
+  const clientRes = await pool.query(
+    `INSERT INTO "Client" ("id","trainerId","fullName","phone","birthDate","goal","status","basicInfoCompletedAt","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6::"Goal",$7::"ClientStatus",$8,NOW(),NOW()) RETURNING *`,
+    [clientId, trainerProfile.id, "العميل التجريبي", "+1555000222", new Date("1990-01-15"), Goal.MUSCLE_BUILDING, ClientStatus.ACTIVE, new Date()]
+  )
+  const client = clientRes.rows[0]
 
   // Create sample InBody (BodyComposition is source of truth)
-  await prisma.bodyComposition.create({
-    data: {
-      clientId: client.id,
-      date: new Date("2024-01-10"),
-      source: BodyCompositionSource.COACH,
-      weightKg: 75,
-      muscleMassKg: 35,
-      bodyFatKg: 15,
-      bodyWaterPct: 55,
-      bmrKcal: 1700,
-      fitnessScore: 75,
-      waistHipRatio: 0.85,
-      visceralFatLevel: 5,
-      notes: "بداية جيدة، التركيز على قوة الجزء العلوي من الجسم.",
-    },
-  })
+  await pool.query(
+    `INSERT INTO "BodyComposition" ("id","clientId","date","source","weightKg","muscleMassKg","bodyFatKg","bodyWaterPct","bmrKcal","fitnessScore","waistHipRatio","visceralFatLevel","notes","createdAt","updatedAt") VALUES ($1,$2,$3,$4::"BodyCompositionSource",$5,$6,$7,$8,$9,$10,$11,$12,$13,NOW(),NOW())`,
+    [generateId(), client.id, new Date("2024-01-10"), BodyCompositionSource.COACH, 75, 35, 15, 55, 1700, 75, 0.85, 5, "بداية جيدة، التركيز على قوة الجزء العلوي من الجسم."]
+  )
 
   // Create sample nutrition plan
-  await prisma.clientNutritionPlan.create({
-    data: {
-      clientId: client.id,
-      calories: 2600,
-      proteinGrams: 170,
-      carbsGrams: 320,
-      fatsGrams: 70,
-      waterLiters: 3.5,
-      status: PlanStatus.ACTIVE,
-      startDate: new Date("2024-01-15"),
-    },
-  })
+  await pool.query(
+    `INSERT INTO "ClientNutritionPlan" ("id","clientId","calories","proteinGrams","carbsGrams","fatsGrams","waterLiters","status","startDate","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8::"PlanStatus",$9,NOW(),NOW())`,
+    [generateId(), client.id, 2600, 170, 320, 70, 3.5, PlanStatus.ACTIVE, new Date("2024-01-15")]
+  )
 
   // Create sample training split
-  const demoLibrary = await prisma.exercise.findMany({
-    where: {
-      name: {
-        in: [
-          "Barbell Bench Press",
-          "Lat Pulldown",
-          "Barbell Back Squat",
-          "Romanian Deadlift",
-          "Overhead Press",
-          "Seated Cable Row",
-          "Leg Press",
-          "Leg Curl",
+  const demoExerciseNames = [
+    "Barbell Bench Press",
+    "Lat Pulldown",
+    "Barbell Back Squat",
+    "Romanian Deadlift",
+    "Overhead Press",
+    "Seated Cable Row",
+    "Leg Press",
+    "Leg Curl",
+  ]
+  const demoLibraryRes = await pool.query(`SELECT "id","name" FROM "Exercise" WHERE "name" = ANY($1::text[])`, [demoExerciseNames])
+  const demoExerciseById = new Map(demoLibraryRes.rows.map((e: any) => [e.name, e.id]))
+
+  // Build split with days and exercises inside transaction and keep created exercise ids
+  const splitId = generateId()
+  type CreatedEx = { id: string; exerciseName: string }
+  const createdExercises: CreatedEx[] = []
+
+  await withTransaction(async (tx) => {
+    await tx.query(
+      `INSERT INTO "TrainingSplit" ("id","clientId","splitType","daysPerWeek","status","createdAt","updatedAt") VALUES ($1,$2,$3::"SplitType",$4,$5::"PlanStatus",NOW(),NOW())`,
+      [splitId, client.id, "UPPER_LOWER", 4, PlanStatus.ACTIVE]
+    )
+
+    const dayDefs: Array<{ dayNumber: number; focus: string; notes: string; exercises: Array<{ order: number; exerciseName: string; targetSets: number | null; targetReps: number | null; targetWeightKg: number | null; restSeconds: number | null }> }> = [
+      {
+        dayNumber: 1,
+        focus: "UPPER",
+        notes: "تركيز دفع/سحب",
+        exercises: [
+          { order: 1, exerciseName: "Barbell Bench Press", targetSets: 3, targetReps: 8, targetWeightKg: 60, restSeconds: 120 },
+          { order: 2, exerciseName: "Lat Pulldown", targetSets: 3, targetReps: 10, targetWeightKg: null, restSeconds: 90 },
         ],
       },
-    },
-    select: { id: true, name: true },
-  })
-  const demoExerciseById = new Map(demoLibrary.map((e) => [e.name, e.id]))
-
-  const demoSplit = await prisma.trainingSplit.create({
-    data: {
-      clientId: client.id,
-      splitType: "UPPER_LOWER",
-      daysPerWeek: 4,
-      status: PlanStatus.ACTIVE,
-      days: {
-        create: [
-          {
-            dayNumber: 1,
-            focus: "UPPER",
-            notes: "تركيز دفع/سحب",
-            exercises: {
-              create: [
-                {
-                  order: 1,
-                  exerciseId: demoExerciseById.get("Barbell Bench Press") ?? null,
-                  exerciseName: "Barbell Bench Press",
-                  targetSets: 3,
-                  targetReps: 8,
-                  targetWeightKg: 60,
-                  restSeconds: 120,
-                },
-                {
-                  order: 2,
-                  exerciseId: demoExerciseById.get("Lat Pulldown") ?? null,
-                  exerciseName: "Lat Pulldown",
-                  targetSets: 3,
-                  targetReps: 10,
-                  restSeconds: 90,
-                },
-              ],
-            },
-          },
-          {
-            dayNumber: 2,
-            focus: "LOWER",
-            notes: "تركيز سكوات/رومانية",
-            exercises: {
-              create: [
-                {
-                  order: 1,
-                  exerciseId: demoExerciseById.get("Barbell Back Squat") ?? null,
-                  exerciseName: "Barbell Back Squat",
-                  targetSets: 3,
-                  targetReps: 8,
-                  targetWeightKg: 80,
-                  restSeconds: 180,
-                },
-                {
-                  order: 2,
-                  exerciseId: demoExerciseById.get("Romanian Deadlift") ?? null,
-                  exerciseName: "Romanian Deadlift",
-                  targetSets: 3,
-                  targetReps: 10,
-                  restSeconds: 120,
-                },
-              ],
-            },
-          },
-          {
-            dayNumber: 3,
-            focus: "UPPER",
-            notes: "تركيز مائل/تجديف",
-            exercises: {
-              create: [
-                {
-                  order: 1,
-                  exerciseId: demoExerciseById.get("Overhead Press") ?? null,
-                  exerciseName: "Overhead Press",
-                  targetSets: 3,
-                  targetReps: 8,
-                  restSeconds: 120,
-                },
-                {
-                  order: 2,
-                  exerciseId: demoExerciseById.get("Seated Cable Row") ?? null,
-                  exerciseName: "Seated Cable Row",
-                  targetSets: 3,
-                  targetReps: 10,
-                  restSeconds: 90,
-                },
-              ],
-            },
-          },
-          {
-            dayNumber: 4,
-            focus: "LOWER",
-            notes: "تركيز اندفاع/مفصل الورك",
-            exercises: {
-              create: [
-                {
-                  order: 1,
-                  exerciseId: demoExerciseById.get("Leg Press") ?? null,
-                  exerciseName: "Leg Press",
-                  targetSets: 3,
-                  targetReps: 12,
-                  restSeconds: 120,
-                },
-                {
-                  order: 2,
-                  exerciseId: demoExerciseById.get("Leg Curl") ?? null,
-                  exerciseName: "Leg Curl",
-                  targetSets: 3,
-                  targetReps: 12,
-                  restSeconds: 60,
-                },
-              ],
-            },
-          },
+      {
+        dayNumber: 2,
+        focus: "LOWER",
+        notes: "تركيز سكوات/رومانية",
+        exercises: [
+          { order: 1, exerciseName: "Barbell Back Squat", targetSets: 3, targetReps: 8, targetWeightKg: 80, restSeconds: 180 },
+          { order: 2, exerciseName: "Romanian Deadlift", targetSets: 3, targetReps: 10, targetWeightKg: null, restSeconds: 120 },
         ],
       },
-    },
-    include: { days: { include: { exercises: true } } },
+      {
+        dayNumber: 3,
+        focus: "UPPER",
+        notes: "تركيز مائل/تجديف",
+        exercises: [
+          { order: 1, exerciseName: "Overhead Press", targetSets: 3, targetReps: 8, targetWeightKg: null, restSeconds: 120 },
+          { order: 2, exerciseName: "Seated Cable Row", targetSets: 3, targetReps: 10, targetWeightKg: null, restSeconds: 90 },
+        ],
+      },
+      {
+        dayNumber: 4,
+        focus: "LOWER",
+        notes: "تركيز اندفاع/مفصل الورك",
+        exercises: [
+          { order: 1, exerciseName: "Leg Press", targetSets: 3, targetReps: 12, targetWeightKg: null, restSeconds: 120 },
+          { order: 2, exerciseName: "Leg Curl", targetSets: 3, targetReps: 12, targetWeightKg: null, restSeconds: 60 },
+        ],
+      },
+    ]
+
+    for (const day of dayDefs) {
+      const dayId = generateId()
+      await tx.query(
+        `INSERT INTO "TrainingSplitDay" ("id","splitId","dayNumber","focus","notes","createdAt","updatedAt") VALUES ($1,$2,$3,$4::"TrainingDayFocus",$5,NOW(),NOW())`,
+        [dayId, splitId, day.dayNumber, day.focus, day.notes]
+      )
+      for (const ex of day.exercises) {
+        const exId = generateId()
+        await tx.query(
+          `INSERT INTO "SplitDayExercise" ("id","splitDayId","order","exerciseId","exerciseName","targetSets","targetReps","targetWeightKg","restSeconds","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW(),NOW())`,
+          [exId, dayId, ex.order, demoExerciseById.get(ex.exerciseName) ?? null, ex.exerciseName, ex.targetSets, ex.targetReps, ex.targetWeightKg, ex.restSeconds]
+        )
+        createdExercises.push({ id: exId, exerciseName: ex.exerciseName })
+      }
+    }
   })
 
-  // Create sample exercise logs (drives auto-progress demo)
-  const demoDayExercises = demoSplit.days.flatMap((day) => day.exercises)
-  const bench = demoDayExercises.find((e) => e.exerciseName === "Barbell Bench Press")
-  const squat = demoDayExercises.find((e) => e.exerciseName === "Barbell Back Squat")
+  const bench = createdExercises.find((e) => e.exerciseName === "Barbell Bench Press")
+  const squat = createdExercises.find((e) => e.exerciseName === "Barbell Back Squat")
 
   if (bench) {
-    await prisma.exerciseLog.createMany({
-      data: [
-        {
-          splitDayExerciseId: bench.id,
-          clientId: client.id,
-          date: new Date("2024-02-01"),
-          actualSets: 3,
-          actualReps: 8,
-          actualWeightKg: 60,
-          rpe: 7,
-          notes: "إحساس قوي",
-        },
-        {
-          splitDayExerciseId: bench.id,
-          clientId: client.id,
-          date: new Date("2024-02-08"),
-          actualSets: 3,
-          actualReps: 8,
-          actualWeightKg: 62.5,
-          rpe: 7,
-        },
-      ],
-    })
+    const logs = [
+      { date: new Date("2024-02-01"), actualSets: 3, actualReps: 8, actualWeightKg: 60, rpe: 7, notes: "إحساس قوي" as string | null },
+      { date: new Date("2024-02-08"), actualSets: 3, actualReps: 8, actualWeightKg: 62.5, rpe: 7, notes: null as string | null },
+    ]
+    for (const l of logs) {
+      await pool.query(
+        `INSERT INTO "ExerciseLog" ("id","splitDayExerciseId","clientId","date","actualSets","actualReps","actualWeightKg","rpe","notes","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW(),NOW())`,
+        [generateId(), bench.id, client.id, l.date, l.actualSets, l.actualReps, l.actualWeightKg, l.rpe, l.notes]
+      )
+    }
   }
   if (squat) {
-    await prisma.exerciseLog.createMany({
-      data: [
-        {
-          splitDayExerciseId: squat.id,
-          clientId: client.id,
-          date: new Date("2024-02-01"),
-          actualSets: 3,
-          actualReps: 8,
-          actualWeightKg: 80,
-          rpe: 8,
-        },
-        {
-          splitDayExerciseId: squat.id,
-          clientId: client.id,
-          date: new Date("2024-02-08"),
-          actualSets: 3,
-          actualReps: 8,
-          actualWeightKg: 80,
-          rpe: 9,
-          notes: "صعب جدًا",
-        },
-      ],
-    })
+    const logs = [
+      { date: new Date("2024-02-01"), actualSets: 3, actualReps: 8, actualWeightKg: 80, rpe: 8, notes: null as string | null },
+      { date: new Date("2024-02-08"), actualSets: 3, actualReps: 8, actualWeightKg: 80, rpe: 9, notes: "صعب جدًا" as string | null },
+    ]
+    for (const l of logs) {
+      await pool.query(
+        `INSERT INTO "ExerciseLog" ("id","splitDayExerciseId","clientId","date","actualSets","actualReps","actualWeightKg","rpe","notes","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW(),NOW())`,
+        [generateId(), squat.id, client.id, l.date, l.actualSets, l.actualReps, l.actualWeightKg, l.rpe, l.notes]
+      )
+    }
   }
 
   // Create sample subscription
-  await prisma.subscription.create({
-    data: {
-      clientId: client.id,
-      planName: "4 جلسات / شهر",
-      status: SubscriptionStatus.ACTIVE,
-      paymentStatus: PaymentStatus.PAID,
-      startDate: new Date("2024-01-15"),
-      endDate: new Date("2024-02-15"),
-      sessionsCount: 16,
-      remainingSessions: 12,
-    },
-  })
+  await pool.query(
+    `INSERT INTO "Subscription" ("id","clientId","planName","status","paymentStatus","startDate","endDate","sessionsCount","remainingSessions","createdAt","updatedAt") VALUES ($1,$2,$3,$4::"SubscriptionStatus",$5::"PaymentStatus",$6,$7,$8,$9,NOW(),NOW())`,
+    [generateId(), client.id, "4 جلسات / شهر", SubscriptionStatus.ACTIVE, PaymentStatus.PAID, new Date("2024-01-15"), new Date("2024-02-15"), 16, 12]
+  )
 
   // Create sample workout log
-  await prisma.workoutLog.create({
-    data: {
-      clientId: client.id,
-      date: new Date("2024-02-01"),
-      exerciseName: "بنش برس",
-      sets: 3,
-      reps: 8,
-      weightKg: 70,
-      rpe: 8,
-      notes: "إحساس قوي، زدت وزن البنش.",
-    },
-  })
+  await pool.query(
+    `INSERT INTO "WorkoutLog" ("id","clientId","date","exerciseName","sets","reps","weightKg","rpe","notes","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW(),NOW())`,
+    [generateId(), client.id, new Date("2024-02-01"), "بنش برس", 3, 8, 70, 8, "إحساس قوي، زدت وزن البنش."]
+  )
 
   // Create sample progress review
-  await prisma.progressReview.create({
-    data: {
-      clientId: client.id,
-      reviewDate: new Date("2024-02-15"),
-      trainerNotes: "الوزن زاد ١.٥ كجم والقوة تتحسن. ارفع السعرات ٢٠٠ كالوري.",
-      adherencePct: 85,
-      energyLevel: 8,
-    },
-  })
+  await pool.query(
+    `INSERT INTO "ProgressReview" ("id","clientId","reviewDate","trainerNotes","adherencePct","energyLevel","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,NOW(),NOW())`,
+    [generateId(), client.id, new Date("2024-02-15"), "الوزن زاد ١.٥ كجم والقوة تتحسن. ارفع السعرات ٢٠٠ كالوري.", 85, 8]
+  )
 
   console.log("Demo data seeded successfully")
 }
@@ -464,11 +332,13 @@ const EXERCISE_LIBRARY: ExerciseSeed[] = [
 async function seedExerciseLibrary() {
   let count = 0
   for (const exercise of EXERCISE_LIBRARY) {
-    const exists = await prisma.exercise.findUnique({
-      where: { name: exercise.name },
-    })
-    if (!exists) {
-      await prisma.exercise.create({ data: exercise })
+    const exists = await pool.query(`SELECT "id" FROM "Exercise" WHERE "name" = $1 LIMIT 1`, [exercise.name])
+    if (exists.rowCount === 0) {
+      const id = generateId()
+      await pool.query(
+        `INSERT INTO "Exercise" ("id","name","nameAr","muscleGroup","equipment","tags","defaultSets","defaultReps","defaultRestSeconds","isGlobal","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6::text[],$7,$8,$9,true,NOW(),NOW())`,
+        [id, exercise.name, exercise.nameAr, exercise.muscleGroup, exercise.equipment, exercise.tags, exercise.defaultSets ?? null, exercise.defaultReps ?? null, exercise.defaultRestSeconds ?? null]
+      )
       count++
     }
   }
@@ -665,53 +535,35 @@ const GLOBAL_SPLIT_TEMPLATES: TemplateSeed[] = [
 async function seedGlobalSplitTemplates() {
   let count = 0
   for (const template of GLOBAL_SPLIT_TEMPLATES) {
-    const exists = await prisma.trainingSplitTemplate.findFirst({
-      where: { name: template.name, isGlobal: true },
-    })
-    if (exists) continue
+    const exists = await pool.query(`SELECT "id" FROM "TrainingSplitTemplate" WHERE "name" = $1 AND "isGlobal" = true LIMIT 1`, [template.name])
+    if (exists.rowCount !== 0) continue
 
-    const exerciseNames = [
-      ...new Set(
-        template.days.flatMap((day) =>
-          day.exercises.map((exercise) => exercise.exercise)
+    const exerciseNames = [...new Set(template.days.flatMap((day) => day.exercises.map((exercise) => exercise.exercise)))]
+    const libraryRes = await pool.query(`SELECT "id","name" FROM "Exercise" WHERE "name" = ANY($1::text[])`, [exerciseNames])
+    const libraryByName = new Map(libraryRes.rows.map((e: any) => [e.name, e.id]))
+
+    await withTransaction(async (client) => {
+      const templateId = generateId()
+      await client.query(
+        `INSERT INTO "TrainingSplitTemplate" ("id","name","goal","level","splitType","daysPerWeek","description","isGlobal","createdAt","updatedAt") VALUES ($1,$2,$3::"Goal",$4,$5::"SplitType",$6,$7,true,NOW(),NOW())`,
+        [templateId, template.name, template.goal, template.level, template.splitType, template.daysPerWeek, template.description]
+      )
+      for (let dayIndex = 0; dayIndex < template.days.length; dayIndex++) {
+        const day = template.days[dayIndex]
+        const dayId = generateId()
+        await client.query(
+          `INSERT INTO "TrainingSplitTemplateDay" ("id","templateId","dayNumber","focus","customFocus","createdAt","updatedAt") VALUES ($1,$2,$3,$4::"TrainingDayFocus",$5,NOW(),NOW())`,
+          [dayId, templateId, dayIndex + 1, day.focus, (day as any).customFocus ?? null]
         )
-      ),
-    ]
-    const library = await prisma.exercise.findMany({
-      where: { name: { in: exerciseNames } },
-      select: { id: true, name: true },
-    })
-    const libraryByName = new Map(library.map((e) => [e.name, e.id]))
-
-    await prisma.trainingSplitTemplate.create({
-      data: {
-        name: template.name,
-        goal: template.goal,
-        level: template.level,
-        splitType: template.splitType,
-        daysPerWeek: template.daysPerWeek,
-        description: template.description,
-        isGlobal: true,
-        days: {
-          create: template.days.map((day, dayIndex) => ({
-            dayNumber: dayIndex + 1,
-            focus: day.focus,
-            customFocus: day.customFocus,
-            exercises: {
-              create: day.exercises.map((exercise, exIndex) => ({
-                order: exIndex + 1,
-                exerciseId: libraryByName.get(exercise.exercise) ?? null,
-                exerciseName: exercise.exercise,
-                targetSets: exercise.sets ?? null,
-                targetReps: exercise.reps ?? null,
-                targetWeightKg: exercise.weightKg ?? null,
-                restSeconds: exercise.rest ?? null,
-                notes: exercise.notes ?? null,
-              })),
-            },
-          })),
-        },
-      },
+        for (let exIndex = 0; exIndex < day.exercises.length; exIndex++) {
+          const exercise = day.exercises[exIndex]
+          const exId = generateId()
+          await client.query(
+            `INSERT INTO "TemplateDayExercise" ("id","templateDayId","order","exerciseId","exerciseName","targetSets","targetReps","targetWeightKg","restSeconds","notes","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW(),NOW())`,
+            [exId, dayId, exIndex + 1, libraryByName.get(exercise.exercise) ?? null, exercise.exercise, exercise.sets ?? null, exercise.reps ?? null, exercise.weightKg ?? null, exercise.rest ?? null, exercise.notes ?? null]
+          )
+        }
+      }
     })
     count++
   }
@@ -723,4 +575,6 @@ main()
     console.error(error)
     process.exit(1)
   })
-  .finally(() => prisma.$disconnect())
+  .finally(async () => {
+    await pool.end()
+  })

@@ -1,45 +1,47 @@
-import { PrismaPg } from "@prisma/adapter-pg"
-import { PrismaClient } from "@/generated/prisma/client"
-import bcrypt from "bcryptjs"
+import "dotenv/config"
+import { pool, generateId, withTransaction } from "../src/lib/db"
+import bcrypt from "@node-rs/bcrypt"
 
 async function main() {
-  const p = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) })
-
-  let user = await p.user.findUnique({ where: { phone: "02001112222" } })
+  let userRow = await pool.query(`SELECT * FROM "User" WHERE "phone" = $1 LIMIT 1`, ["02001112222"])
+  let user: any = userRow.rows[0] ?? null
   if (!user) {
     const hash = await bcrypt.hash("password", 10)
-    user = await p.user.create({
-      data: {
-        phone: "02001112222",
-        passwordHash: hash,
-        role: "TRAINER",
-        trainerProfile: {
-          create: { fullName: "Second Trainer", phone: "02001112222" },
-        },
-      },
+    const userId = generateId()
+    const profileId = generateId()
+    await withTransaction(async (tx) => {
+      await tx.query(
+        `INSERT INTO "User" ("id","phone","passwordHash","role","createdAt","updatedAt") VALUES ($1,$2,$3,$4::"Role",NOW(),NOW())`,
+        [userId, "02001112222", hash, "TRAINER"]
+      )
+      await tx.query(
+        `INSERT INTO "TrainerProfile" ("id","userId","fullName","phone","createdAt","updatedAt") VALUES ($1,$2,$3,$4,NOW(),NOW())`,
+        [profileId, userId, "Second Trainer", "02001112222"]
+      )
     })
+    const fresh = await pool.query(`SELECT * FROM "User" WHERE "id" = $1`, [userId])
+    user = fresh.rows[0]
   }
 
-  const trainer = await p.user.findUnique({
-    where: { phone: "02001112222" },
-    include: { trainerProfile: true },
-  })
-  if (!trainer?.trainerProfile) throw new Error("no profile")
+  const trainerRes = await pool.query(`SELECT * FROM "User" WHERE "phone" = $1 LIMIT 1`, ["02001112222"])
+  const trainer = trainerRes.rows[0]
+  const profileRes = await pool.query(`SELECT * FROM "TrainerProfile" WHERE "userId" = $1 LIMIT 1`, [trainer.id])
+  if (profileRes.rowCount === 0 || !profileRes.rows[0]) throw new Error("no profile")
+  const trainerProfile = profileRes.rows[0]
 
-  let client = await p.client.findFirst({ where: { trainerId: trainer.trainerProfile.id } })
+  let clientRes = await pool.query(`SELECT * FROM "Client" WHERE "trainerId" = $1 LIMIT 1`, [trainerProfile.id])
+  let client: any = clientRes.rows[0] ?? null
   if (!client) {
-    client = await p.client.create({
-      data: {
-        trainerId: trainer.trainerProfile.id,
-        fullName: "Other Trainer's Client",
-        status: "ACTIVE",
-        goal: "STRENGTH",
-      },
-    })
+    const clientId = generateId()
+    const newRes = await pool.query(
+      `INSERT INTO "Client" ("id","trainerId","fullName","status","goal","createdAt","updatedAt") VALUES ($1,$2,$3,$4::"ClientStatus",$5::"Goal",NOW(),NOW()) RETURNING *`,
+      [clientId, trainerProfile.id, "Other Trainer's Client", "ACTIVE", "STRENGTH"]
+    )
+    client = newRes.rows[0]
   }
 
-  console.log(JSON.stringify({ trainerProfileId: trainer.trainerProfile.id, clientId: client.id }))
-  await p.$disconnect()
+  console.log(JSON.stringify({ trainerProfileId: trainerProfile.id, clientId: client.id }))
+  await pool.end()
 }
 
 main().catch((e) => {

@@ -1,10 +1,10 @@
 "use server"
 
-import bcrypt from "bcryptjs"
+import { hashPassword } from "@/lib/auth"
 import { registerTrainer } from "@/server/services/auth.service"
 import { getCurrentSession } from "@/server/auth"
-import { prisma } from "@/lib/prisma"
-import { Role } from "@/generated/prisma/enums"
+import { pool } from "@/lib/db"
+import { Role } from "@/lib/db/enums"
 
 export async function registerAction(input: {
   fullName: string
@@ -30,16 +30,14 @@ export async function resetUserPasswordAction(
     return { ok: false, error: "UNAUTHORIZED" }
   }
 
-  const user = await prisma.user.findUnique({ where: { id: userId } })
+  const userRes = await pool.query(`SELECT * FROM "User" WHERE "id"=$1 LIMIT 1`, [userId])
+  const user = userRes.rows[0]
   if (!user) {
     return { ok: false, error: "User not found" }
   }
 
-  const passwordHash = await bcrypt.hash(newPassword, 10)
-  await prisma.user.update({
-    where: { id: userId },
-    data: { passwordHash },
-  })
+  const passwordHash = await hashPassword(newPassword)
+  await pool.query(`UPDATE "User" SET "passwordHash"=$1, "updatedAt"=NOW() WHERE "id"=$2`, [passwordHash, userId])
 
   return { ok: true }
 }

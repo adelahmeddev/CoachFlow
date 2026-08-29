@@ -1,14 +1,13 @@
-﻿import Link from "next/link"
+import Link from "next/link"
 import { Pencil } from "lucide-react"
-import type { TrainingSplit, TrainingSplitDay } from "@/generated/prisma/client"
-import { ScheduleMode } from "@/generated/prisma/enums"
+import type { TrainingSplit, TrainingSplitDay } from "@/lib/db/types"
+import { ScheduleMode } from "@/lib/db/enums"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getI18n } from "@/lib/i18n"
 import { lookup } from "@/lib/i18n/lookup"
-import { getPlanStatusBadgeVariant, getPlanStatusLabel } from "@/lib/client-labels"
-import { SPLIT_TYPE_LABELS, DAY_FOCUS_LABELS } from "@/lib/constants/training-split"
+import { getPlanStatusBadgeVariant, getPlanStatusLabel, SPLIT_TYPE_LABELS, DAY_FOCUS_LABELS } from "@/lib/constants"
 import { TrainingSplitStatusButtons } from "@/components/features/training-split/training-split-status-buttons"
 
 interface ActiveSplitCardProps {

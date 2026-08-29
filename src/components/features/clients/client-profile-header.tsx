@@ -11,7 +11,7 @@ import {
   getClientStatusLabel,
   getGoalBadgeVariant,
   getGoalLabel,
-} from "@/lib/client-labels"
+} from "@/lib/constants"
 import { calcAge } from "@/lib/format"
 import { getI18n } from "@/lib/i18n"
 

@@ -4,12 +4,12 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ClientProfile } from "@/server/services/client-profile.service"
-import type { BadgeVariant } from "@/lib/client-labels"
+import type { BadgeVariant } from "@/lib/constants"
 import {
   getClientStatusBadgeVariant,
   getPlanStatusBadgeVariant,
   getSubscriptionStatusBadgeVariant,
-} from "@/lib/client-labels"
+} from "@/lib/constants"
 import {
   getClientStatusLabel,
   getGoalLabel,

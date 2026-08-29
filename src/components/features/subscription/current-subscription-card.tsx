@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Pencil } from "lucide-react"
-import type { Subscription } from "@/generated/prisma/client"
+import type { Subscription } from "@/lib/db/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,7 +18,7 @@ import {
   SUBSCRIPTION_STATUS_BADGE_VARIANTS,
   PAYMENT_STATUS_BADGE_VARIANTS,
   PLAN_TYPE_BADGE_VARIANTS,
-} from "@/lib/constants/subscription"
+} from "@/lib/constants"
 import { cn } from "@/lib/utils"
 import { StatusActionButtons } from "@/components/features/subscription/status-action-buttons"
 import { RenewSubscriptionDialog } from "@/components/features/subscription/renew-subscription-dialog"

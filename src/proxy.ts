@@ -45,8 +45,6 @@ export async function proxy(request: NextRequest) {
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
-    // Match the dynamic cookie name from auth.ts:
-    // __Secure- prefix is added in production/HTTPS environments.
     cookieName:
       process.env.NODE_ENV === "production" ||
       (process.env.NEXTAUTH_URL ?? "").startsWith("https://")
@@ -59,19 +57,13 @@ export async function proxy(request: NextRequest) {
 
   const isAuthPage = isPath(pathname, AUTH_PATHS);
 
-  // Logged-in users on auth pages go to their own role home.
   if (isLoggedIn && isAuthPage) {
     if (role) {
       return NextResponse.redirect(new URL(getHomeForRole(role), request.url));
     }
-    // Token without a role: fall through and let the page handle it.
     return NextResponse.next();
   }
 
-  // mustChangePassword enforcement lives in the client portal layout
-  // (DB check, not JWT — token goes stale after the password changes).
-
-  // Trainer-only area: anyone who is not a trainer goes to their role home.
   if (isPath(pathname, TRAINER_PATHS)) {
     if (!isLoggedIn) {
       return NextResponse.redirect(new URL("/login", request.url));
@@ -81,7 +73,6 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Client-only area: anyone who is not a client goes to their role home.
   if (isPath(pathname, CLIENT_PATHS)) {
     if (!isLoggedIn) {
       return NextResponse.redirect(new URL("/client/login", request.url));
@@ -91,7 +82,6 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Admin-only area: anyone who is not an admin goes to their role home.
   if (pathname.startsWith("/admin")) {
     if (!isLoggedIn) {
       return NextResponse.redirect(new URL("/login", request.url));
