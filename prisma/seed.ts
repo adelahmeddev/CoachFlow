@@ -1,5 +1,5 @@
 import "dotenv/config"
-import bcrypt from "@node-rs/bcrypt"
+import bcrypt from "bcryptjs"
 import { pool, generateId, withTransaction } from "../src/lib/db"
 import {
   ClientStatus,

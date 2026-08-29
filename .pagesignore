@@ -1,0 +1,13 @@
+.next/cache
+node_modules
+.git
+.github
+.vercel
+.pg
+scripts
+prisma
+tests
+playwright.config.ts
+*.log
+.wrangler
+.open-next

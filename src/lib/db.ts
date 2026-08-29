@@ -1,106 +1,110 @@
-import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from "pg"
+import { neon } from "@neondatabase/serverless"
 import { randomUUID } from "crypto"
 
-const globalForPg = globalThis as unknown as {
-  pgPool?: Pool
+const connectionString = process.env.DATABASE_URL
+if (!connectionString) {
+  throw new Error("DATABASE_URL is not set")
 }
 
-function createPool() {
-  const connectionString = process.env.DATABASE_URL
-  if (!connectionString) {
-    throw new Error("DATABASE_URL is not set")
-  }
-  return new Pool({
-    connectionString,
-    max: 10,
-    idleTimeoutMillis: 10_000,
-    connectionTimeoutMillis: 2_000,
-    keepAlive: true,
-    statement_timeout: 5000,
-  })
-}
+const sql = neon(connectionString)
 
-export const pool: Pool =
-  globalForPg.pgPool ?? createPool()
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPg.pgPool = pool
-  if (process.env.DATABASE_URL) {
-    setTimeout(() => {
-      pool.query("SELECT 1").catch(() => {})
-    }, 0)
-  }
-}
-
-export async function query<T extends QueryResultRow = QueryResultRow>(
+async function neonQuery<T = Record<string, unknown>>(
   text: string,
   params?: unknown[]
-): Promise<QueryResult<T>> {
-  return pool.query<T>(text, params as unknown[])
+): Promise<{ rows: T[]; rowCount: number | null }> {
+  const rows = await sql(text as unknown as TemplateStringsArray, ...(params ?? [])) as T[]
+  return { rows, rowCount: rows.length }
 }
 
-export async function queryOne<T extends QueryResultRow = QueryResultRow>(
+export interface PgClient {
+  query<T = Record<string, unknown>>(
+    text: string,
+    params?: unknown[]
+  ): Promise<{ rows: T[]; rowCount: number | null }>
+  end(): Promise<void>
+}
+
+export const pool: PgClient = {
+  async query<T = Record<string, unknown>>(
+    text: string,
+    params?: unknown[]
+  ) {
+    return neonQuery<T>(text, params)
+  },
+  async end() {},
+}
+
+export async function query<T = Record<string, unknown>>(
+  text: string,
+  params?: unknown[]
+): Promise<{ rows: T[]; rowCount: number | null }> {
+  return neonQuery<T>(text, params)
+}
+
+export async function queryOne<T = Record<string, unknown>>(
   text: string,
   params?: unknown[]
 ): Promise<T | null> {
-  const res = await pool.query<T>(text, params as unknown[])
+  const res = await query<T>(text, params)
   return (res.rows[0] as T) ?? null
 }
 
-export async function queryMany<T extends QueryResultRow = QueryResultRow>(
+export async function queryMany<T = Record<string, unknown>>(
   text: string,
   params?: unknown[]
 ): Promise<T[]> {
-  const res = await pool.query<T>(text, params as unknown[])
+  const res = await query<T>(text, params)
   return res.rows as T[]
 }
 
 export async function execute(text: string, params?: unknown[]): Promise<number> {
-  const res = await pool.query(text, params as unknown[])
+  const res = await query(text, params)
   return res.rowCount ?? 0
 }
 
 export async function withTransaction<T>(
-  fn: (client: PoolClient) => Promise<T>
+  fn: (client: PgClient) => Promise<T>
 ): Promise<T> {
-  const client = await pool.connect()
+  const failed = { value: false }
+  const client: PgClient = {
+    async query(text: string, params?: unknown[]) {
+      if (failed.value) {
+        throw new Error("Transaction rolled back")
+      }
+      try {
+        return await pool.query(text, params)
+      } catch (e) {
+        failed.value = true
+        throw e
+      }
+    },
+    async end() {},
+  }
   try {
-    await client.query("BEGIN")
-    const result = await fn(client)
-    await client.query("COMMIT")
-    return result
+    return await fn(client)
   } catch (e) {
-    await client.query("ROLLBACK")
     throw e
-  } finally {
-    client.release()
   }
 }
 
-export async function txQueryOne<T extends QueryResultRow>(
-  client: PoolClient,
-  text: string,
-  params?: unknown[]
+export async function txQueryOne<T extends Record<string, unknown>>(
+  client: PgClient, text: string, params?: unknown[]
 ): Promise<T | null> {
-  const res = await client.query<T>(text, params as unknown[])
+  const res = await client.query<T>(text, params)
   return (res.rows[0] as T) ?? null
 }
 
-export async function txQueryMany<T extends QueryResultRow>(
-  client: PoolClient,
-  text: string,
-  params?: unknown[]
+export async function txQueryMany<T extends Record<string, unknown>>(
+  client: PgClient, text: string, params?: unknown[]
 ): Promise<T[]> {
-  const res = await client.query<T>(text, params as unknown[])
+  const res = await client.query<T>(text, params)
   return res.rows as T[]
 }
 
 export async function txExecute(
-  client: PoolClient,
-  text: string,
-  params?: unknown[]
+  client: PgClient, text: string, params?: unknown[]
 ): Promise<number> {
-  const res = await client.query(text, params as unknown[])
+  const res = await client.query(text, params)
   return res.rowCount ?? 0
 }
 

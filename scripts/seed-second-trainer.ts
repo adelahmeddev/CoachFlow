@@ -1,6 +1,6 @@
 import "dotenv/config"
 import { pool, generateId, withTransaction } from "../src/lib/db"
-import bcrypt from "@node-rs/bcrypt"
+import bcrypt from "bcryptjs"
 
 async function main() {
   let userRow = await pool.query(`SELECT * FROM "User" WHERE "phone" = $1 LIMIT 1`, ["02001112222"])

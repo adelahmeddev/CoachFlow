@@ -1,5 +1,5 @@
 import "dotenv/config"
-import bcrypt from "@node-rs/bcrypt"
+import bcrypt from "bcryptjs"
 import { pool, generateId } from "../src/lib/db"
 
 async function main() {

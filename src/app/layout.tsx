@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   },
   description: "نظام إدارة المدرب الشخصي",
   applicationName: "NANOUSH",
-  manifest: "/manifest.json",
+  manifest: "/brand/manifest.json",
   icons: {
     icon: "/brand/favicon.svg",
     shortcut: "/brand/favicon.svg",

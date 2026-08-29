@@ -1,6 +1,6 @@
 import "dotenv/config"
 import { pool, generateId, withTransaction } from "../src/lib/db"
-import bcrypt from "@node-rs/bcrypt"
+import bcrypt from "bcryptjs"
 import {
   Role,
   Goal,
