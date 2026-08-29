@@ -4,7 +4,7 @@ import {
   Goal,
   PaymentStatus,
   SubscriptionStatus,
-} from "@/generated/prisma/enums"
+} from "@/lib/db/enums"
 import { interpolate } from "@/lib/i18n/format"
 import type { Dictionary } from "@/lib/i18n/messages/en"
 
@@ -33,9 +33,7 @@ export function buildCreateTrainerSchema(t: Dictionary) {
       phone: z
         .string()
         .trim()
-        .min(7, t.validation.invalidPhone)
-        .max(20, t.validation.invalidPhone)
-        .regex(/^[+\d][\d\s\-()]*$/, t.validation.invalidPhone),
+        .regex(/^\d{11}$/, t.validation.invalidPhone),
       password: z
         .string()
         .min(8, interpolate(t.validation.minLength, { min: 8 }))
@@ -80,9 +78,7 @@ export const createTrainerSchema = z
     phone: z
       .string()
       .trim()
-      .min(7, "PHONE_INVALID")
-      .max(20, "PHONE_INVALID")
-      .regex(/^[+\d][\d\s\-()]*$/, "PHONE_INVALID"),
+      .regex(/^\d{11}$/, "PHONE_INVALID"),
     password: z
       .string()
       .min(8, "PASSWORD_MIN")

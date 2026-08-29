@@ -1,7 +1,7 @@
-﻿"use client"
+"use client"
 
 import { Flame, TrendingUp } from "lucide-react"
-import type { SubscriptionStatus } from "@/generated/prisma/enums"
+import type { SubscriptionStatus } from "@/lib/db/enums"
 import { useI18n } from "@/lib/i18n/client"
 import { lookup } from "@/lib/i18n/lookup"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"

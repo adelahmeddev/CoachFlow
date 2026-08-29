@@ -11,7 +11,7 @@ import {
   Legend,
 } from "recharts"
 import { formatDate } from "@/lib/format"
-import type { BodyComposition } from "@/generated/prisma/client"
+import type { BodyComposition } from "@/lib/db/types"
 
 interface MeasurementsProgressChartProps {
   bodyCompositions: BodyComposition[]

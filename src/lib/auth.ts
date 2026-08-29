@@ -1,16 +1,16 @@
-import { hash, compare } from 'bcryptjs'
+import bcrypt from 'bcryptjs'
 
 const SALT_ROUNDS = process.env.BCRYPT_SALT_ROUNDS
   ? Number(process.env.BCRYPT_SALT_ROUNDS)
   : 12
 
 export async function hashPassword(password: string): Promise<string> {
-  return hash(password, SALT_ROUNDS)
+  return bcrypt.hash(password, SALT_ROUNDS)
 }
 
 export async function comparePassword(
   password: string,
   hashedPassword: string
 ): Promise<boolean> {
-  return compare(password, hashedPassword)
+  return bcrypt.compare(password, hashedPassword)
 }

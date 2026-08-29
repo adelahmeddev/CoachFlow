@@ -1,5 +1,5 @@
-import { prisma } from "@/lib/prisma"
-import { PlanStatus, ScheduleMode } from "@/generated/prisma/enums"
+import { pool } from "@/lib/db"
+import { ScheduleMode } from "@/lib/db/enums"
 import { withCache } from "@/lib/cache"
 import { parseSetData } from "@/lib/calculations/session-progress"
 import {
@@ -77,48 +77,43 @@ export function getClientWeekBoard(clientId: string) {
 export async function getClientWeekBoardUncached(
   clientId: string
 ): Promise<ClientWeekBoard> {
-  const client = await prisma.client.findUnique({
-    where: { id: clientId },
-    select: {
-      trainer: { select: { weekStartDay: true } },
-      trainingSplits: {
-        where: { status: PlanStatus.ACTIVE },
-        take: 1,
-        select: {
-          id: true,
-          scheduleMode: true,
-          days: {
-            orderBy: { dayNumber: "asc" as const },
-            select: {
-              id: true,
-              dayNumber: true,
-              focus: true,
-              customFocus: true,
-              weekday: true,
-            },
-          },
-        },
-      },
-    },
-  })
+  const clientRes = await pool.query(
+    `SELECT c."id", tp."weekStartDay"
+     FROM "Client" c
+     LEFT JOIN "TrainerProfile" tp ON tp."id" = c."trainerId"
+     WHERE c."id" = $1 LIMIT 1`,
+    [clientId]
+  )
+  const clientRow = clientRes.rows[0] as { id: string; weekStartDay: string | null } | undefined
+  if (!clientRow) return EMPTY_BOARD
 
-  const split = client?.trainingSplits[0]
-  if (!client || !split || split.days.length === 0) {
-    return EMPTY_BOARD
-  }
+  const splitRes = await pool.query(
+    `SELECT "id", "scheduleMode" FROM "TrainingSplit" WHERE "clientId" = $1 AND "status" = 'ACTIVE'::"PlanStatus" ORDER BY "createdAt" DESC LIMIT 1`,
+    [clientId]
+  )
+  const split = splitRes.rows[0] as { id: string; scheduleMode: string } | undefined
+  if (!split) return EMPTY_BOARD
 
-  const weekStartDay = client.trainer?.weekStartDay ?? "SAT"
+  const daysRes = await pool.query(
+    `SELECT "id", "dayNumber", "focus", "customFocus", "weekday" FROM "TrainingSplitDay" WHERE "splitId" = $1 ORDER BY "dayNumber" ASC`,
+    [split.id]
+  )
+  const days = daysRes.rows as BoardSplitDay[]
+  if (days.length === 0) return EMPTY_BOARD
+
+  const weekStartDay = (clientRow.weekStartDay ?? "SAT") as string
   const today = new Date()
-  const days: BoardSplitDay[] = split.days
 
   const exerciseCountByDayId = new Map<string, number>()
-  const counts = await prisma.splitDayExercise.groupBy({
-    by: ["splitDayId"],
-    _count: { _all: true },
-    where: { splitDayId: { in: days.map((day) => day.id) } },
-  })
-  for (const row of counts) {
-    exerciseCountByDayId.set(row.splitDayId, row._count._all)
+  if (days.length > 0) {
+    const dayIds = days.map((day) => day.id)
+    const countsRes = await pool.query(
+      `SELECT "splitDayId", COUNT(*)::int AS "count" FROM "SplitDayExercise" WHERE "splitDayId" = ANY($1::text[]) GROUP BY "splitDayId"`,
+      [dayIds]
+    )
+    for (const row of countsRes.rows as Array<{ splitDayId: string; count: number }>) {
+      exerciseCountByDayId.set(row.splitDayId, row.count)
+    }
   }
 
   function withExerciseCounts(board: BoardEntry[]): BoardEntry[] {
@@ -133,28 +128,22 @@ export async function getClientWeekBoardUncached(
 
   if (split.scheduleMode === ScheduleMode.SEQUENTIAL) {
     const exerciseToDay = new Map<string, string>()
-    const fullSplit = await prisma.trainingSplit.findUnique({
-      where: { id: split.id },
-      select: {
-        days: {
-          select: {
-            id: true,
-            exercises: { select: { id: true } },
-          },
-        },
-      },
-    })
-    for (const day of fullSplit?.days ?? []) {
-      for (const exercise of day.exercises) {
-        exerciseToDay.set(exercise.id, day.id)
+    const dayIds = days.map((d) => d.id)
+    if (dayIds.length > 0) {
+      const exRes = await pool.query(
+        `SELECT "id", "splitDayId" FROM "SplitDayExercise" WHERE "splitDayId" = ANY($1::text[])`,
+        [dayIds]
+      )
+      for (const row of exRes.rows as Array<{ id: string; splitDayId: string }>) {
+        exerciseToDay.set(row.id, row.splitDayId)
       }
     }
 
-    const logs = await prisma.exerciseLog.findMany({
-      where: { clientId },
-      select: { splitDayExerciseId: true },
-      distinct: ["splitDayExerciseId"],
-    })
+    const logsRes = await pool.query(
+      `SELECT DISTINCT "splitDayExerciseId" FROM "ExerciseLog" WHERE "clientId" = $1`,
+      [clientId]
+    )
+    const logs = logsRes.rows as Array<{ splitDayExerciseId: string }>
 
     const loggedByDayId: Record<string, boolean> = {}
     for (const log of logs) {
@@ -178,25 +167,20 @@ export async function getClientWeekBoardUncached(
   }
 
   // FIXED_WEEKDAYS
-  const rangeStartDate = weekStartDate(weekStartDay, today)
+  const rangeStartDate = weekStartDate(weekStartDay as unknown as import("@/lib/db/enums").WeekStartDay, today)
   const rangeStartKey = toDateKey(rangeStartDate)
   const rangeEndKey = addDaysToDateKey(rangeStartKey, 7)
 
-  const logs = await prisma.exerciseLog.findMany({
-    where: {
-      clientId,
-      date: {
-        gte: new Date(`${rangeStartKey}T00:00:00`),
-        lt: new Date(`${rangeEndKey}T00:00:00`),
-      },
-    },
-    select: { date: true },
-  })
+  const logsRes = await pool.query(
+    `SELECT "date" FROM "ExerciseLog" WHERE "clientId" = $1 AND "date" >= $2 AND "date" < $3`,
+    [clientId, new Date(`${rangeStartKey}T00:00:00`), new Date(`${rangeEndKey}T00:00:00`)]
+  )
+  const logs = logsRes.rows as Array<{ date: Date }>
 
   const loggedDates = new Set(logs.map((log) => toDateKey(new Date(log.date))))
 
   const board = withExerciseCounts(
-    buildFixedBoard(days, weekStartDay, today, loggedDates)
+    buildFixedBoard(days, weekStartDay as unknown as import("@/lib/db/enums").WeekStartDay, today, loggedDates)
   )
 
   const todayEntry = board.find((entry) => entry.status === "TODAY")
@@ -226,34 +210,76 @@ export async function getDayDetail(
   clientId: string,
   dayId: string
 ): Promise<DayDetail | null> {
-  const [boardData, split] = await Promise.all([
+  const [boardData, splitRes] = await Promise.all([
     getClientWeekBoardUncached(clientId),
-    prisma.trainingSplit.findFirst({
-      where: { clientId, status: PlanStatus.ACTIVE },
-      include: {
-        days: {
-          where: { id: dayId },
-          include: {
-            exercises: {
-              orderBy: { order: "asc" as const },
-              include: { exercise: true },
-            },
-          },
-        },
-      },
-    }),
+    pool.query(
+      `SELECT "id" FROM "TrainingSplit" WHERE "clientId" = $1 AND "status" = 'ACTIVE'::"PlanStatus" LIMIT 1`,
+      [clientId]
+    ),
   ])
 
-  const day = split?.days[0]
+  const splitRow = splitRes.rows[0] as { id: string } | undefined
+  if (!splitRow) return null
+
+  const dayRes = await pool.query(
+    `SELECT * FROM "TrainingSplitDay" WHERE "id" = $1 AND "splitId" = $2 LIMIT 1`,
+    [dayId, splitRow.id]
+  )
+  const day = dayRes.rows[0] as
+    | {
+        id: string
+        dayNumber: number
+        focus: string
+        customFocus: string | null
+        weekday: string | null
+      }
+    | undefined
   if (!day) return null
+
+  const exercisesRes = await pool.query(
+    `SELECT sde."id", sde."splitDayId", sde."order", sde."exerciseId", sde."exerciseName", sde."targetSets", sde."targetReps", sde."targetWeightKg", sde."restSeconds", sde."notes", sde."videoUrl",
+            e."name" AS "exercise_name", e."youtubeUrl" AS "exercise_youtubeUrl"
+     FROM "SplitDayExercise" sde
+     LEFT JOIN "Exercise" e ON e."id" = sde."exerciseId"
+     WHERE sde."splitDayId" = $1
+     ORDER BY sde."order" ASC`,
+    [day.id]
+  )
+  const exercises = exercisesRes.rows as Array<{
+    id: string
+    splitDayId: string
+    order: number
+    exerciseId: string | null
+    exerciseName: string
+    targetSets: number | null
+    targetReps: number | null
+    targetWeightKg: number | null
+    restSeconds: number | null
+    notes: string | null
+    videoUrl: string | null
+    exercise_name: string | null
+    exercise_youtubeUrl: string | null
+  }>
 
   const entry = boardData.board.find((item) => item.dayId === dayId) ?? null
   const status = entry?.status ?? "UPCOMING"
 
-  let logs = await prisma.exerciseLog.findMany({
-    where: { clientId, splitDayExerciseId: { in: day.exercises.map((ex) => ex.id) } },
-    orderBy: { date: "desc" as const },
-  })
+  let logsRes = await pool.query(
+    `SELECT * FROM "ExerciseLog" WHERE "clientId" = $1 AND "splitDayExerciseId" = ANY($2::text[]) ORDER BY "date" DESC`,
+    [clientId, exercises.map((ex) => ex.id)]
+  )
+  let logs = logsRes.rows as Array<{
+    id: string
+    splitDayExerciseId: string
+    clientId: string
+    date: Date
+    actualSets: number | null
+    actualReps: number | null
+    actualWeightKg: number | null
+    rpe: number | null
+    notes: string | null
+    setData: unknown | null
+  }>
 
   if (entry?.dateKey && boardData.mode === ScheduleMode.FIXED_WEEKDAYS) {
     const dayStart = new Date(`${entry.dateKey}T00:00:00`)
@@ -271,7 +297,7 @@ export async function getDayDetail(
   }
 
   let totalVolume = 0
-  const exercises: ClientDayExercise[] = day.exercises.map((ex) => {
+  const clientExercises: ClientDayExercise[] = exercises.map((ex) => {
     const log = latestByExercise.get(ex.id) ?? null
     if (log) {
       totalVolume += volumeOf(
@@ -282,13 +308,13 @@ export async function getDayDetail(
     }
     return {
       id: ex.id,
-      exerciseName: ex.exerciseName || ex.exercise?.name || "Exercise",
+      exerciseName: ex.exerciseName || ex.exercise_name || "Exercise",
       targetSets: ex.targetSets,
       targetReps: ex.targetReps,
       targetWeightKg: ex.targetWeightKg,
       restSeconds: ex.restSeconds,
       notes: ex.notes,
-      youtubeUrl: ex.exercise?.youtubeUrl ?? null,
+      youtubeUrl: ex.exercise_youtubeUrl ?? null,
       videoUrl: ex.videoUrl ?? null,
       setData: parseSetData(log?.setData),
       actualSets: log?.actualSets ?? null,
@@ -308,7 +334,7 @@ export async function getDayDetail(
     status,
     dateKey: entry?.dateKey ?? null,
     weekday: entry?.weekday ?? day.weekday ?? null,
-    exercises,
+    exercises: clientExercises,
     totalVolume: totalVolume > 0 ? totalVolume : null,
   }
 }

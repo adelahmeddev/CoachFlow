@@ -13,7 +13,7 @@ import {
   SplitType,
   SubscriptionStatus,
   TrainingDayFocus,
-} from "@/generated/prisma/enums"
+} from "@/lib/db/enums"
 
 const dictionaries: Record<Locale, Dictionary> = { en, ar }
 

@@ -12,7 +12,7 @@ import {
   updateTrainingSplit,
   updateTrainingSplitStatus,
 } from "@/server/services/training-split.service"
-import { PlanStatus } from "@/generated/prisma/enums"
+import { PlanStatus } from "@/lib/db/enums"
 
 export async function createTrainingSplitAction(
   clientId: string,

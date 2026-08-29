@@ -946,7 +946,7 @@ export const ar: Dictionary = {
     minLength: "يجب أن يكون على الأقل {min} أحرف",
     maxLength: "يجب أن يكون على الأكثر {max} حرفًا",
     required: "هذا الحقل مطلوب",
-    invalidPhone: "رقم الهاتف غير صالح",
+    invalidPhone: "يجب أن يكون رقم الهاتف 11 رقمًا بالضبط",
     passwordMismatch: "كلمتا المرور غير متطابقتين",
     invalidValue: "قيمة غير صالحة",
     genericError: "حدث خطأ",
@@ -1009,7 +1009,7 @@ export const ar: Dictionary = {
       errors: {
         fullNameMin: "يجب أن يكون الاسم على الأقل حرفين",
         fullNameMax: "يجب أن يكون الاسم على الأكثر 100 حرف",
-        phoneInvalid: "رقم الهاتف غير صالح",
+        phoneInvalid: "يجب أن يكون رقم الهاتف 11 رقمًا بالضبط",
         phoneExists: "يوجد مستخدم بهذا الرقم بالفعل.",
       },
       updatedToast: "تم تحديث الملف",

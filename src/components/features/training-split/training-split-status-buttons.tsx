@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { updateTrainingSplitStatusAction } from "@/server/actions/training-split"
-import { PlanStatus } from "@/generated/prisma/enums"
+import { PlanStatus } from "@/lib/db/enums"
 
 interface TrainingSplitStatusButtonsProps {
   clientId: string

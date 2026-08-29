@@ -27,7 +27,7 @@ import {
   MealKind,
   QuantityUnit,
   SubstituteCategory,
-} from "@/generated/prisma/enums"
+} from "@/lib/db/enums"
 import {
   SUPPLEMENT_DEFS_SEED,
   SUBSTITUTE_GROUPS_SEED,
@@ -129,8 +129,9 @@ export function NutritionBuilder({
   clientId,
 }: NutritionBuilderProps) {
   const router = useRouter()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const n = t.nutrition
+  const isAr = locale === "ar"
 
   const [name, setName] = useState(initial.name)
   const [calories, setCalories] = useState(initial.calories?.toString() ?? "")
@@ -438,22 +439,18 @@ export function NutritionBuilder({
         <CardContent className="space-y-4">
           {supplementDefs.map((def, index) => (
             <div key={index} className="rounded-xl border p-3 space-y-3">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label>{n.supplementName}</Label>
-                  <Input value={def.name} onChange={(e) => setSupplementDefs(supplementDefs.map((d, i) => (i === index ? { ...d, name: e.target.value } : d)))} className="min-h-[44px]" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>{n.arabicText}</Label>
-                  <Input value={def.nameAr ?? ""} onChange={(e) => setSupplementDefs(supplementDefs.map((d, i) => (i === index ? { ...d, nameAr: e.target.value } : d)))} className="min-h-[44px]" />
-                </div>
+              <div className="space-y-1.5">
+                <Label>{n.supplementName}</Label>
+                <Input value={isAr ? (def.nameAr ?? "") : def.name} onChange={(e) => setSupplementDefs(supplementDefs.map((d, i) => (i === index ? { ...d, ...(isAr ? { nameAr: e.target.value } : { name: e.target.value }) } : d)))} className="min-h-[44px]" />
               </div>
-              {([["definition", def.definition], ["definitionAr", def.definitionAr], ["importance", def.importance], ["importanceAr", def.importanceAr]] as const).map(([field, value]) => (
-                <div key={field} className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">{field.startsWith("definition") ? n.definition : n.importance}{field.endsWith("Ar") ? " (AR)" : ""}</Label>
-                  <Textarea rows={2} value={value ?? ""} onChange={(e) => setSupplementDefs(supplementDefs.map((d, i) => (i === index ? { ...d, [field]: e.target.value } : d)))} />
-                </div>
-              ))}
+              <div className="space-y-1.5">
+                <Label>{n.definition}</Label>
+                <Textarea rows={2} value={isAr ? (def.definitionAr ?? "") : (def.definition ?? "")} onChange={(e) => setSupplementDefs(supplementDefs.map((d, i) => (i === index ? { ...d, ...(isAr ? { definitionAr: e.target.value } : { definition: e.target.value }) } : d)))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{n.importance}</Label>
+                <Textarea rows={2} value={isAr ? (def.importanceAr ?? "") : (def.importance ?? "")} onChange={(e) => setSupplementDefs(supplementDefs.map((d, i) => (i === index ? { ...d, ...(isAr ? { importanceAr: e.target.value } : { importance: e.target.value }) } : d)))} />
+              </div>
               <div className="flex justify-end">
                 <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => setSupplementDefs(supplementDefs.filter((_, i) => i !== index))}>
                   <Trash2 className="size-4" />{n.remove}
@@ -461,7 +458,7 @@ export function NutritionBuilder({
               </div>
             </div>
           ))}
-          <Button type="button" variant="outline" size="sm" onClick={() => setSupplementDefs([...supplementDefs, { name: "", nameAr: "", definition: "", definitionAr: "", importance: "", importanceAr: "" }])}>
+          <Button type="button" variant="outline" size="sm" onClick={() => setSupplementDefs([...supplementDefs, isAr ? { name: "", nameAr: "", definition: null, definitionAr: "", importance: null, importanceAr: "" } : { name: "", nameAr: null, definition: "", definitionAr: null, importance: "", importanceAr: null }])}>
             <Plus className="size-4" />{n.supplementName}
           </Button>
         </CardContent>
@@ -487,7 +484,7 @@ export function NutritionBuilder({
                 <div className="space-y-2">
                   {group.items.map((item, itemIndex) => (
                     <div key={itemIndex} className="flex flex-wrap items-center gap-2">
-                      <Input value={item.name} onChange={(e) => setGroups(groups.map((g, i) => (i === groupIndex ? { ...g, items: g.items.map((it, j) => (j === itemIndex ? { ...it, name: e.target.value } : it)) } : g)))} placeholder={n.substituteItem} className="min-w-[140px] flex-1 min-h-[44px]" />
+                      <Input value={isAr ? (item.nameAr ?? "") : item.name} onChange={(e) => setGroups(groups.map((g, i) => (i === groupIndex ? { ...g, items: g.items.map((it, j) => (j === itemIndex ? { ...it, ...(isAr ? { nameAr: e.target.value } : { name: e.target.value }) } : it)) } : g)))} placeholder={n.substituteItem} className="min-w-[140px] flex-1 min-h-[44px]" />
                       <Input type="number" inputMode="decimal" value={item.amount ?? ""} onChange={(e) => setGroups(groups.map((g, i) => (i === groupIndex ? { ...g, items: g.items.map((it, j) => (j === itemIndex ? { ...it, amount: numOrNull(e.target.value) } : it)) } : g)))} placeholder={n.quantity} className="w-24 min-h-[44px]" />
                       <Select value={item.unit} onValueChange={(v) => setGroups(groups.map((g, i) => (i === groupIndex ? { ...g, items: g.items.map((it, j) => (j === itemIndex ? { ...it, unit: v as QuantityUnit } : it)) } : g)))}>
                         <SelectTrigger className="h-11 w-auto min-w-[110px]"><SelectValue /></SelectTrigger>
@@ -533,7 +530,7 @@ export function NutritionBuilder({
                   <Badge variant={meal.kind === MealKind.SNACK ? "secondary" : "default"}>
                     {meal.kind === MealKind.SNACK ? n.snack : n.meal}
                   </Badge>
-                  <Input value={meal.name} onChange={(e) => updateMeal(mealIndex, { name: e.target.value })} placeholder={n.foodName} className="h-10 min-w-[160px] flex-1" />
+                  <Input value={isAr ? (meal.nameAr ?? "") : meal.name} onChange={(e) => updateMeal(mealIndex, isAr ? { nameAr: e.target.value } : { name: e.target.value })} placeholder={n.foodName} className="h-10 min-w-[160px] flex-1" />
                   <div className="flex gap-1">
                     <Button type="button" variant="ghost" size="icon-sm" className="size-10" aria-label={n.moveUp} disabled={mealIndex === 0} onClick={() => setMeals(move(meals, mealIndex, -1))}>
                       <ArrowUp className="size-4" />
@@ -553,7 +550,7 @@ export function NutritionBuilder({
                     return (
                       <div key={itemIndex} className="flex flex-wrap items-center gap-2 rounded-lg bg-muted/40 p-2">
                         {count > 1 && <Badge variant="secondary" className="shrink-0">{n.chooseOne}</Badge>}
-                        <Input value={item.foodName} onChange={(e) => updateMeal(mealIndex, { items: meal.items.map((it, j) => (j === itemIndex ? { ...it, foodName: e.target.value } : it)) })} placeholder={n.foodName} className="min-w-[130px] flex-1 min-h-[40px]" />
+                        <Input value={isAr ? (item.foodNameAr ?? "") : item.foodName} onChange={(e) => updateMeal(mealIndex, { items: meal.items.map((it, j) => (j === itemIndex ? { ...it, ...(isAr ? { foodNameAr: e.target.value } : { foodName: e.target.value }) } : it)) })} placeholder={n.foodName} className="min-w-[130px] flex-1 min-h-[40px]" />
                         <Input type="number" inputMode="decimal" value={item.amount ?? ""} onChange={(e) => updateMeal(mealIndex, { items: meal.items.map((it, j) => (j === itemIndex ? { ...it, amount: numOrNull(e.target.value) } : it)) })} placeholder={n.quantity} className="w-20 min-h-[40px]" />
                         <Select value={item.unit} onValueChange={(v) => updateMeal(mealIndex, { items: meal.items.map((it, j) => (j === itemIndex ? { ...it, unit: v as QuantityUnit } : it)) })}>
                           <SelectTrigger className="h-10 w-auto min-w-[100px]"><SelectValue /></SelectTrigger>

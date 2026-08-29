@@ -22,7 +22,7 @@ import {
   createSessionLogAction,
 } from "@/server/actions/session-log"
 import type { SplitDayExerciseInput } from "@/lib/validations/exercise"
-import type { TrainingDayFocus } from "@/generated/prisma/enums"
+import type { TrainingDayFocus } from "@/lib/db/enums"
 
 interface SessionFormExercise extends SplitDayExerciseInput {
   id: string

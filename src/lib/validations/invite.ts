@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { Goal } from "@/generated/prisma/enums"
+import { Goal } from "@/lib/db/enums"
 
 export const inviteBasicInfoSchema = z.object({
   fullName: z
@@ -21,9 +21,7 @@ export const inviteBasicInfoSchema = z.object({
   phone: z
     .string()
     .trim()
-    .min(6, "Enter a valid phone number")
-    .max(20, "Enter a valid phone number")
-    .regex(/^[+\d][\d\s\-()]*$/, "Enter a valid phone number"),
+    .regex(/^\d{11}$/, "Enter a valid 11-digit phone number"),
   goal: z.nativeEnum(Goal, {
     message: "Select a goal",
   }),
@@ -47,9 +45,7 @@ export const joinClientSchema = z
     phone: z
       .string()
       .trim()
-      .min(6, "Enter a valid phone number")
-      .max(20, "Enter a valid phone number")
-      .regex(/^[+\d][\d\s\-()]*$/, "Enter a valid phone number"),
+      .regex(/^\d{11}$/, "Enter a valid 11-digit phone number"),
     goal: z.nativeEnum(Goal, {
       message: "Select a goal",
     }),

@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { LogOut, Menu } from "lucide-react"
-import type { Role } from "@/generated/prisma/enums"
+import type { Role } from "@/lib/db/enums"
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/lib/i18n/client"
 import type { Dictionary } from "@/lib/i18n/messages/en"
@@ -51,16 +51,21 @@ function SidebarNav({
   useEffect(() => {
     let cancelled = false
     const fetchCount = () => {
-      fetch("/api/messages/unread-count", { credentials: "include" })
+      // Skip poll when tab hidden — saves DB + compile noise
+      if (document.visibilityState !== "visible") return
+      fetch("/api/messages/unread-count", { credentials: "include", cache: "no-store" as RequestCache })
         .then(r => r.ok ? r.json() : Promise.reject())
         .then(data => { if (!cancelled) setUnreadCount(data.count ?? 0) })
         .catch(() => {})
     }
     fetchCount()
-    const id = setInterval(fetchCount, 30000)
+    // Was 30s, now 60s + visible check: halves DB load and "Compiling ..." spam
+    const id = setInterval(fetchCount, 60000)
     const handler = () => fetchCount()
+    const visHandler = () => { if (document.visibilityState === "visible") fetchCount() }
     window.addEventListener('messages:read', handler)
-    return () => { cancelled = true; clearInterval(id); window.removeEventListener('messages:read', handler) }
+    document.addEventListener('visibilitychange', visHandler)
+    return () => { cancelled = true; clearInterval(id); window.removeEventListener('messages:read', handler); document.removeEventListener('visibilitychange', visHandler) }
   }, [])
 
   return (
@@ -175,7 +180,7 @@ export function AppSidebar({
   return (
     <>
       {/* Desktop sidebar (md+): fixed on the inline-start side */}
-      <aside className="fixed inset-y-0 start-0 z-40 hidden w-[272px] flex-col border-e bg-surface-strong/80 backdrop-blur-xl supports-[backdrop-filter]:bg-surface-strong/70 md:flex">
+      <aside className="fixed inset-y-0 start-0 z-40 hidden w-[272px] flex-col overflow-y-auto border-e bg-surface-strong/80 backdrop-blur-xl supports-[backdrop-filter]:bg-surface-strong/70 md:flex">
         <SidebarNav items={items} homeHref={homeHref} />
         <div className="flex-1" />
         <UserSummary name={name} role={role} />

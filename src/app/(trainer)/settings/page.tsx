@@ -1,15 +1,14 @@
 ﻿import { redirect } from "next/navigation"
 import type { Metadata } from "next"
 import { getI18n } from "@/lib/i18n"
-import { prisma } from "@/lib/prisma"
+import { pool } from "@/lib/db"
 import { getCurrentSession } from "@/server/auth"
-import { SettingsTabs } from "@/components/features/settings/settings-tabs"
+
 import { ProfileForm } from "@/components/features/settings/profile-form"
 import { SecurityForm } from "@/components/features/settings/security-form"
 import { PreferencesForm } from "@/components/features/settings/preferences-form"
-import { NotificationsForm } from "@/components/features/settings/notifications-form"
-import { BusinessForm } from "@/components/features/settings/business-form"
 import { DataTab } from "@/components/features/settings/data-tab"
+import type { TrainerProfile } from "@/lib/db/types"
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n()
@@ -31,12 +30,15 @@ export default async function SettingsPage() {
     redirect("/login")
   }
 
-  const profile = await prisma.trainerProfile.findUnique({
-    where: { id: session.user.trainerProfileId },
-    include: { _count: { select: { clients: true } } },
-  })
-  if (!profile) {
+  const profileRes = await pool.query<TrainerProfile>(`SELECT * FROM "TrainerProfile" WHERE "id" = $1 LIMIT 1`, [session.user.trainerProfileId])
+  const profileRow = profileRes.rows[0] as TrainerProfile | undefined
+  if (!profileRow) {
     redirect("/onboarding")
+  }
+  const countRes = await pool.query<{ count: number }>(`SELECT COUNT(*)::int AS count FROM "Client" WHERE "trainerId" = $1`, [profileRow.id])
+  const profile = {
+    ...profileRow,
+    _count: { clients: (countRes.rows[0] as { count: number }).count },
   }
 
   return (
@@ -48,60 +50,34 @@ export default async function SettingsPage() {
         <p className="text-sm text-muted-foreground">{t.settings.subtitle}</p>
       </div>
 
-      <SettingsTabs
-        items={[
-          {
-            value: "profile",
-            label: t.settings.tabs.profile,
-            content: <ProfileForm fullName={profile.fullName} phone={profile.phone} />,
-          },
-          {
-            value: "security",
-            label: t.settings.tabs.security,
-            content: <SecurityForm />,
-          },
-          {
-            value: "preferences",
-            label: t.settings.tabs.preferences,
-            content: (
-              <PreferencesForm
-                defaults={{
-                  language: locale,
-                  units: profile.units,
-                  weekStartDay: profile.weekStartDay,
-                  timezone: profile.timezone,
-                }}
-              />
-            ),
-          },
-          {
-            value: "notifications",
-            label: t.settings.tabs.notifications,
-            content: (
-              <NotificationsForm
-                defaults={{
-                  notifyReassessment: profile.notifyReassessment,
-                  notifyInactivity: profile.notifyInactivity,
-                  notifySubscription: profile.notifySubscription,
-                  weeklySummary: profile.weeklySummary,
-                }}
-              />
-            ),
-          },
-          {
-            value: "business",
-            label: t.settings.tabs.business,
-            content: (
-              <BusinessForm businessName={profile.businessName ?? ""} />
-            ),
-          },
-          {
-            value: "data",
-            label: t.settings.tabs.data,
-            content: <DataTab clientCount={profile._count.clients} />,
-          },
-        ]}
-      />
+      {/* Profile Section */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-medium">{t.settings.profile.title}</h2>
+        <ProfileForm fullName={profile.fullName} phone={profile.phone} />
+      </section>
+
+      {/* Security Section */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-medium">{t.settings.tabs.security}</h2>
+          <SecurityForm />
+        </section>
+        {/* Preferences Section */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-medium">{t.settings.tabs.preferences}</h2>
+          <PreferencesForm
+            defaults={{
+              language: locale,
+              units: profile.units,
+              weekStartDay: profile.weekStartDay,
+              timezone: profile.timezone,
+            }}
+          />
+        </section>
+        {/* Data Section */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-medium">{t.settings.tabs.data}</h2>
+          <DataTab clientCount={profile._count.clients} />
+        </section>
     </div>
   )
 }

@@ -944,7 +944,7 @@ export const en = {
     minLength: "Must be at least {min} characters",
     maxLength: "Must be at most {max} characters",
     required: "This field is required",
-    invalidPhone: "Invalid phone number",
+    invalidPhone: "Phone number must be exactly 11 digits",
     passwordMismatch: "Passwords do not match",
     invalidValue: "Invalid value",
     genericError: "Something went wrong",
@@ -1007,7 +1007,7 @@ export const en = {
           errors: {
             fullNameMin: "Name must be at least 2 characters",
             fullNameMax: "Name must be at most 100 characters",
-            phoneInvalid: "Phone number is not valid",
+            phoneInvalid: "Phone number must be exactly 11 digits",
             phoneExists: "A user with this phone number already exists.",
           },
           updatedToast: "Profile updated",

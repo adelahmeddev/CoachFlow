@@ -1,5 +1,5 @@
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react"
-import type { BodyComposition } from "@/generated/prisma/client"
+import type { BodyComposition } from "@/lib/db/types"
 import {
   Card,
   CardContent,

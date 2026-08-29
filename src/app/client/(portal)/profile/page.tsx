@@ -1,7 +1,8 @@
 ﻿import { redirect } from "next/navigation"
 import { getCurrentSession } from "@/server/auth"
 import { getClientProfile } from "@/server/services/client-portal.service"
-import { prisma } from "@/lib/prisma"
+import { pool } from "@/lib/db"
+import type { BodyComposition } from "@/lib/db/types"
 import { MyInfoSection } from "@/components/features/client/profile/client-info-section"
 import { MyGoalsSection } from "@/components/features/client/profile/client-goals-section"
 import { MySubscriptionSection } from "@/components/features/client/profile/client-subscription-section"
@@ -28,10 +29,8 @@ export default async function ClientProfilePage() {
   }
 
   // BodyComposition is source of truth; client.goal is canonical
-  const bodyCompositions = await prisma.bodyComposition.findMany({
-    where: { clientId: client.id },
-    orderBy: { date: "desc" },
-  })
+  const bodyCompositionsRes = await pool.query<BodyComposition>(`SELECT * FROM "BodyComposition" WHERE "clientId" = $1 ORDER BY "date" DESC`, [client.id])
+  const bodyCompositions = bodyCompositionsRes.rows as BodyComposition[]
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-8">

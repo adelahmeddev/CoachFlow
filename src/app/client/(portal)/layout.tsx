@@ -1,6 +1,6 @@
 ﻿import { redirect } from "next/navigation"
 import { getCurrentSession } from "@/server/auth"
-import { prisma } from "@/lib/prisma"
+import { pool } from "@/lib/db"
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import { CLIENT_NAV_ITEMS } from "@/components/layout/nav-items"
 import { NoLongerSubscribedCard } from "@/components/features/client/no-longer-subscribed"
@@ -16,10 +16,8 @@ export default async function ClientPortalLayout({
     redirect("/client/login")
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { mustChangePassword: true },
-  })
+  const userRes = await pool.query(`SELECT "mustChangePassword" FROM "User" WHERE "id" = $1 LIMIT 1`, [session.user.id])
+  const user = userRes.rows[0] as { mustChangePassword: boolean } | undefined
 
   // Account deleted by trainer (hard delete) -> user row no longer exists
   // Show friendly "No longer subscribed" instead of generic 404/redirect loop
@@ -32,10 +30,8 @@ export default async function ClientPortalLayout({
   }
 
   // Client record deleted by trainer (soft keep-user case) -> user exists but client link missing
-  const client = await prisma.client.findUnique({
-    where: { userId: session.user.id },
-    select: { id: true },
-  })
+  const clientRes = await pool.query(`SELECT "id" FROM "Client" WHERE "userId" = $1 LIMIT 1`, [session.user.id])
+  const client = clientRes.rows[0] as { id: string } | undefined
 
   if (!client) {
     return <NoLongerSubscribedCard />

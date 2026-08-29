@@ -1,12 +1,10 @@
 import { z } from "zod"
-import { ClientStatus, Goal } from "@/generated/prisma/enums"
+import { ClientStatus, Goal } from "@/lib/db/enums"
 
 export const phoneSchema = z
   .string()
   .trim()
-  .min(7, "Enter a valid phone number")
-  .max(20, "Enter a valid phone number")
-  .regex(/^[+\d][\d\s\-()]*$/, "Enter a valid phone number")
+  .regex(/^\d{11}$/, "Enter a valid 11-digit phone number")
 
 export const clientCreateSchema = z.object({
   fullName: z

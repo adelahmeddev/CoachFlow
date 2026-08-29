@@ -3,7 +3,7 @@
 import { useI18n } from "@/lib/i18n/client"
 import { pickSuggestions, MENTIONS, labelFor, type ClientContext, type Suggestion } from "@/lib/messages/suggestions"
 import { cn } from "@/lib/utils"
-import type { Role } from "@/generated/prisma/enums"
+import type { Role } from "@/lib/db/enums"
 
 export function MessageSuggestions({
   role,

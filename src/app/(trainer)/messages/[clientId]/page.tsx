@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation"
 import { getCurrentSession } from "@/server/auth"
-import { prisma } from "@/lib/prisma"
+import { pool } from "@/lib/db"
 import { getConversationForTrainer, getMessages, isClientArchived } from "@/server/services/message.service"
 import { ChatThread } from "@/components/features/messages/chat-thread"
 import { ConversationList } from "@/components/features/messages/conversation-list"
@@ -27,10 +27,8 @@ export default async function TrainerThreadPage({
   const conversation = await getConversationForTrainer(trainerId, clientId)
   if (!conversation) {
     // auto-create if client belongs to trainer but no conversation yet
-    const client = await prisma.client.findFirst({
-      where: { id: clientId, trainerId },
-      select: { id: true },
-    })
+    const clientRes = await pool.query(`SELECT "id" FROM "Client" WHERE "id" = $1 AND "trainerId" = $2 LIMIT 1`, [clientId, trainerId])
+    const client = clientRes.rows[0] as { id: string } | undefined
     if (!client) notFound()
     // create empty conversation
     const { getOrCreateConversation } = await import("@/server/services/message.service")
@@ -45,11 +43,14 @@ export default async function TrainerThreadPage({
   const { t } = await getI18n()
 
   // contextual suggestions: check client assets
-  const [nutritionPlan, split, inBody] = await Promise.all([
-    prisma.clientNutritionPlan.findFirst({ where: { clientId, status: "ACTIVE" }, select: { id: true } }),
-    prisma.trainingSplit.findFirst({ where: { clientId, status: "ACTIVE" }, select: { id: true } }),
-    prisma.bodyComposition.findFirst({ where: { clientId }, select: { id: true } }),
+  const [nutritionPlanRes, splitRes, inBodyRes] = await Promise.all([
+    pool.query(`SELECT "id" FROM "ClientNutritionPlan" WHERE "clientId" = $1 AND "status" = $2::"PlanStatus" LIMIT 1`, [clientId, "ACTIVE"]),
+    pool.query(`SELECT "id" FROM "TrainingSplit" WHERE "clientId" = $1 AND "status" = $2::"PlanStatus" LIMIT 1`, [clientId, "ACTIVE"]),
+    pool.query(`SELECT "id" FROM "BodyComposition" WHERE "clientId" = $1 LIMIT 1`, [clientId]),
   ])
+  const nutritionPlan = nutritionPlanRes.rows[0] ?? null
+  const split = splitRes.rows[0] ?? null
+  const inBody = inBodyRes.rows[0] ?? null
   const context = {
     hasNutritionPlan: !!nutritionPlan,
     hasSplit: !!split,

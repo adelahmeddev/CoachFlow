@@ -1,5 +1,5 @@
-import { prisma } from "@/lib/prisma"
-import { ClientStatus } from "@/generated/prisma/enums"
+import { pool } from "@/lib/db"
+import { ClientStatus } from "@/lib/db/enums"
 import { withCache, toIso } from "@/lib/cache"
 
 export async function getDashboardData(trainerProfileId: string) {
@@ -10,70 +10,67 @@ export async function getDashboardData(trainerProfileId: string) {
       const sixtyDaysAgo = new Date(now - 60 * 24 * 60 * 60 * 1000)
 
       const [
-        // Current-period counts — 3 targeted COUNTs is still fewer than the
-        // original 5, and avoids the groupBy-on-timestamp granularity problem.
-        totalClients,
-        pendingAssessment,
-        activeClients,
-        // Added this period (last 30 days)
-        recentlyAdded,
-        // Previous period (30–60 days ago) for delta calculation
-        prevPeriodAdded,
-        prevPendingAssessment,
-        prevActiveClients,
-        recentClients,
+        totalClientsRes,
+        pendingAssessmentRes,
+        activeClientsRes,
+        recentlyAddedRes,
+        prevPeriodAddedRes,
+        prevPendingAssessmentRes,
+        prevActiveClientsRes,
+        recentClientsRes,
       ] = await Promise.all([
-        prisma.client.count({
-          where: { trainerId: trainerProfileId },
-        }),
-        prisma.client.count({
-          where: { trainerId: trainerProfileId, status: ClientStatus.PENDING_ASSESSMENT },
-        }),
-        prisma.client.count({
-          where: { trainerId: trainerProfileId, status: ClientStatus.ACTIVE },
-        }),
-        prisma.client.count({
-          where: { trainerId: trainerProfileId, createdAt: { gte: thirtyDaysAgo } },
-        }),
-        // Previous 30-day window for "recently added" delta
-        prisma.client.count({
-          where: {
-            trainerId: trainerProfileId,
-            createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo },
-          },
-        }),
-        // Snapshot: how many were PENDING_ASSESSMENT 30 days ago (proxy: created before window)
-        // We approximate trend using total counts at window boundaries.
-        // For PENDING and ACTIVE we compare current vs 30-days-ago snapshot via
-        // counting clients that changed into those states in the window.
-        prisma.client.count({
-          where: {
-            trainerId: trainerProfileId,
-            status: ClientStatus.PENDING_ASSESSMENT,
-            createdAt: { lt: thirtyDaysAgo },
-          },
-        }),
-        prisma.client.count({
-          where: {
-            trainerId: trainerProfileId,
-            status: ClientStatus.ACTIVE,
-            createdAt: { lt: thirtyDaysAgo },
-          },
-        }),
-        prisma.client.findMany({
-          where: { trainerId: trainerProfileId },
-          orderBy: { createdAt: "desc" },
-          take: 5,
-          select: {
-            id: true,
-            fullName: true,
-            phone: true,
-            goal: true,
-            status: true,
-            createdAt: true,
-          },
-        }),
+        pool.query<{ count: number }>(`SELECT COUNT(*)::int AS count FROM "Client" WHERE "trainerId" = $1`, [
+          trainerProfileId,
+        ]),
+        pool.query<{ count: number }>(
+          `SELECT COUNT(*)::int AS count FROM "Client" WHERE "trainerId" = $1 AND "status" = $2::"ClientStatus"`,
+          [trainerProfileId, ClientStatus.PENDING_ASSESSMENT]
+        ),
+        pool.query<{ count: number }>(
+          `SELECT COUNT(*)::int AS count FROM "Client" WHERE "trainerId" = $1 AND "status" = $2::"ClientStatus"`,
+          [trainerProfileId, ClientStatus.ACTIVE]
+        ),
+        pool.query<{ count: number }>(
+          `SELECT COUNT(*)::int AS count FROM "Client" WHERE "trainerId" = $1 AND "createdAt" >= $2::timestamptz`,
+          [trainerProfileId, thirtyDaysAgo]
+        ),
+        pool.query<{ count: number }>(
+          `SELECT COUNT(*)::int AS count FROM "Client" WHERE "trainerId" = $1 AND "createdAt" >= $2::timestamptz AND "createdAt" < $3::timestamptz`,
+          [trainerProfileId, sixtyDaysAgo, thirtyDaysAgo]
+        ),
+        pool.query<{ count: number }>(
+          `SELECT COUNT(*)::int AS count FROM "Client" WHERE "trainerId" = $1 AND "status" = $2::"ClientStatus" AND "createdAt" < $3::timestamptz`,
+          [trainerProfileId, ClientStatus.PENDING_ASSESSMENT, thirtyDaysAgo]
+        ),
+        pool.query<{ count: number }>(
+          `SELECT COUNT(*)::int AS count FROM "Client" WHERE "trainerId" = $1 AND "status" = $2::"ClientStatus" AND "createdAt" < $3::timestamptz`,
+          [trainerProfileId, ClientStatus.ACTIVE, thirtyDaysAgo]
+        ),
+        pool.query(
+          `SELECT "id", "fullName", "phone", "goal", "status", "createdAt"
+           FROM "Client"
+           WHERE "trainerId" = $1
+           ORDER BY "createdAt" DESC
+           LIMIT 5`,
+          [trainerProfileId]
+        ),
       ])
+
+      const totalClients = (totalClientsRes.rows[0] as { count: number }).count
+      const pendingAssessment = (pendingAssessmentRes.rows[0] as { count: number }).count
+      const activeClients = (activeClientsRes.rows[0] as { count: number }).count
+      const recentlyAdded = (recentlyAddedRes.rows[0] as { count: number }).count
+      const prevPeriodAdded = (prevPeriodAddedRes.rows[0] as { count: number }).count
+      const prevPendingAssessment = (prevPendingAssessmentRes.rows[0] as { count: number }).count
+      const prevActiveClients = (prevActiveClientsRes.rows[0] as { count: number }).count
+      const recentClients = recentClientsRes.rows as {
+        id: string
+        fullName: string | null
+        phone: string | null
+        goal: string | null
+        status: ClientStatus
+        createdAt: Date
+      }[]
 
       return {
         stats: {

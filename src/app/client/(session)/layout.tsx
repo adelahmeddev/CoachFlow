@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { getCurrentSession } from "@/server/auth"
-import { prisma } from "@/lib/prisma"
+import { pool } from "@/lib/db"
 
 import { NoLongerSubscribedCard } from "@/components/features/client/no-longer-subscribed"
 
@@ -15,10 +15,8 @@ export default async function ClientSessionLayout({
     redirect("/client/login")
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { mustChangePassword: true },
-  })
+  const userRes = await pool.query(`SELECT "mustChangePassword" FROM "User" WHERE "id" = $1 LIMIT 1`, [session.user.id])
+  const user = userRes.rows[0] as { mustChangePassword: boolean } | undefined
 
   if (!user) {
     return <NoLongerSubscribedCard />
@@ -28,10 +26,8 @@ export default async function ClientSessionLayout({
     redirect("/client/change-password")
   }
 
-  const client = await prisma.client.findUnique({
-    where: { userId: session.user.id },
-    select: { id: true },
-  })
+  const clientRes = await pool.query(`SELECT "id" FROM "Client" WHERE "userId" = $1 LIMIT 1`, [session.user.id])
+  const client = clientRes.rows[0] as { id: string } | undefined
 
   if (!client) {
     return <NoLongerSubscribedCard />

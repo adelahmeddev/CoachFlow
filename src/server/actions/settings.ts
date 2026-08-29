@@ -5,7 +5,7 @@ import { cookies } from "next/headers"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { pool, withTransaction } from "@/lib/db"
-import { getCurrentSession } from "@/server/auth"
+import { getCurrentSession, invalidateNameCache } from "@/server/auth"
 import { LOCALE_COOKIE, isLocale } from "@/lib/i18n/config"
 import {
   businessSchema,
@@ -54,6 +54,7 @@ export async function updateProfileAction(input: unknown): Promise<ActionResult>
 
   await pool.query(`UPDATE "TrainerProfile" SET "fullName"=$1, "phone"=$2, "updatedAt"=NOW() WHERE "id"=$3`, [fullName, phone, trainerProfileId])
 
+  invalidateNameCache(userId)
   revalidatePath("/settings")
   return { ok: true }
 }

@@ -1,4 +1,4 @@
-﻿import type { ProgressReview } from "@/generated/prisma/client"
+import type { ProgressReview } from "@/lib/db/types"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { formatDate } from "@/lib/format"

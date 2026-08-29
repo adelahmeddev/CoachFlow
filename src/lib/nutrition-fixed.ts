@@ -3,7 +3,7 @@ import type {
   SubstituteGroupInput,
   SupplementDefInput,
 } from "@/lib/validations/nutrition"
-import { MealKind, QuantityUnit, SubstituteCategory } from "@/generated/prisma/enums"
+import { MealKind, QuantityUnit, SubstituteCategory } from "@/lib/db/enums"
 
 export const SUPPLEMENT_DEFS_SEED: SupplementDefInput[] = [
   {

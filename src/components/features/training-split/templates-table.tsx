@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState } from "react"
 import Link from "next/link"
@@ -27,7 +27,7 @@ import {
   deleteTrainingSplitTemplateAction,
   duplicateTrainingSplitTemplateAction,
 } from "@/server/actions/training-split-template"
-import type { Goal, SplitType } from "@/generated/prisma/enums"
+import type { Goal, SplitType } from "@/lib/db/enums"
 
 export interface TemplateRow {
   id: string

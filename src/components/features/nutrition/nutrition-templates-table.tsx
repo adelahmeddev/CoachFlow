@@ -39,7 +39,7 @@ import {
 import { useI18n } from "@/lib/i18n/client"
 import { interpolate } from "@/lib/i18n/format"
 import { getGoalLabel } from "@/lib/i18n/labels"
-import type { Goal } from "@/generated/prisma/enums"
+import type { Goal } from "@/lib/db/enums"
 import {
   assignTemplateAction,
   deleteNutritionTemplateAction,
@@ -172,7 +172,7 @@ export function NutritionTemplatesTable({
   return (
     <>
       {/* Mobile cards */}
-      <div className="space-y-3 md:hidden">
+      <div className="space-y-4 md:hidden">
         {templates.map((template) => (
           <div key={template.id} className="rounded-xl border bg-card p-4 shadow-sm">
             <div className="mb-2 flex items-center justify-between gap-2">
@@ -205,26 +205,26 @@ export function NutritionTemplatesTable({
           <TableHeader>
             <TableRow>
               <TableHead>{n.templateName}</TableHead>
-              <TableHead>{n.calories}</TableHead>
-              <TableHead>{n.protein}</TableHead>
-              <TableHead>{n.carbs}</TableHead>
-              <TableHead>{n.fat}</TableHead>
-              <TableHead>{n.meals}</TableHead>
+              <TableHead className="text-end">{n.calories}</TableHead>
+              <TableHead className="text-end">{n.protein}</TableHead>
+              <TableHead className="text-end">{n.carbs}</TableHead>
+              <TableHead className="text-end">{n.fat}</TableHead>
+              <TableHead className="text-end">{n.meals}</TableHead>
               <TableHead className="text-end">—</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {templates.map((template) => (
-              <TableRow key={template.id}>
+              <TableRow key={template.id} className="odd:bg-muted/10">
                 <TableCell>
                   <span className="font-medium">{template.name}</span>{" "}
                   {template.isGlobal && <Badge variant="secondary">Global</Badge>}
                 </TableCell>
-                <TableCell className="text-muted-foreground">{template.calories ?? "—"}</TableCell>
-                <TableCell className="text-muted-foreground">{template.proteinGrams ?? "—"}</TableCell>
-                <TableCell className="text-muted-foreground">{template.carbsGrams ?? "—"}</TableCell>
-                <TableCell className="text-muted-foreground">{template.fatsGrams ?? "—"}</TableCell>
-                <TableCell className="text-muted-foreground">{template.mealsCount}</TableCell>
+                <TableCell className="text-muted-foreground text-right">{template.calories ?? "—"}</TableCell>
+                <TableCell className="text-muted-foreground text-right">{template.proteinGrams ?? "—"}</TableCell>
+                <TableCell className="text-muted-foreground text-right">{template.carbsGrams ?? "—"}</TableCell>
+                <TableCell className="text-muted-foreground text-right">{template.fatsGrams ?? "—"}</TableCell>
+                <TableCell className="text-muted-foreground text-right">{template.mealsCount}</TableCell>
                 <TableCell className="text-end">
                   <div className="flex items-center justify-end gap-1">
                     <Button asChild variant="ghost" size="icon-sm" className="size-9">

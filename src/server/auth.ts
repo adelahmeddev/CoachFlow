@@ -2,10 +2,9 @@ import type { NextAuthOptions } from "next-auth";
 import { getServerSession } from "next-auth";
 import { cache } from "react";
 import CredentialsProvider from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
-import { prisma } from "@/lib/prisma";
+import { pool, generateId } from "@/lib/db";
 import { comparePassword } from "@/lib/auth";
-import type { Role } from "@/generated/prisma/enums";
+import type { Role } from "@/lib/db/enums";
 
 function getSecureCookie() {
   if (process.env.NODE_ENV === "production") return true;
@@ -79,6 +78,21 @@ export function recordLoginSuccess(identifier: string) {
   loginAttempts.delete(identifier.toLowerCase());
 }
 
+// Cache re-validation for 60s: jwt() is called on EVERY getServerSession (every page + every
+// /api/messages/unread-count poll). Without cache each call does 2-3 DB queries,
+// making actions feel slow. Cache is per-process and short-lived; stale after DB reset
+// is resolved within 60s or on next cache miss.
+const CACHE_TTL_MS = 60_000
+const trainerValidationCache = new Map<string, { value: string | undefined; expires: number }>()
+const clientValidationCache = new Map<string, { value: string | undefined; expires: number }>()
+const nameCache = new Map<string, { value: string | undefined; expires: number }>()
+
+export function invalidateNameCache(userId: string) {
+  for (const role of ["TRAINER", "CLIENT"]) {
+    nameCache.delete(`name:${userId}:${role}`);
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
@@ -89,6 +103,7 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/login",
+    signOut: "/signout",
   },
   secret: process.env.NEXTAUTH_SECRET,
   cookies: {
@@ -119,15 +134,21 @@ export const authOptions: NextAuthOptions = {
           throw new Error("TOO_MANY_ATTEMPTS");
         }
 
-        const user = await prisma.user.findFirst({
-          where: {
-            OR: [
-              { username: credentials.identifier },
-              { phone: credentials.identifier },
-              { email: credentials.identifier },
-            ],
-          },
-        });
+        const userRes = await pool.query(
+          `SELECT * FROM "User" WHERE "username"=$1 OR "phone"=$1 OR "email"=$1 LIMIT 1`,
+          [credentials.identifier]
+        );
+        const user = userRes.rows[0] as
+          | {
+              id: string;
+              username: string | null;
+              phone: string | null;
+              email: string | null;
+              passwordHash: string;
+              role: string;
+              mustChangePassword: boolean;
+            }
+          | undefined;
 
         if (!user) {
           recordLoginFailure(credentials.identifier);
@@ -154,40 +175,54 @@ export const authOptions: NextAuthOptions = {
         // it would create a second, unguarded credential path.
         let trainerProfileId: string | undefined;
         let clientProfileId: string | undefined;
+        let displayName: string | undefined;
 
         if (user.role === "TRAINER") {
-          let profile = await prisma.trainerProfile.findUnique({
-            where: { userId: user.id },
-          });
+          let profileRes = await pool.query(
+            `SELECT * FROM "TrainerProfile" WHERE "userId"=$1 LIMIT 1`,
+            [user.id]
+          );
+          let profile = (profileRes.rows[0] as { id: string; fullName?: string } | undefined) ?? null;
           // Self-healing: auto-create missing TrainerProfile (e.g., after DB reset with stale token, or legacy user)
           if (!profile) {
             try {
-              profile = await prisma.trainerProfile.create({
-                data: {
-                  userId: user.id,
-                  fullName: (user as unknown as { username?: string }).username ?? user.phone ?? "Trainer",
-                  phone: user.phone ?? "",
-                },
-              });
+              const id = generateId();
+              const fullName =
+                (user as unknown as { username?: string }).username ??
+                user.phone ??
+                "Trainer";
+              const phone = user.phone ?? "";
+              const createdRes = await pool.query(
+                `INSERT INTO "TrainerProfile" ("id","userId","fullName","phone","createdAt","updatedAt") VALUES ($1,$2,$3,$4,NOW(),NOW()) RETURNING *`,
+                [id, user.id, fullName, phone]
+              );
+              profile = createdRes.rows[0] as { id: string };
             } catch {
               // If creation fails due to race, re-fetch
-              profile = await prisma.trainerProfile.findUnique({
-                where: { userId: user.id },
-              });
+              const retryRes = await pool.query(
+                `SELECT * FROM "TrainerProfile" WHERE "userId"=$1 LIMIT 1`,
+                [user.id]
+              );
+              profile = (retryRes.rows[0] as { id: string } | undefined) ?? null;
             }
           }
           trainerProfileId = profile?.id;
+          displayName = profile?.fullName;
         }
 
         if (user.role === "CLIENT") {
-          const client = await prisma.client.findUnique({
-            where: { userId: user.id },
-          });
+          const clientRes = await pool.query(
+            `SELECT * FROM "Client" WHERE "userId"=$1 LIMIT 1`,
+            [user.id]
+          );
+          const client = clientRes.rows[0] as { id: string; fullName?: string } | undefined;
           clientProfileId = client?.id;
+          displayName = client?.fullName;
         }
 
         return {
           id: user.id,
+          name: displayName ?? user.username ?? user.phone ?? user.email ?? "User",
           role: user.role as Role,
           mustChangePassword: user.mustChangePassword,
           trainerProfileId,
@@ -200,96 +235,165 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.name = (user as any).name;
         token.role = user.role;
         token.mustChangePassword = (user as any).mustChangePassword ?? false;
         token.trainerProfileId = (user as any).trainerProfileId;
         token.clientProfileId = (user as any).clientProfileId;
       }
-      // Re-validate trainerProfileId on every JWT invocation to handle stale tokens after DB reset
-      // or deleted profiles. This prevents FK violations in downstream services.
+      // Refresh display name from profile (cached 60s) so renames are picked up
+      const userId = token.id as string | undefined;
+      const nameCacheKey = `name:${userId}:${token.role}`;
+      if (userId) {
+        const cachedName = nameCache.get(nameCacheKey);
+        if (cachedName && cachedName.expires > Date.now()) {
+          token.name = cachedName.value;
+        } else {
+          try {
+            let dbName: string | undefined;
+            if (token.role === "TRAINER") {
+              const res = await pool.query(
+                `SELECT "fullName" FROM "TrainerProfile" WHERE "userId"=$1 LIMIT 1`,
+                [userId]
+              );
+              dbName = (res.rows[0] as { fullName?: string } | undefined)?.fullName;
+            } else if (token.role === "CLIENT") {
+              const res = await pool.query(
+                `SELECT "fullName" FROM "Client" WHERE "userId"=$1 LIMIT 1`,
+                [userId]
+              );
+              dbName = (res.rows[0] as { fullName?: string } | undefined)?.fullName;
+            }
+            if (dbName) token.name = dbName;
+            nameCache.set(nameCacheKey, { value: token.name as string | undefined, expires: Date.now() + CACHE_TTL_MS });
+          } catch {
+            // Do not block auth on DB errors
+          }
+        }
+      }
+      // Re-validate trainerProfileId — cached 60s to avoid DB on every poll (was 2-3 queries per request)
       if (token.role === "TRAINER") {
         const trainerProfileId = token.trainerProfileId as string | undefined;
         const userId = token.id as string | undefined;
         if (userId) {
-          try {
-            if (trainerProfileId) {
-              const exists = await prisma.trainerProfile.findUnique({
-                where: { id: trainerProfileId },
-                select: { id: true },
-              });
-              if (!exists) {
-                // Try to find by userId or auto-create
-                const byUser = await prisma.trainerProfile.findUnique({
-                  where: { userId },
-                  select: { id: true },
-                });
-                if (byUser) {
-                  token.trainerProfileId = byUser.id;
-                } else {
-                  const user = await prisma.user.findUnique({
-                    where: { id: userId },
-                    select: { username: true, phone: true },
-                  });
-                  if (user) {
-                    const created = await prisma.trainerProfile.create({
-                      data: {
-                        userId,
-                        fullName: (user as unknown as { username?: string }).username ?? user.phone ?? "Trainer",
-                        phone: user.phone ?? "",
-                      },
-                    });
-                    token.trainerProfileId = created.id;
+          const cacheKey = `${userId}:${trainerProfileId ?? "none"}`;
+          const cached = trainerValidationCache.get(cacheKey);
+          if (cached && cached.expires > Date.now()) {
+            token.trainerProfileId = cached.value;
+          } else {
+            try {
+              if (trainerProfileId) {
+                const existsRes = await pool.query(
+                  `SELECT "id" FROM "TrainerProfile" WHERE "id"=$1 LIMIT 1`,
+                  [trainerProfileId]
+                );
+                const exists = existsRes.rows[0] as { id: string } | undefined;
+                if (!exists) {
+                  const byUserRes = await pool.query(
+                    `SELECT "id" FROM "TrainerProfile" WHERE "userId"=$1 LIMIT 1`,
+                    [userId]
+                  );
+                  const byUser = byUserRes.rows[0] as { id: string } | undefined;
+                  if (byUser) {
+                    token.trainerProfileId = byUser.id;
                   } else {
-                    token.trainerProfileId = undefined;
+                    const userRes = await pool.query(
+                      `SELECT "username", "phone" FROM "User" WHERE "id"=$1 LIMIT 1`,
+                      [userId]
+                    );
+                    const user = userRes.rows[0] as
+                      | { username: string | null; phone: string | null }
+                      | undefined;
+                    if (user) {
+                      const id = generateId();
+                      const fullName =
+                        (user as unknown as { username?: string }).username ??
+                        user.phone ??
+                        "Trainer";
+                      const phone = user.phone ?? "";
+                      try {
+                        const createdRes = await pool.query(
+                          `INSERT INTO "TrainerProfile" ("id","userId","fullName","phone","createdAt","updatedAt") VALUES ($1,$2,$3,$4,NOW(),NOW()) RETURNING *`,
+                          [id, userId, fullName, phone]
+                        );
+                        const created = createdRes.rows[0] as { id: string };
+                        token.trainerProfileId = created.id;
+                      } catch {
+                        const retryRes = await pool.query(
+                          `SELECT "id" FROM "TrainerProfile" WHERE "userId"=$1 LIMIT 1`,
+                          [userId]
+                        );
+                        const retry = retryRes.rows[0] as { id: string } | undefined;
+                        if (retry) token.trainerProfileId = retry.id;
+                        else token.trainerProfileId = undefined;
+                      }
+                    } else {
+                      token.trainerProfileId = undefined;
+                    }
                   }
                 }
+              } else {
+                const byUserRes = await pool.query(
+                  `SELECT "id" FROM "TrainerProfile" WHERE "userId"=$1 LIMIT 1`,
+                  [userId]
+                );
+                const byUser = byUserRes.rows[0] as { id: string } | undefined;
+                if (byUser) {
+                  token.trainerProfileId = byUser.id;
+                }
               }
-            } else {
-              // No profile ID in token but user is TRAINER -> try to resolve
-              const byUser = await prisma.trainerProfile.findUnique({
-                where: { userId },
-                select: { id: true },
-              });
-              if (byUser) {
-                token.trainerProfileId = byUser.id;
-              }
+            } catch {
+              // Do not block auth on DB errors; leave token as-is
             }
-          } catch {
-            // Do not block auth on DB errors; leave token as-is for downstream handling
+            trainerValidationCache.set(cacheKey, {
+              value: token.trainerProfileId as string | undefined,
+              expires: Date.now() + CACHE_TTL_MS,
+            });
           }
         }
       }
-      // Re-validate clientProfileId for CLIENT role — handles deleted client records.
-      // If the linked Client row was deleted by the trainer, clear clientProfileId
-      // so portal layout can detect the orphaned user and show "No longer subscribed".
+      // Re-validate clientProfileId — cached 60s (was 1-2 queries per request)
       if (token.role === "CLIENT") {
         const clientProfileId = token.clientProfileId as string | undefined;
         const userId = token.id as string | undefined;
         if (userId) {
-          try {
-            if (clientProfileId) {
-              const exists = await prisma.client.findUnique({
-                where: { id: clientProfileId },
-                select: { id: true },
-              });
-              if (!exists) {
-                const byUser = await prisma.client.findUnique({
-                  where: { userId },
-                  select: { id: true },
-                });
-                token.clientProfileId = byUser?.id;
+          const cacheKey = `${userId}:${clientProfileId ?? "none"}`;
+          const cached = clientValidationCache.get(cacheKey);
+          if (cached && cached.expires > Date.now()) {
+            token.clientProfileId = cached.value;
+          } else {
+            try {
+              if (clientProfileId) {
+                const existsRes = await pool.query(
+                  `SELECT "id" FROM "Client" WHERE "id"=$1 LIMIT 1`,
+                  [clientProfileId]
+                );
+                const exists = existsRes.rows[0] as { id: string } | undefined;
+                if (!exists) {
+                  const byUserRes = await pool.query(
+                    `SELECT "id" FROM "Client" WHERE "userId"=$1 LIMIT 1`,
+                    [userId]
+                  );
+                  const byUser = byUserRes.rows[0] as { id: string } | undefined;
+                  token.clientProfileId = byUser?.id;
+                }
+              } else {
+                const byUserRes = await pool.query(
+                  `SELECT "id" FROM "Client" WHERE "userId"=$1 LIMIT 1`,
+                  [userId]
+                );
+                const byUser = byUserRes.rows[0] as { id: string } | undefined;
+                if (byUser) {
+                  token.clientProfileId = byUser.id;
+                }
               }
-            } else {
-              const byUser = await prisma.client.findUnique({
-                where: { userId },
-                select: { id: true },
-              });
-              if (byUser) {
-                token.clientProfileId = byUser.id;
-              }
+            } catch {
+              // Do not block auth on DB errors
             }
-          } catch {
-            // Do not block auth on DB errors
+            clientValidationCache.set(cacheKey, {
+              value: token.clientProfileId as string | undefined,
+              expires: Date.now() + CACHE_TTL_MS,
+            });
           }
         }
       }
@@ -298,6 +402,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
+        session.user.name = token.name as string | undefined;
         session.user.role = token.role as Role;
         session.user.mustChangePassword =
           (token.mustChangePassword as boolean | undefined) ?? false;

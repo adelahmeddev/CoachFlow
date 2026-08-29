@@ -44,16 +44,19 @@ export function ClientBottomNav() {
   useEffect(() => {
     let cancelled = false
     const fetchCount = () => {
-      fetch("/api/messages/unread-count", { credentials: "include" })
+      if (document.visibilityState !== "visible") return
+      fetch("/api/messages/unread-count", { credentials: "include", cache: "no-store" as RequestCache })
         .then(r => r.ok ? r.json() : Promise.reject())
         .then(data => { if (!cancelled) setUnreadCount(data.count ?? 0) })
         .catch(() => {})
     }
     fetchCount()
-    const id = setInterval(fetchCount, 30000)
+    const id = setInterval(fetchCount, 60000)
     const handler = () => fetchCount()
+    const visHandler = () => { if (document.visibilityState === "visible") fetchCount() }
     window.addEventListener('messages:read', handler)
-    return () => { cancelled = true; clearInterval(id); window.removeEventListener('messages:read', handler) }
+    document.addEventListener('visibilitychange', visHandler)
+    return () => { cancelled = true; clearInterval(id); window.removeEventListener('messages:read', handler); document.removeEventListener('visibilitychange', visHandler) }
   }, [])
 
   return (

@@ -25,19 +25,32 @@ export async function GET(req: Request) {
   }
 
   let unsubscribe: (() => void) | null = null
+  let closed = false
+  let hb: ReturnType<typeof setInterval> | null = null
 
   const stream = new ReadableStream({
     start(controller) {
       const encoder = new TextEncoder()
+      let controllerRef: ReadableStreamDefaultController | null = controller
+
+      const safeEnqueue = (chunk: Uint8Array) => {
+        if (!closed && controllerRef) {
+          try {
+            controllerRef.enqueue(chunk)
+          } catch {
+            closed = true
+            controllerRef = null
+          }
+        }
+      }
+
       const send = (data: unknown) => {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
+        safeEnqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
       }
 
       // heartbeat every 25s to keep connection alive
-      const hb = setInterval(() => {
-        try {
-          controller.enqueue(encoder.encode(`: heartbeat\n\n`))
-        } catch {}
+      hb = setInterval(() => {
+        safeEnqueue(encoder.encode(`: heartbeat\n\n`))
       }, 25000)
 
       // initial ping
@@ -49,16 +62,31 @@ export async function GET(req: Request) {
 
       // cleanup on abort
       // @ts-ignore
-      req.signal?.addEventListener("abort", () => {
-        clearInterval(hb)
+      const abortHandler = () => {
+        if (hb) clearInterval(hb)
         unsubscribe?.()
-        try {
-          controller.close()
-        } catch {}
-      })
+        if (!closed) {
+          closed = true
+          try {
+            controllerRef?.close()
+          } catch {}
+        }
+        controllerRef = null
+      }
+      // @ts-ignore
+      req.signal?.addEventListener("abort", abortHandler)
+
+      // also handle cancel via stream's cancel()
+      return () => {
+        abortHandler()
+      }
     },
     cancel() {
-      unsubscribe?.()
+      if (!closed) {
+        closed = true
+        if (hb) clearInterval(hb)
+        unsubscribe?.()
+      }
     },
   })
 

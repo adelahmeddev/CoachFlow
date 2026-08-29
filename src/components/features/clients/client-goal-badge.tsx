@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { useI18n } from "@/lib/i18n/client"
 import { getGoalLabel } from "@/lib/i18n/labels"
-import type { Goal } from "@/generated/prisma/enums"
+import type { Goal } from "@/lib/db/enums"
 
 export function ClientGoalBadge({ goal }: { goal: Goal | null }) {
   const { locale } = useI18n()

@@ -44,8 +44,8 @@ import {
   PaymentStatus,
   PlanType,
   SubscriptionStatus,
-} from "@/generated/prisma/enums"
-import type { Subscription } from "@/generated/prisma/client"
+} from "@/lib/db/enums"
+import type { Subscription } from "@/lib/db/types"
 import { cn } from "@/lib/utils"
 
 interface SubscriptionFormProps {

@@ -1,10 +1,10 @@
-import { prisma } from "@/lib/prisma"
+import { pool, generateId, withTransaction } from "@/lib/db"
 import {
   PaymentStatus,
   PlanType,
   SubscriptionStatus,
-} from "@/generated/prisma/enums"
-import type { SubscriptionPlan } from "@/generated/prisma/client"
+} from "@/lib/db/enums"
+import type { SubscriptionPlan } from "@/lib/db/types"
 import type { SubscriptionPlanInput } from "@/lib/validations/subscription-plan"
 import { invalidate } from "@/lib/cache"
 
@@ -20,16 +20,19 @@ async function getOwnedPlan(
   planId: string,
   trainerProfileId: string
 ): Promise<SubscriptionPlan | null> {
-  return prisma.subscriptionPlan.findFirst({
-    where: { id: planId, trainerId: trainerProfileId },
-  })
+  const res = await pool.query<SubscriptionPlan>(
+    `SELECT * FROM "SubscriptionPlan" WHERE "id" = $1 AND "trainerId" = $2 LIMIT 1`,
+    [planId, trainerProfileId]
+  )
+  return (res.rows[0] as SubscriptionPlan) ?? null
 }
 
 export async function getTrainerSubscriptionPlans(trainerProfileId: string) {
-  return prisma.subscriptionPlan.findMany({
-    where: { trainerId: trainerProfileId },
-    orderBy: { createdAt: "desc" },
-  })
+  const res = await pool.query<SubscriptionPlan>(
+    `SELECT * FROM "SubscriptionPlan" WHERE "trainerId" = $1 ORDER BY "createdAt" DESC`,
+    [trainerProfileId]
+  )
+  return res.rows as SubscriptionPlan[]
 }
 
 export async function getSubscriptionPlanForEdit(
@@ -44,23 +47,26 @@ export async function createSubscriptionPlan(
   data: SubscriptionPlanInput
 ): Promise<SubscriptionPlan> {
   const isSessions = data.planType === PlanType.SESSIONS
-
-  return prisma.subscriptionPlan.create({
-    data: {
-      trainerId: trainerProfileId,
-      name: data.name.trim(),
-      planType: data.planType,
-      sessionsCount:
-        isSessions && data.sessionsCount !== "" && data.sessionsCount !== undefined
-          ? data.sessionsCount
-          : null,
-      durationDays:
-        !isSessions && data.durationDays !== "" && data.durationDays !== undefined
-          ? data.durationDays
-          : null,
-      notes: data.notes?.trim() || null,
-    },
-  })
+  const id = generateId()
+  const res = await pool.query<SubscriptionPlan>(
+    `INSERT INTO "SubscriptionPlan" ("id", "trainerId", "name", "planType", "sessionsCount", "durationDays", "notes", "createdAt", "updatedAt")
+     VALUES ($1, $2, $3, $4::"PlanType", $5, $6, $7, NOW(), NOW())
+     RETURNING *`,
+    [
+      id,
+      trainerProfileId,
+      data.name.trim(),
+      data.planType,
+      isSessions && data.sessionsCount !== "" && data.sessionsCount !== undefined
+        ? data.sessionsCount
+        : null,
+      !isSessions && data.durationDays !== "" && data.durationDays !== undefined
+        ? data.durationDays
+        : null,
+      data.notes?.trim() || null,
+    ]
+  )
+  return res.rows[0] as SubscriptionPlan
 }
 
 export async function updateSubscriptionPlan(
@@ -73,22 +79,22 @@ export async function updateSubscriptionPlan(
 
   const isSessions = data.planType === PlanType.SESSIONS
 
-  return prisma.subscriptionPlan.update({
-    where: { id: plan.id },
-    data: {
-      name: data.name.trim(),
-      planType: data.planType,
-      sessionsCount:
-        isSessions && data.sessionsCount !== "" && data.sessionsCount !== undefined
-          ? data.sessionsCount
-          : null,
-      durationDays:
-        !isSessions && data.durationDays !== "" && data.durationDays !== undefined
-          ? data.durationDays
-          : null,
-      notes: data.notes?.trim() || null,
-    },
-  })
+  const res = await pool.query<SubscriptionPlan>(
+    `UPDATE "SubscriptionPlan" SET "name" = $1, "planType" = $2::"PlanType", "sessionsCount" = $3, "durationDays" = $4, "notes" = $5, "updatedAt" = NOW() WHERE "id" = $6 RETURNING *`,
+    [
+      data.name.trim(),
+      data.planType,
+      isSessions && data.sessionsCount !== "" && data.sessionsCount !== undefined
+        ? data.sessionsCount
+        : null,
+      !isSessions && data.durationDays !== "" && data.durationDays !== undefined
+        ? data.durationDays
+        : null,
+      data.notes?.trim() || null,
+      plan.id,
+    ]
+  )
+  return (res.rows[0] as SubscriptionPlan) ?? null
 }
 
 export async function duplicateSubscriptionPlan(
@@ -98,16 +104,22 @@ export async function duplicateSubscriptionPlan(
   const plan = await getOwnedPlan(planId, trainerProfileId)
   if (!plan) return null
 
-  return prisma.subscriptionPlan.create({
-    data: {
-      trainerId: trainerProfileId,
-      name: `${plan.name} (Copy)`,
-      planType: plan.planType,
-      sessionsCount: plan.sessionsCount,
-      durationDays: plan.durationDays,
-      notes: plan.notes,
-    },
-  })
+  const id = generateId()
+  const res = await pool.query<SubscriptionPlan>(
+    `INSERT INTO "SubscriptionPlan" ("id", "trainerId", "name", "planType", "sessionsCount", "durationDays", "notes", "createdAt", "updatedAt")
+     VALUES ($1, $2, $3, $4::"PlanType", $5, $6, $7, NOW(), NOW())
+     RETURNING *`,
+    [
+      id,
+      trainerProfileId,
+      `${plan.name} (Copy)`,
+      plan.planType,
+      plan.sessionsCount,
+      plan.durationDays,
+      plan.notes,
+    ]
+  )
+  return res.rows[0] as SubscriptionPlan
 }
 
 export async function deleteSubscriptionPlan(
@@ -117,7 +129,7 @@ export async function deleteSubscriptionPlan(
   const plan = await getOwnedPlan(planId, trainerProfileId)
   if (!plan) return false
 
-  await prisma.subscriptionPlan.delete({ where: { id: plan.id } })
+  await pool.query(`DELETE FROM "SubscriptionPlan" WHERE "id" = $1`, [plan.id])
   return true
 }
 
@@ -131,10 +143,11 @@ export async function assignSubscriptionPlanToClient(
   trainerProfileId: string,
   planId: string
 ) {
-  const client = await prisma.client.findFirst({
-    where: { id: clientId, trainerId: trainerProfileId },
-    select: { id: true },
-  })
+  const clientRes = await pool.query(
+    `SELECT "id" FROM "Client" WHERE "id" = $1 AND "trainerId" = $2 LIMIT 1`,
+    [clientId, trainerProfileId]
+  )
+  const client = clientRes.rows[0] as { id: string } | undefined
   if (!client) return null
 
   const plan = await getOwnedPlan(planId, trainerProfileId)
@@ -143,33 +156,34 @@ export async function assignSubscriptionPlanToClient(
   const startDate = todayUtc()
   const isPeriod = plan.planType === PlanType.PERIOD
 
-  const subscription = await prisma.$transaction(async (tx) => {
-    await tx.subscription.updateMany({
-      where: {
-        clientId: client.id,
-        OR: [
-          { status: SubscriptionStatus.ACTIVE },
-          { status: SubscriptionStatus.TRIAL },
-        ],
-      },
-      data: { status: SubscriptionStatus.EXPIRED },
-    })
+  const subscription = await withTransaction(async (tx) => {
+    await tx.query(
+      `UPDATE "Subscription" SET "status" = 'EXPIRED'::"SubscriptionStatus", "updatedAt" = NOW() WHERE "clientId" = $1 AND "status" IN ('ACTIVE'::"SubscriptionStatus", 'TRIAL'::"SubscriptionStatus")`,
+      [client.id]
+    )
 
-    return tx.subscription.create({
-      data: {
-        clientId: client.id,
-        planId: plan.id,
-        planName: plan.name,
-        planType: plan.planType,
-        status: SubscriptionStatus.ACTIVE,
+    const id = generateId()
+    const res = await tx.query(
+      `INSERT INTO "Subscription" ("id", "clientId", "planId", "planName", "planType", "status", "startDate", "endDate", "durationDays", "sessionsCount", "remainingSessions", "paymentStatus", "autoRenew", "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, $4, $5::"PlanType", $6::"SubscriptionStatus", $7, $8, $9, $10, $11, $12::"PaymentStatus", $13, NOW(), NOW())
+       RETURNING *`,
+      [
+        id,
+        client.id,
+        plan.id,
+        plan.name,
+        plan.planType,
+        SubscriptionStatus.ACTIVE,
         startDate,
-        endDate: isPeriod && plan.durationDays ? addDays(startDate, plan.durationDays) : null,
-        durationDays: isPeriod ? plan.durationDays : null,
-        sessionsCount: isPeriod ? null : plan.sessionsCount,
-        remainingSessions: isPeriod ? null : plan.sessionsCount,
-        paymentStatus: PaymentStatus.NOT_REQUIRED,
-      },
-    })
+        isPeriod && plan.durationDays ? addDays(startDate, plan.durationDays) : null,
+        isPeriod ? plan.durationDays : null,
+        isPeriod ? null : plan.sessionsCount,
+        isPeriod ? null : plan.sessionsCount,
+        PaymentStatus.NOT_REQUIRED,
+        false,
+      ]
+    )
+    return res.rows[0]
   })
 
   invalidate([

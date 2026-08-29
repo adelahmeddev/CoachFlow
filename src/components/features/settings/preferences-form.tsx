@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState } from "react"
 import { useForm } from "react-hook-form"
@@ -23,7 +23,7 @@ import {
   type PreferencesInput,
 } from "@/lib/validations/settings"
 import { updatePreferencesAction } from "@/server/actions/settings"
-import { Units, WeekStartDay } from "@/generated/prisma/enums"
+import { Units, WeekStartDay } from "@/lib/db/enums"
 
 const UNIT_VALUES = Object.values(Units)
 const WEEK_START_VALUES = Object.values(WeekStartDay)

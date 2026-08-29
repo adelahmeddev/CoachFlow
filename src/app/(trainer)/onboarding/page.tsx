@@ -4,6 +4,7 @@ import { JoinLinkCard } from "@/components/features/onboarding/join-link-card"
 import { InviteList } from "@/components/features/onboarding/invite-list"
 import { getI18n } from "@/lib/i18n"
 import type { Metadata } from "next"
+import { pool } from "@/lib/db"
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n()
@@ -19,11 +20,8 @@ export default async function OnboardingPage() {
   // Handle missing/stale trainerProfileId (e.g., after DB reset with old JWT)
   let trainerProfileId = session?.user.trainerProfileId
   if (session?.user.role === "TRAINER" && !trainerProfileId && session.user.id) {
-    const { prisma } = await import("@/lib/prisma")
-    const byUser = await prisma.trainerProfile.findUnique({
-      where: { userId: session.user.id },
-      select: { id: true },
-    })
+    const byUserRes = await pool.query(`SELECT "id" FROM "TrainerProfile" WHERE "userId" = $1 LIMIT 1`, [session.user.id])
+    const byUser = byUserRes.rows[0] as { id: string } | undefined
     trainerProfileId = byUser?.id
   }
   const invites = trainerProfileId ? await getTrainerInvites(trainerProfileId) : []

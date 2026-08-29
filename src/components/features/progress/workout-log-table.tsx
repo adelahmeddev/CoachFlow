@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { toast } from "sonner"
 import { Trash2 } from "lucide-react"
-import type { WorkoutLog } from "@/generated/prisma/client"
+import type { WorkoutLog } from "@/lib/db/types"
 import { Button } from "@/components/ui/button"
 import {
   Table,

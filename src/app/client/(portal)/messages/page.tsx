@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { getCurrentSession } from "@/server/auth"
-import { prisma } from "@/lib/prisma"
+import { pool } from "@/lib/db"
 import { getConversationForClient, getMessages } from "@/server/services/message.service"
 import { ChatThread } from "@/components/features/messages/chat-thread"
 import { getI18n } from "@/lib/i18n"
@@ -24,11 +24,14 @@ export default async function ClientMessagesPage({
   const { messages, nextCursor } = await getMessages(conv.id, { cursor, take: 30 })
   const archived = false
 
-  const [nutritionPlan, split, inBody] = await Promise.all([
-    prisma.clientNutritionPlan.findFirst({ where: { clientId: conv.clientId, status: "ACTIVE" }, select: { id: true } }),
-    prisma.trainingSplit.findFirst({ where: { clientId: conv.clientId, status: "ACTIVE" }, select: { id: true } }),
-    prisma.bodyComposition.findFirst({ where: { clientId: conv.clientId }, select: { id: true } }),
+  const [nutritionPlanRes, splitRes, inBodyRes] = await Promise.all([
+    pool.query(`SELECT "id" FROM "ClientNutritionPlan" WHERE "clientId" = $1 AND "status" = $2::"PlanStatus" LIMIT 1`, [conv.clientId, "ACTIVE"]),
+    pool.query(`SELECT "id" FROM "TrainingSplit" WHERE "clientId" = $1 AND "status" = $2::"PlanStatus" LIMIT 1`, [conv.clientId, "ACTIVE"]),
+    pool.query(`SELECT "id" FROM "BodyComposition" WHERE "clientId" = $1 LIMIT 1`, [conv.clientId]),
   ])
+  const nutritionPlan = nutritionPlanRes.rows[0] ?? null
+  const split = splitRes.rows[0] ?? null
+  const inBody = inBodyRes.rows[0] ?? null
   const context = {
     hasNutritionPlan: !!nutritionPlan,
     hasSplit: !!split,

@@ -1,4 +1,4 @@
-import type { ScheduleMode, Weekday, WeekStartDay } from "@/generated/prisma/enums"
+import type { ScheduleMode, Weekday, WeekStartDay } from "@/lib/db/enums"
 
 /**
  * Canonical weekday cycle starting Saturday (matches the Weekday enum).

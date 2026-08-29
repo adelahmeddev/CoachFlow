@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { invalidate } from "@/lib/cache"
 import { getCurrentSession } from "@/server/auth"
+import { pool, generateId } from "@/lib/db"
 import {
   createClientInvite,
   submitClientBasicInfo,
@@ -25,34 +26,28 @@ export async function generateInviteAction() {
   }
 
   // Defensive: verify profile still exists (handles DB reset / stale JWT race even after jwt healing)
-  const { prisma } = await import("@/lib/prisma")
   let trainerProfileId = session.user.trainerProfileId
-  const profile = await prisma.trainerProfile.findUnique({
-    where: { id: trainerProfileId },
-    select: { id: true },
-  })
+  const profileRes = await pool.query(`SELECT "id" FROM "TrainerProfile" WHERE "id"=$1 LIMIT 1`, [trainerProfileId])
+  const profile = profileRes.rows[0] as { id: string } | undefined
   if (!profile) {
     // Try to heal by userId lookup (user may have a new profile after DB reset)
-    const byUser = await prisma.trainerProfile.findUnique({
-      where: { userId: session.user.id },
-      select: { id: true },
-    })
+    const byUserRes = await pool.query(`SELECT "id" FROM "TrainerProfile" WHERE "userId"=$1 LIMIT 1`, [session.user.id])
+    const byUser = byUserRes.rows[0] as { id: string } | undefined
     if (byUser) {
       trainerProfileId = byUser.id
     } else {
       // Last resort: auto-create (should have been done in auth.ts jwt, but handle here too)
       try {
-        const user = await prisma.user.findUnique({
-          where: { id: session.user.id },
-          select: { username: true, phone: true },
-        })
-        const created = await prisma.trainerProfile.create({
-          data: {
-            userId: session.user.id,
-            fullName: (user as unknown as { username?: string })?.username ?? user?.phone ?? "Trainer",
-            phone: user?.phone ?? "",
-          },
-        })
+        const userRes = await pool.query(`SELECT "username", "phone" FROM "User" WHERE "id"=$1 LIMIT 1`, [session.user.id])
+        const user = userRes.rows[0] as { username: string | null; phone: string | null } | undefined
+        const id = generateId()
+        const fullName = (user as unknown as { username?: string })?.username ?? user?.phone ?? "Trainer"
+        const phone = user?.phone ?? ""
+        const createdRes = await pool.query(
+          `INSERT INTO "TrainerProfile" ("id","userId","fullName","phone","createdAt","updatedAt") VALUES ($1,$2,$3,$4,NOW(),NOW()) RETURNING *`,
+          [id, session.user.id, fullName, phone]
+        )
+        const created = createdRes.rows[0] as { id: string }
         trainerProfileId = created.id
       } catch {
         return {
@@ -108,10 +103,11 @@ export async function getJoinLinkAction() {
     return { ok: false as const, error: "Unauthorized" }
   }
   let trainerProfileId = session.user.trainerProfileId
-  const { prisma } = await import("@/lib/prisma")
-  const profile = await prisma.trainerProfile.findUnique({ where: { id: trainerProfileId }, select: { id: true } })
+  const profileRes = await pool.query(`SELECT "id" FROM "TrainerProfile" WHERE "id"=$1 LIMIT 1`, [trainerProfileId])
+  const profile = profileRes.rows[0] as { id: string } | undefined
   if (!profile) {
-    const byUser = await prisma.trainerProfile.findUnique({ where: { userId: session.user.id }, select: { id: true } })
+    const byUserRes = await pool.query(`SELECT "id" FROM "TrainerProfile" WHERE "userId"=$1 LIMIT 1`, [session.user.id])
+    const byUser = byUserRes.rows[0] as { id: string } | undefined
     if (byUser) trainerProfileId = byUser.id
     else return { ok: false as const, error: "Trainer profile not found" }
   }
@@ -125,10 +121,11 @@ export async function regenerateJoinLinkAction() {
     return { ok: false as const, error: "Unauthorized" }
   }
   let trainerProfileId = session.user.trainerProfileId
-  const { prisma } = await import("@/lib/prisma")
-  const profile = await prisma.trainerProfile.findUnique({ where: { id: trainerProfileId }, select: { id: true } })
+  const profileRes = await pool.query(`SELECT "id" FROM "TrainerProfile" WHERE "id"=$1 LIMIT 1`, [trainerProfileId])
+  const profile = profileRes.rows[0] as { id: string } | undefined
   if (!profile) {
-    const byUser = await prisma.trainerProfile.findUnique({ where: { userId: session.user.id }, select: { id: true } })
+    const byUserRes = await pool.query(`SELECT "id" FROM "TrainerProfile" WHERE "userId"=$1 LIMIT 1`, [session.user.id])
+    const byUser = byUserRes.rows[0] as { id: string } | undefined
     if (byUser) trainerProfileId = byUser.id
     else return { ok: false as const, error: "Trainer profile not found" }
   }

@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { formatDate } from "@/lib/format"
-import type { BodyComposition } from "@/generated/prisma/client"
+import type { BodyComposition } from "@/lib/db/types"
 
 interface StrengthProgressChartProps {
   assessments: BodyComposition[]

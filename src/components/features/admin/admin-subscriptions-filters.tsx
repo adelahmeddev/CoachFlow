@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select"
 import { useI18n } from "@/lib/i18n/client"
 import { getPaymentStatusLabel, getSubscriptionStatusLabel } from "@/lib/i18n/labels"
-import { PaymentStatus, SubscriptionStatus } from "@/generated/prisma/enums"
+import { PaymentStatus, SubscriptionStatus } from "@/lib/db/enums"
 import { AdminSearchInput } from "@/components/features/admin/admin-search-input"
 
 const STATUS_VALUES = Object.values(SubscriptionStatus)

@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { MealKind, QuantityUnit, SubstituteCategory } from "@/generated/prisma/enums"
+import { MealKind, QuantityUnit, SubstituteCategory } from "@/lib/db/enums"
 
 function coerceNumber(v: unknown): unknown {
   if (v === null || v === undefined || v === "") return null

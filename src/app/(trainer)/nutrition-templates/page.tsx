@@ -1,17 +1,23 @@
-﻿import Link from "next/link"
+﻿"use client"
+
+import Link from "next/link"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { getCurrentSession } from "@/server/auth"
-import { getTemplatesForTrainer } from "@/server/services/nutrition.service"
-import { getTrainerClients } from "@/server/services/client.service"
 import { NutritionTemplatesTable } from "@/components/features/nutrition/nutrition-templates-table"
-import { getI18n } from "@/lib/i18n"
+import { useI18n } from "@/lib/i18n/client"
+import { useTemplates } from "@/hooks/useTemplates"
+import { useClients } from "@/hooks/useClients"
+import { useUnreadCount } from "@/hooks/useUnreadCount"
+import { useSession } from "next-auth/react"
 
-export default async function NutritionTemplatesPage() {
-  const { t } = await getI18n()
-  const session = await getCurrentSession()
-  const trainerProfileId = session?.user.trainerProfileId
+export default function NutritionTemplatesPage() {
+  const { data: session, status } = useSession()
+  const { t } = useI18n()
 
+  const trainerProfileId = session?.user?.trainerProfileId ?? ""
+
+  // Loading / auth guards
+  if (status === "loading") return <p>Loading…</p>
   if (!trainerProfileId) {
     return (
       <div className="mx-auto max-w-7xl p-4 md:p-8">
@@ -20,33 +26,22 @@ export default async function NutritionTemplatesPage() {
     )
   }
 
-  const [templates, clientsResult] = await Promise.all([
-    getTemplatesForTrainer(trainerProfileId),
-    getTrainerClients(trainerProfileId, { perPage: 1000 }),
-  ])
+  const { templates, loading: templatesLoading } = useTemplates(trainerProfileId)
+  const { clients, loading: clientsLoading } = useClients(trainerProfileId)
+  const { count: unreadCount } = useUnreadCount("TRAINER", trainerProfileId)
 
-  const rows = templates.map((template) => ({
-    id: template.id,
-    name: template.name,
-    isGlobal: template.isGlobal,
-    calories: template.calories,
-    proteinGrams: template.proteinGrams,
-    carbsGrams: template.carbsGrams,
-    fatsGrams: template.fatsGrams,
-    mealsCount: template._count.meals,
-  }))
+  // Optionally display the unread count somewhere (e.g., badge)
+  // console.log('Unread messages:', unreadCount)
 
-  const assignableClients = clientsResult.clients.map((client) => ({
-    id: client.id,
-    fullName: client.fullName ?? "",
-    goal: client.goal,
-  }))
+  if (templatesLoading || clientsLoading) {
+    return <p className="mx-auto max-w-7xl p-4 md:p-8">Loading…</p>
+  }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-8">
+    <div className="mx-auto max-w-7xl space-y-8 p-6 md:p-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{t.nutrition.templates}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t.nutrition.templates}</h1>
           <p className="text-sm text-muted-foreground">{t.nutrition.templatesDescription}</p>
         </div>
         <Button asChild className="min-h-[44px]">
@@ -57,7 +52,7 @@ export default async function NutritionTemplatesPage() {
         </Button>
       </div>
 
-      <NutritionTemplatesTable templates={rows} clients={assignableClients} />
+      <NutritionTemplatesTable templates={templates} clients={clients} />
     </div>
   )
 }

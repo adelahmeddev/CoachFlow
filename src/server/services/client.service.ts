@@ -1,5 +1,5 @@
-import { prisma } from "@/lib/prisma"
-import { ClientStatus, Goal, SubscriptionStatus } from "@/generated/prisma/enums"
+import { pool, generateId } from "@/lib/db"
+import { ClientStatus, Goal, SubscriptionStatus } from "@/lib/db/enums"
 import {
   clientCreateSchema,
   type ClientCreateInput,
@@ -19,12 +19,11 @@ export async function createClientManually(
 
   const data = parsed.data as ClientCreateInput
 
-  // Validate trainer profile exists before FK create (prevents P2003)
-  const trainerProfile = await prisma.trainerProfile.findUnique({
-    where: { id: trainerProfileId },
-    select: { id: true },
-  })
-  if (!trainerProfile) {
+  const trainerProfile = await pool.query(
+    `SELECT "id" FROM "TrainerProfile" WHERE "id" = $1`,
+    [trainerProfileId]
+  )
+  if (trainerProfile.rowCount === 0) {
     return {
       ok: false as const,
       error: "Trainer profile not found. Please log out and log in again.",
@@ -32,23 +31,29 @@ export async function createClientManually(
   }
 
   try {
-    const client = await prisma.client.create({
-      data: {
-        trainerId: trainerProfileId,
-        fullName: data.fullName,
-        phone: data.phone ?? null,
-        birthDate: data.birthDate ?? null,
-        goal: data.goal ?? null,
-        status: data.status,
-      },
-    })
-    return { ok: true as const, clientId: client.id }
+    const id = generateId()
+    const now = new Date()
+    const res = await pool.query(
+      `INSERT INTO "Client" ("id", "trainerId", "fullName", "phone", "birthDate", "goal", "status", "createdAt", "updatedAt")
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$8) RETURNING "id"`,
+      [
+        id,
+        trainerProfileId,
+        data.fullName,
+        data.phone ?? null,
+        data.birthDate ?? null,
+        data.goal ?? null,
+        data.status,
+        now,
+      ]
+    )
+    return { ok: true as const, clientId: res.rows[0].id as string }
   } catch (error) {
     if (
       typeof error === "object" &&
       error !== null &&
       "code" in error &&
-      (error as { code?: string }).code === "P2003"
+      (error as { code?: string }).code === "23503"
     ) {
       return {
         ok: false as const,
@@ -72,62 +77,86 @@ export async function getTrainerClients(
   const page = params.page ?? 1
   const perPage = params.perPage ?? 10
 
-  const where = {
-    trainerId: trainerProfileId,
-    ...(params.q
-      ? {
-          OR: [
-            { fullName: { contains: params.q, mode: "insensitive" as const } },
-            { phone: { contains: params.q, mode: "insensitive" as const } },
-          ],
-        }
-      : {}),
-    ...(params.status ? { status: params.status as ClientStatus } : {}),
-    ...(params.goal ? { goal: params.goal as Goal } : {}),
+  const conditions: string[] = [`"trainerId" = $1`]
+  const countParams: unknown[] = [trainerProfileId]
+  let paramIdx = 2
+
+  const whereClauses: string[] = [`"trainerId" = $1`]
+  const queryParams: unknown[] = [trainerProfileId]
+
+  if (params.q) {
+    const qPattern = `%${params.q}%`
+    whereClauses.push(`("fullName" ILIKE $${paramIdx} OR "phone" ILIKE $${paramIdx})`)
+    conditions.push(`("fullName" ILIKE $${paramIdx} OR "phone" ILIKE $${paramIdx})`)
+    queryParams.push(qPattern)
+    countParams.push(qPattern)
+    paramIdx++
+  }
+  if (params.status) {
+    whereClauses.push(`"status" = $${paramIdx}::"ClientStatus"`)
+    conditions.push(`"status" = $${paramIdx}::"ClientStatus"`)
+    queryParams.push(params.status)
+    countParams.push(params.status)
+    paramIdx++
+  }
+  if (params.goal) {
+    whereClauses.push(`"goal" = $${paramIdx}::"Goal"`)
+    conditions.push(`"goal" = $${paramIdx}::"Goal"`)
+    queryParams.push(params.goal)
+    countParams.push(params.goal)
+    paramIdx++
   }
 
-  const [total, clients] = await Promise.all([
-    prisma.client.count({ where }),
-    prisma.client.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      skip: (page - 1) * perPage,
-      take: perPage,
-      select: {
-        id: true,
-        fullName: true,
-        phone: true,
-        birthDate: true,
-        goal: true,
-        status: true,
-        basicInfoCompletedAt: true,
-        createdAt: true,
-      },
-    }),
+  const whereSql = whereClauses.join(" AND ")
+  const countWhereSql = conditions.join(" AND ")
+
+  const [totalRes, clientsRes] = await Promise.all([
+    pool.query(`SELECT COUNT(*)::int AS count FROM "Client" WHERE ${countWhereSql}`, countParams),
+    pool.query(
+      `SELECT "id", "fullName", "phone", "birthDate", "goal", "status", "basicInfoCompletedAt", "createdAt"
+       FROM "Client" WHERE ${whereSql}
+       ORDER BY "createdAt" DESC
+       LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
+      [...queryParams, perPage, (page - 1) * perPage]
+    ),
   ])
 
-  // Filter to ACTIVE/TRIAL only at the DB level — avoids pulling all historical
-  // subscriptions per client page and doing JS-level picking over an unbounded set.
-  const subscriptions = await prisma.subscription.findMany({
-    where: {
-      clientId: { in: clients.map((client) => client.id) },
-      status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL] },
-    },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      clientId: true,
-      planName: true,
-      status: true,
-      createdAt: true,
-    },
-  })
+  const total = (totalRes.rows[0] as { count: number }).count
+  const clients = clientsRes.rows as {
+    id: string
+    fullName: string | null
+    phone: string | null
+    birthDate: Date | null
+    goal: Goal | null
+    status: ClientStatus
+    basicInfoCompletedAt: Date | null
+    createdAt: Date
+  }[]
+
+  let subscriptions: {
+    id: string
+    clientId: string
+    planName: string
+    status: SubscriptionStatus
+    createdAt: Date
+  }[] = []
+  if (clients.length > 0) {
+    const clientIds = clients.map((c) => c.id)
+    const placeholders = clientIds.map((_, i) => `$${i + 1}`).join(",")
+    const subRes = await pool.query(
+      `SELECT "id", "clientId", "planName", "status", "createdAt"
+       FROM "Subscription"
+       WHERE "clientId" IN (${placeholders}) AND "status" IN ('ACTIVE','TRIAL')
+       ORDER BY "createdAt" DESC`,
+      clientIds
+    )
+    subscriptions = subRes.rows as typeof subscriptions
+  }
 
   const subscriptionsByClient = new Map<string, typeof subscriptions>()
-  for (const subscription of subscriptions) {
-    // Keep only the first (most recent) active/trial sub per client.
-    if (!subscriptionsByClient.has(subscription.clientId)) {
-      subscriptionsByClient.set(subscription.clientId, [subscription])
+  for (const sub of subscriptions) {
+    if (!subscriptionsByClient.has(sub.clientId)) {
+      subscriptionsByClient.set(sub.clientId, [sub])
     }
   }
 
@@ -150,38 +179,69 @@ export async function getTrainerClient(
   trainerProfileId: string,
   clientId: string
 ) {
-  return prisma.client.findFirst({
-    where: { id: clientId, trainerId: trainerProfileId },
-    include: {
-      trainer: { select: { id: true, fullName: true } },
-      bodyCompositions: { orderBy: { date: "desc" }, take: 3 },
-      subscriptions: { orderBy: { createdAt: "desc" }, take: 2 },
-      trainingSplits: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        include: { days: { orderBy: { dayNumber: "asc" } } },
-      },
-      progressReviews: { orderBy: { reviewDate: "desc" }, take: 1 },
-      workoutLogs: { orderBy: { date: "desc" }, take: 5 },
-    },
-  })
+  const clientRes = await pool.query(
+    `SELECT * FROM "Client" WHERE "id" = $1 AND "trainerId" = $2`,
+    [clientId, trainerProfileId]
+  )
+  if (clientRes.rowCount === 0) return null
+  const client = clientRes.rows[0] as Record<string, unknown> & { id: string }
+
+  const [trainer, bodyCompositions, subscriptions, trainingSplits, progressReviews, workoutLogs] =
+    await Promise.all([
+      pool.query(`SELECT "id", "fullName" FROM "TrainerProfile" WHERE "id" = $1`, [
+        trainerProfileId,
+      ]),
+      pool.query(`SELECT * FROM "BodyComposition" WHERE "clientId" = $1 ORDER BY "date" DESC LIMIT 3`, [
+        clientId,
+      ]),
+      pool.query(`SELECT * FROM "Subscription" WHERE "clientId" = $1 ORDER BY "createdAt" DESC LIMIT 2`, [
+        clientId,
+      ]),
+      pool.query(`SELECT * FROM "TrainingSplit" WHERE "clientId" = $1 ORDER BY "createdAt" DESC LIMIT 1`, [
+        clientId,
+      ]),
+      pool.query(
+        `SELECT * FROM "ProgressReview" WHERE "clientId" = $1 ORDER BY "reviewDate" DESC LIMIT 1`,
+        [clientId]
+      ),
+      pool.query(`SELECT * FROM "WorkoutLog" WHERE "clientId" = $1 ORDER BY "date" DESC LIMIT 5`, [
+        clientId,
+      ]),
+    ])
+
+  let days: unknown[] = []
+  let trainingSplitWithDays: unknown = null
+  if (trainingSplits.rows[0]) {
+    const split = trainingSplits.rows[0] as { id: string }
+    const daysRes = await pool.query(
+      `SELECT * FROM "TrainingSplitDay" WHERE "splitId" = $1 ORDER BY "dayNumber" ASC`,
+      [split.id]
+    )
+    days = daysRes.rows
+    trainingSplitWithDays = { ...split, days }
+  }
+
+  return {
+    ...client,
+    trainer: trainer.rows[0] ?? null,
+    bodyCompositions: bodyCompositions.rows,
+    subscriptions: subscriptions.rows,
+    trainingSplits: trainingSplitWithDays ? [trainingSplitWithDays] : [],
+    progressReviews: progressReviews.rows,
+    workoutLogs: workoutLogs.rows,
+  }
 }
 
 export async function deleteTrainerClient(
   trainerProfileId: string,
   clientId: string
 ): Promise<boolean> {
-  const client = await prisma.client.findFirst({
-    where: { id: clientId, trainerId: trainerProfileId },
-    select: { id: true, userId: true },
-  })
-  if (!client) return false
+  const check = await pool.query(
+    `SELECT "id", "userId" FROM "Client" WHERE "id" = $1 AND "trainerId" = $2`,
+    [clientId, trainerProfileId]
+  )
+  if (check.rowCount === 0) return false
 
-  // Delete client first — cascades subscriptions, splits, plans, logs via onDelete: Cascade
-  // KEEP the linked User row so an active portal session can show
-  // "No longer subscribed" instead of a generic invalid-credentials error on next login.
-  // The orphaned CLIENT user will be detected in portal layout (client lookup by userId fails)
-  // and shown the friendly farewell screen with sign-out.
-  await prisma.client.delete({ where: { id: clientId } })
+  await pool.query(`DELETE FROM "Client" WHERE "id" = $1`, [clientId])
   return true
 }

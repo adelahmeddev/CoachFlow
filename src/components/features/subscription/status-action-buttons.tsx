@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import { useI18n } from "@/lib/i18n/client"
 import { updateSubscriptionStatusAction } from "@/server/actions/subscription"
-import { SubscriptionStatus } from "@/generated/prisma/enums"
+import { SubscriptionStatus } from "@/lib/db/enums"
 
 interface StatusActionButtonsProps {
   clientId: string

@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   serverExternalPackages: ["pg", "@node-rs/bcrypt"],
   allowedDevOrigins: ["192.168.1.9"],
+  // Output as standalone build suitable for Cloudflare Pages (no .next/cache in publish)
+  output: "standalone",
   // Image optimization — sharp now installed, serve AVIF/WebP for brand logos
   images: {
     formats: ["image/avif", "image/webp"],
@@ -13,3 +15,4 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+

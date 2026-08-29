@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache"
 import { getCurrentSession } from "@/server/auth"
-import { prisma } from "@/lib/prisma"
-import { BodyCompositionSource } from "@/generated/prisma/enums"
+import { pool } from "@/lib/db"
+import { BodyCompositionSource } from "@/lib/db/enums"
 import { bodyCompositionSchema, parseBodyCompositionDate } from "@/lib/validations/body-composition"
 import {
   createBodyComposition,
@@ -30,7 +30,8 @@ export async function createBodyCompositionAction(
     return { ok: false, error: "Forbidden" as const }
   }
   if (isTrainer) {
-    const client = await prisma.client.findFirst({ where: { id: clientId, trainerId: session.user.trainerProfileId! } })
+    const clientRes = await pool.query(`SELECT "id" FROM "Client" WHERE "id"=$1 AND "trainerId"=$2 LIMIT 1`, [clientId, session.user.trainerProfileId!])
+    const client = clientRes.rows[0]
     if (!client) return { ok: false, error: "Forbidden" as const }
   }
   if (isAdmin) {
@@ -84,7 +85,8 @@ export async function updateBodyCompositionAction(
   if (isClient) return { ok: false, error: "Forbidden" as const }
   if (isAdmin) return { ok: false, error: "Forbidden" as const }
   if (isTrainer) {
-    const client = await prisma.client.findFirst({ where: { id: clientId, trainerId: session.user.trainerProfileId! } })
+    const clientRes = await pool.query(`SELECT "id" FROM "Client" WHERE "id"=$1 AND "trainerId"=$2 LIMIT 1`, [clientId, session.user.trainerProfileId!])
+    const client = clientRes.rows[0]
     if (!client) return { ok: false, error: "Forbidden" as const }
   }
 
@@ -124,7 +126,8 @@ export async function deleteBodyCompositionAction(clientId: string, entryId: str
   if (isClient) return { ok: false, error: "Forbidden" as const }
   if (isAdmin) return { ok: false, error: "Forbidden" as const }
   if (isTrainer) {
-    const client = await prisma.client.findFirst({ where: { id: clientId, trainerId: session.user.trainerProfileId! } })
+    const clientRes = await pool.query(`SELECT "id" FROM "Client" WHERE "id"=$1 AND "trainerId"=$2 LIMIT 1`, [clientId, session.user.trainerProfileId!])
+    const client = clientRes.rows[0]
     if (!client) return { ok: false, error: "Forbidden" as const }
   }
 
@@ -147,19 +150,16 @@ export async function updateClientPainFlagsAction(
   if (isAdmin) return { ok: false, error: "Forbidden" as const }
   if (isClient && session.user.clientProfileId !== clientId) return { ok: false, error: "Forbidden" as const }
   if (isTrainer) {
-    const client = await prisma.client.findFirst({ where: { id: clientId, trainerId: session.user.trainerProfileId! } })
+    const clientRes = await pool.query(`SELECT "id" FROM "Client" WHERE "id"=$1 AND "trainerId"=$2 LIMIT 1`, [clientId, session.user.trainerProfileId!])
+    const client = clientRes.rows[0]
     if (!client) return { ok: false, error: "Forbidden" as const }
   }
 
-  const updated = await prisma.client.update({
-    where: { id: clientId },
-    data: {
-      neckPain: data.neckPain,
-      shoulderPain: data.shoulderPain,
-      backPain: data.backPain,
-      kneePain: data.kneePain,
-    },
-  })
+  const updatedRes = await pool.query(
+    `UPDATE "Client" SET "neckPain"=$1, "shoulderPain"=$2, "backPain"=$3, "kneePain"=$4, "updatedAt"=NOW() WHERE "id"=$5 RETURNING *`,
+    [data.neckPain, data.shoulderPain, data.backPain, data.kneePain, clientId]
+  )
+  const updated = updatedRes.rows[0]
   revalidatePath(`/clients/${clientId}`)
   revalidatePath(`/client/profile`)
   return { ok: true as const, data: updated }

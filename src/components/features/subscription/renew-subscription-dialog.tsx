@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -32,7 +32,7 @@ import {
 } from "@/lib/validations/subscription"
 import { getPaymentStatusLabel } from "@/lib/i18n/labels"
 import { renewSubscriptionAction } from "@/server/actions/subscription"
-import { PaymentStatus, PlanType } from "@/generated/prisma/enums"
+import { PaymentStatus, PlanType } from "@/lib/db/enums"
 
 interface RenewSubscriptionDialogProps {
   clientId: string

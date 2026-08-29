@@ -1,17 +1,15 @@
 "use server"
 
-import { prisma } from "@/lib/prisma"
+import { pool, generateId } from "@/lib/db"
 import { hashPassword, comparePassword } from "@/lib/auth"
 import { invalidate } from "@/lib/cache"
 import { getCurrentSession } from "@/server/auth"
-import { PlanStatus } from "@/generated/prisma/enums"
+import { PlanStatus } from "@/lib/db/enums"
 import { getDayDetail } from "@/server/services/week.service"
 
 async function invalidateClientWorkoutTags(clientId: string) {
-  const client = await prisma.client.findUnique({
-    where: { id: clientId },
-    select: { trainerId: true },
-  })
+  const clientRes = await pool.query(`SELECT "trainerId" FROM "Client" WHERE "id"=$1 LIMIT 1`, [clientId])
+  const client = clientRes.rows[0] as { trainerId: string | null } | undefined
   const tags = [
     `client:${clientId}:workout`,
     `client:${clientId}:progress`,
@@ -38,45 +36,45 @@ export async function saveDailyLogAction(
 ) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
+  const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000)
 
-  const existingLog = await prisma.dailyLog.findFirst({
-    where: {
-      clientId,
-      date: {
-        gte: today,
-        lt: new Date(today.getTime() + 24 * 60 * 60 * 1000),
-      },
-    },
-  })
+  const existingRes = await pool.query(
+    `SELECT * FROM "DailyLog" WHERE "clientId"=$1 AND "date" >= $2 AND "date" < $3 LIMIT 1`,
+    [clientId, today, tomorrow]
+  )
+  const existingLog = existingRes.rows[0] as { id: string } | undefined
 
   if (existingLog) {
-    await prisma.dailyLog.update({
-      where: { id: existingLog.id },
-      data: {
-        weightKg: data.weightKg,
-        sleepHours: data.sleepHours,
-        waterLiters: data.waterLiters,
-        energyLevel: data.energyLevel,
-        moodLevel: data.moodLevel,
-        nutritionCompliant: data.nutritionCompliant ?? false,
-        notes: data.notes,
-        updatedAt: new Date(),
-      },
-    })
+    await pool.query(
+      `UPDATE "DailyLog" SET "weightKg"=$1, "sleepHours"=$2, "waterLiters"=$3, "energyLevel"=$4, "moodLevel"=$5, "nutritionCompliant"=$6, "notes"=$7, "updatedAt"=NOW() WHERE "id"=$8`,
+      [
+        data.weightKg ?? null,
+        data.sleepHours ?? null,
+        data.waterLiters ?? null,
+        data.energyLevel ?? null,
+        data.moodLevel ?? null,
+        data.nutritionCompliant ?? false,
+        data.notes ?? null,
+        existingLog.id,
+      ]
+    )
   } else {
-    await prisma.dailyLog.create({
-      data: {
+    const id = generateId()
+    await pool.query(
+      `INSERT INTO "DailyLog" ("id","clientId","date","weightKg","sleepHours","waterLiters","energyLevel","moodLevel","nutritionCompliant","notes","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW(),NOW())`,
+      [
+        id,
         clientId,
-        date: today,
-        weightKg: data.weightKg,
-        sleepHours: data.sleepHours,
-        waterLiters: data.waterLiters,
-        energyLevel: data.energyLevel,
-        moodLevel: data.moodLevel,
-        nutritionCompliant: data.nutritionCompliant ?? false,
-        notes: data.notes,
-      },
-    })
+        today,
+        data.weightKg ?? null,
+        data.sleepHours ?? null,
+        data.waterLiters ?? null,
+        data.energyLevel ?? null,
+        data.moodLevel ?? null,
+        data.nutritionCompliant ?? false,
+        data.notes ?? null,
+      ]
+    )
   }
 
   await invalidateClientWorkoutTags(clientId)
@@ -117,19 +115,19 @@ export async function saveExerciseLogAction(
   const clientId = await requireClientId()
   if (!clientId) return { ok: false, error: "UNAUTHORIZED" }
 
-  const owned = await prisma.splitDayExercise.findFirst({
-    where: {
-      id: splitDayExerciseId,
-      splitDay: {
-        split: { clientId, status: PlanStatus.ACTIVE },
-      },
-    },
-    select: { id: true },
-  })
+  const ownedRes = await pool.query(
+    `SELECT sde."id" FROM "SplitDayExercise" sde
+      JOIN "TrainingSplitDay" tsd ON sde."splitDayId"=tsd."id"
+      JOIN "TrainingSplit" ts ON tsd."splitId"=ts."id"
+      WHERE sde."id"=$1 AND ts."clientId"=$2 AND ts."status"=$3::"PlanStatus" LIMIT 1`,
+    [splitDayExerciseId, clientId, PlanStatus.ACTIVE]
+  )
+  const owned = ownedRes.rows[0] as { id: string } | undefined
   if (!owned) return { ok: false, error: "NOT_FOUND" }
 
   const dayStart = new Date()
   dayStart.setHours(0, 0, 0, 0)
+  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000)
 
   const completedSets = (data.sets ?? []).filter(
     (s) => (s.weightKg != null && s.weightKg > 0) || (s.reps != null && s.reps > 0)
@@ -160,35 +158,72 @@ export async function saveExerciseLogAction(
       : undefined,
   }
 
-  const existing = await prisma.exerciseLog.findFirst({
-    where: {
-      clientId,
-      splitDayExerciseId,
-      date: {
-        gte: dayStart,
-        lt: new Date(dayStart.getTime() + 24 * 60 * 60 * 1000),
-      },
-    },
-    select: { id: true },
-  })
+  const existingRes = await pool.query(
+    `SELECT "id" FROM "ExerciseLog" WHERE "clientId"=$1 AND "splitDayExerciseId"=$2 AND "date" >= $3 AND "date" < $4 LIMIT 1`,
+    [clientId, splitDayExerciseId, dayStart, dayEnd]
+  )
+  const existing = existingRes.rows[0] as { id: string } | undefined
 
   const { setData, ...scalars } = payload
 
   if (existing) {
-    await prisma.exerciseLog.update({
-      where: { id: existing.id },
-      data: setData !== undefined ? { ...scalars, setData } : scalars,
-    })
+    const fields: string[] = []
+    const values: unknown[] = []
+    let idx = 1
+    if (scalars.actualSets !== undefined) {
+      fields.push(`"actualSets"=$${idx++}`)
+      values.push(scalars.actualSets ?? null)
+    }
+    if (scalars.actualReps !== undefined) {
+      fields.push(`"actualReps"=$${idx++}`)
+      values.push(scalars.actualReps ?? null)
+    }
+    if (scalars.actualWeightKg !== undefined) {
+      fields.push(`"actualWeightKg"=$${idx++}`)
+      values.push(scalars.actualWeightKg ?? null)
+    }
+    if (scalars.rpe !== undefined) {
+      fields.push(`"rpe"=$${idx++}`)
+      values.push(scalars.rpe ?? null)
+    }
+    if (scalars.notes !== undefined) {
+      fields.push(`"notes"=$${idx++}`)
+      values.push(scalars.notes ?? null)
+    }
+    if (setData !== undefined) {
+      fields.push(`"setData"=$${idx++}::jsonb`)
+      values.push(JSON.stringify(setData))
+    }
+    if (fields.length === 0) {
+      // nothing to update but touch updatedAt
+      await pool.query(`UPDATE "ExerciseLog" SET "updatedAt"=NOW() WHERE "id"=$1`, [existing.id])
+    } else {
+      fields.push(`"updatedAt"=NOW()`)
+      const sql = `UPDATE "ExerciseLog" SET ${fields.join(", ")} WHERE "id"=$${idx} RETURNING *`
+      values.push(existing.id)
+      await pool.query(sql, values)
+    }
   } else {
-    await prisma.exerciseLog.create({
-      data: {
-        clientId,
-        splitDayExerciseId,
-        date: new Date(),
-        ...scalars,
-        ...(setData !== undefined ? { setData } : {}),
-      },
-    })
+    const id = generateId()
+    const now = new Date()
+    // Build insert with handling of undefined vs null
+    const actualSets = scalars.actualSets ?? null
+    const actualReps = scalars.actualReps ?? null
+    const actualWeightKg = scalars.actualWeightKg ?? null
+    const rpe = scalars.rpe ?? null
+    const notes = scalars.notes ?? null
+    const setDataJson = setData !== undefined ? JSON.stringify(setData) : null
+    if (setData !== undefined) {
+      await pool.query(
+        `INSERT INTO "ExerciseLog" ("id","clientId","splitDayExerciseId","date","actualSets","actualReps","actualWeightKg","rpe","notes","setData","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$11)`,
+        [id, clientId, splitDayExerciseId, now, actualSets, actualReps, actualWeightKg, rpe, notes, setDataJson, now]
+      )
+    } else {
+      await pool.query(
+        `INSERT INTO "ExerciseLog" ("id","clientId","splitDayExerciseId","date","actualSets","actualReps","actualWeightKg","rpe","notes","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$10)`,
+        [id, clientId, splitDayExerciseId, now, actualSets, actualReps, actualWeightKg, rpe, notes, now]
+      )
+    }
   }
 
   await invalidateClientWorkoutTags(clientId)

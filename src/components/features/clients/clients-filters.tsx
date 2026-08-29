@@ -25,7 +25,7 @@ import {
   getClientStatusLabel,
   getGoalLabel,
 } from "@/lib/i18n/labels"
-import { ClientStatus, Goal } from "@/generated/prisma/enums"
+import { ClientStatus, Goal } from "@/lib/db/enums"
 
 const GOAL_VALUES = [
   Goal.WEIGHT_LOSS,

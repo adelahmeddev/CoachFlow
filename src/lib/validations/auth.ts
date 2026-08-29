@@ -15,9 +15,7 @@ export const registerSchema = z
     phone: z
       .string()
       .trim()
-      .min(7, "Enter a valid phone number")
-      .max(20, "Enter a valid phone number")
-      .regex(/^[+\d][\d\s\-()]*$/, "Enter a valid phone number"),
+      .regex(/^\d{11}$/, "Enter a valid 11-digit phone number"),
     password: z
       .string()
       .min(8, "Password must be at least 8 characters")

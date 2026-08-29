@@ -1,10 +1,10 @@
-﻿"use client"
+"use client"
 
 import { Badge } from "@/components/ui/badge"
 import { useI18n } from "@/lib/i18n/client"
 import { getClientStatusLabel } from "@/lib/i18n/labels"
 import { CLIENT_STATUS_BADGE_VARIANTS } from "@/lib/constants"
-import type { ClientStatus } from "@/generated/prisma/enums"
+import type { ClientStatus } from "@/lib/db/enums"
 
 export function ClientStatusBadge({
   status,

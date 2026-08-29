@@ -1,6 +1,6 @@
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
-import type { Role } from "@/generated/prisma/enums"
+import type { Role } from "@/lib/db/enums"
 
 type Message = {
   id: string

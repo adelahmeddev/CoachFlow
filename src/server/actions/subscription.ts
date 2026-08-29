@@ -16,7 +16,7 @@ import {
   renewSubscription,
   consumeOneSession,
 } from "@/server/services/subscription.service"
-import { SubscriptionStatus } from "@/generated/prisma/enums"
+import { SubscriptionStatus } from "@/lib/db/enums"
 
 function isAuthorized(session: Awaited<ReturnType<typeof getCurrentSession>>) {
   return Boolean(

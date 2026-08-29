@@ -1,7 +1,7 @@
 "use client"
 
 import { User } from "lucide-react"
-import type { Goal } from "@/generated/prisma/enums"
+import type { Goal } from "@/lib/db/enums"
 import { useI18n } from "@/lib/i18n/client"
 import { lookup } from "@/lib/i18n/lookup"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"

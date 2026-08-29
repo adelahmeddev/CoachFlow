@@ -1,6 +1,6 @@
 import "dotenv/config"
-import { ScheduleMode, type Weekday } from "../src/generated/prisma/enums"
-import { prisma } from "../src/lib/prisma"
+import { ScheduleMode, type Weekday } from "../src/lib/db/enums"
+import { pool } from "../src/lib/db"
 import { autoAssignWeekdays } from "../src/lib/calculations/week-schedule"
 
 /**
@@ -13,30 +13,35 @@ import { autoAssignWeekdays } from "../src/lib/calculations/week-schedule"
  * splits are skipped.
  */
 async function main() {
-  const splits = await prisma.trainingSplit.findMany({
-    include: { days: { orderBy: { dayNumber: "asc" as const } } },
-  })
+  const splitsRes = await pool.query(`SELECT * FROM "TrainingSplit"`)
+  const splits = splitsRes.rows as Array<{ id: string; scheduleMode: string }>
 
   let splitsFixed = 0
   let daysAssigned = 0
 
   for (const split of splits) {
     if (split.scheduleMode !== ScheduleMode.FIXED_WEEKDAYS) {
-      await prisma.trainingSplit.update({
-        where: { id: split.id },
-        data: { scheduleMode: ScheduleMode.FIXED_WEEKDAYS },
-      })
+      await pool.query(
+        `UPDATE "TrainingSplit" SET "scheduleMode" = $1::"ScheduleMode", "updatedAt" = NOW() WHERE "id" = $2`,
+        [ScheduleMode.FIXED_WEEKDAYS, split.id]
+      )
       splitsFixed += 1
     }
 
-    const assigned = autoAssignWeekdays(split.days.length)
-    for (const [index, day] of split.days.entries()) {
+    const daysRes = await pool.query(
+      `SELECT * FROM "TrainingSplitDay" WHERE "splitId" = $1 ORDER BY "dayNumber" ASC`,
+      [split.id]
+    )
+    const days = daysRes.rows as Array<{ id: string; weekday: Weekday | null }>
+
+    const assigned = autoAssignWeekdays(days.length)
+    for (const [index, day] of days.entries()) {
       if (day.weekday) continue
       const weekday = assigned[index] ?? "SAT"
-      await prisma.trainingSplitDay.update({
-        where: { id: day.id },
-        data: { weekday: weekday as Weekday },
-      })
+      await pool.query(
+        `UPDATE "TrainingSplitDay" SET "weekday" = $1::"Weekday", "updatedAt" = NOW() WHERE "id" = $2`,
+        [weekday, day.id]
+      )
       daysAssigned += 1
     }
   }
@@ -52,5 +57,5 @@ main()
     process.exit(1)
   })
   .finally(async () => {
-    await prisma.$disconnect()
+    await pool.end()
   })

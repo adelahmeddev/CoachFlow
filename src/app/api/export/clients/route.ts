@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma"
+import { pool } from "@/lib/db"
 import { getCurrentSession } from "@/server/auth"
 
 export const dynamic = "force-dynamic"
@@ -18,10 +18,11 @@ export async function GET() {
     return new Response("Unauthorized", { status: 401 })
   }
 
-  const clients = await prisma.client.findMany({
-    where: { trainerId: session.user.trainerProfileId },
-    orderBy: { createdAt: "desc" },
-  })
+  const clientsRes = await pool.query(
+    `SELECT "id", "fullName", "phone", "goal", "status", "createdAt" FROM "Client" WHERE "trainerId" = $1 ORDER BY "createdAt" DESC`,
+    [session.user.trainerProfileId]
+  )
+  const clients = clientsRes.rows as Array<{ id: string; fullName: string | null; phone: string | null; goal: string | null; status: string; createdAt: Date }>
 
   const header = ["id", "fullName", "phone", "goal", "status", "createdAt"]
 

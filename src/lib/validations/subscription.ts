@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { PaymentStatus, PlanType, SubscriptionStatus } from "@/generated/prisma/enums"
+import { PaymentStatus, PlanType, SubscriptionStatus } from "@/lib/db/enums"
 import { interpolate } from "@/lib/i18n/format"
 import type { Dictionary } from "@/lib/i18n/messages/en"
 

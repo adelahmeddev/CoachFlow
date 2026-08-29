@@ -28,8 +28,8 @@ import {
   createSubscriptionPlanAction,
   updateSubscriptionPlanAction,
 } from "@/server/actions/subscription-plan"
-import { PlanType } from "@/generated/prisma/enums"
-import type { SubscriptionPlan } from "@/generated/prisma/client"
+import { PlanType } from "@/lib/db/enums"
+import type { SubscriptionPlan } from "@/lib/db/types"
 import { cn } from "@/lib/utils"
 
 const DURATION_PRESETS = [7, 15, 30]

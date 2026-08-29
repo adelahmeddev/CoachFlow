@@ -1,4 +1,4 @@
-import type { TrainingSplitDay } from "@/generated/prisma/client"
+import type { TrainingSplitDay } from "@/lib/db/types"
 
 export function getTodaySplitDay(
   splitDays: TrainingSplitDay[],

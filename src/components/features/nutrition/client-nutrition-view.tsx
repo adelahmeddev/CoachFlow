@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { useI18n } from "@/lib/i18n/client"
-import type { QuantityUnit, SubstituteCategory } from "@/generated/prisma/enums"
+import type { QuantityUnit, SubstituteCategory } from "@/lib/db/enums"
 import { toggleMealChoiceAction } from "@/server/actions/nutrition"
 import { cn } from "@/lib/utils"
 

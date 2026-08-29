@@ -1,5 +1,6 @@
-import { prisma } from "@/lib/prisma"
-import { BodyCompositionSource } from "@/generated/prisma/enums"
+import { pool, generateId } from "@/lib/db"
+import { BodyCompositionSource } from "@/lib/db/enums"
+import type { BodyComposition } from "@/lib/db/types"
 
 export interface BodyCompositionInput {
   date: Date
@@ -16,76 +17,134 @@ export interface BodyCompositionInput {
   notes?: string | null
 }
 
-export async function getBodyCompositions(clientId: string) {
-  return prisma.bodyComposition.findMany({
-    where: { clientId },
-    orderBy: { date: "desc" },
-  })
+export async function getBodyCompositions(clientId: string): Promise<BodyComposition[]> {
+  const res = await pool.query<BodyComposition>(
+    `SELECT * FROM "BodyComposition" WHERE "clientId" = $1 ORDER BY "date" DESC`,
+    [clientId]
+  )
+  return res.rows as BodyComposition[]
 }
 
-export async function getLatestBodyCompositions(clientId: string, take = 2) {
-  return prisma.bodyComposition.findMany({
-    where: { clientId },
-    orderBy: { date: "desc" },
-    take,
-  })
+export async function getLatestBodyCompositions(clientId: string, take = 2): Promise<BodyComposition[]> {
+  const res = await pool.query<BodyComposition>(
+    `SELECT * FROM "BodyComposition" WHERE "clientId" = $1 ORDER BY "date" DESC LIMIT $2`,
+    [clientId, take]
+  )
+  return res.rows as BodyComposition[]
 }
 
-export async function getBodyCompositionById(id: string, clientId: string) {
-  return prisma.bodyComposition.findFirst({ where: { id, clientId } })
+export async function getBodyCompositionById(id: string, clientId: string): Promise<BodyComposition | null> {
+  const res = await pool.query<BodyComposition>(
+    `SELECT * FROM "BodyComposition" WHERE "id" = $1 AND "clientId" = $2 LIMIT 1`,
+    [id, clientId]
+  )
+  return (res.rows[0] as BodyComposition) ?? null
 }
 
 export async function createBodyComposition(
   clientId: string,
   data: BodyCompositionInput
-) {
-  return prisma.bodyComposition.create({
-    data: {
+): Promise<BodyComposition> {
+  const id = generateId()
+  const res = await pool.query<BodyComposition>(
+    `INSERT INTO "BodyComposition" ("id", "clientId", "date", "source", "weightKg", "muscleMassKg", "bodyFatKg", "bodyWaterPct", "fatControlKg", "bmrKcal", "fitnessScore", "waistHipRatio", "visceralFatLevel", "notes", "createdAt", "updatedAt")
+     VALUES ($1, $2, $3, $4::"BodyCompositionSource", $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), NOW())
+     RETURNING *`,
+    [
+      id,
       clientId,
-      date: data.date,
-      source: data.source,
-      weightKg: data.weightKg ?? null,
-      muscleMassKg: data.muscleMassKg ?? null,
-      bodyFatKg: data.bodyFatKg ?? null,
-      bodyWaterPct: data.bodyWaterPct ?? null,
-      fatControlKg: data.fatControlKg ?? null,
-      bmrKcal: data.bmrKcal ?? null,
-      fitnessScore: data.fitnessScore ?? null,
-      waistHipRatio: data.waistHipRatio ?? null,
-      visceralFatLevel: data.visceralFatLevel ?? null,
-      notes: data.notes ?? null,
-    },
-  })
+      data.date,
+      data.source,
+      data.weightKg ?? null,
+      data.muscleMassKg ?? null,
+      data.bodyFatKg ?? null,
+      data.bodyWaterPct ?? null,
+      data.fatControlKg ?? null,
+      data.bmrKcal ?? null,
+      data.fitnessScore ?? null,
+      data.waistHipRatio ?? null,
+      data.visceralFatLevel ?? null,
+      data.notes ?? null,
+    ]
+  )
+  return res.rows[0] as BodyComposition
 }
 
 export async function updateBodyComposition(
   id: string,
   clientId: string,
   data: Partial<BodyCompositionInput>
-) {
-  return prisma.bodyComposition.update({
-    where: { id },
-    data: {
-      date: data.date,
-      weightKg: data.weightKg,
-      muscleMassKg: data.muscleMassKg,
-      bodyFatKg: data.bodyFatKg,
-      bodyWaterPct: data.bodyWaterPct,
-      fatControlKg: data.fatControlKg,
-      bmrKcal: data.bmrKcal,
-      fitnessScore: data.fitnessScore,
-      waistHipRatio: data.waistHipRatio,
-      visceralFatLevel: data.visceralFatLevel,
-      notes: data.notes,
-    },
-  })
+): Promise<BodyComposition> {
+  const fields: string[] = []
+  const values: unknown[] = []
+  let idx = 1
+
+  if (data.date !== undefined) {
+    fields.push(`"date" = $${idx++}`)
+    values.push(data.date)
+  }
+  if (data.source !== undefined) {
+    fields.push(`"source" = $${idx++}::"BodyCompositionSource"`)
+    values.push(data.source)
+  }
+  if (data.weightKg !== undefined) {
+    fields.push(`"weightKg" = $${idx++}`)
+    values.push(data.weightKg)
+  }
+  if (data.muscleMassKg !== undefined) {
+    fields.push(`"muscleMassKg" = $${idx++}`)
+    values.push(data.muscleMassKg)
+  }
+  if (data.bodyFatKg !== undefined) {
+    fields.push(`"bodyFatKg" = $${idx++}`)
+    values.push(data.bodyFatKg)
+  }
+  if (data.bodyWaterPct !== undefined) {
+    fields.push(`"bodyWaterPct" = $${idx++}`)
+    values.push(data.bodyWaterPct)
+  }
+  if (data.fatControlKg !== undefined) {
+    fields.push(`"fatControlKg" = $${idx++}`)
+    values.push(data.fatControlKg)
+  }
+  if (data.bmrKcal !== undefined) {
+    fields.push(`"bmrKcal" = $${idx++}`)
+    values.push(data.bmrKcal)
+  }
+  if (data.fitnessScore !== undefined) {
+    fields.push(`"fitnessScore" = $${idx++}`)
+    values.push(data.fitnessScore)
+  }
+  if (data.waistHipRatio !== undefined) {
+    fields.push(`"waistHipRatio" = $${idx++}`)
+    values.push(data.waistHipRatio)
+  }
+  if (data.visceralFatLevel !== undefined) {
+    fields.push(`"visceralFatLevel" = $${idx++}`)
+    values.push(data.visceralFatLevel)
+  }
+  if (data.notes !== undefined) {
+    fields.push(`"notes" = $${idx++}`)
+    values.push(data.notes)
+  }
+
+  fields.push(`"updatedAt" = NOW()`)
+
+  const sql = `UPDATE "BodyComposition" SET ${fields.join(", ")} WHERE "id" = $${idx} RETURNING *`
+  values.push(id)
+
+  const res = await pool.query<BodyComposition>(sql, values)
+  return res.rows[0] as BodyComposition
 }
 
-export async function deleteBodyComposition(id: string, clientId: string) {
-  // ensure belongs to client
-  const existing = await prisma.bodyComposition.findFirst({ where: { id, clientId } })
-  if (!existing) return null
-  return prisma.bodyComposition.delete({ where: { id } })
+export async function deleteBodyComposition(id: string, clientId: string): Promise<BodyComposition | null> {
+  const existing = await pool.query<BodyComposition>(
+    `SELECT * FROM "BodyComposition" WHERE "id" = $1 AND "clientId" = $2 LIMIT 1`,
+    [id, clientId]
+  )
+  if (!existing.rows[0]) return null
+  const res = await pool.query<BodyComposition>(`DELETE FROM "BodyComposition" WHERE "id" = $1 RETURNING *`, [id])
+  return (res.rows[0] as BodyComposition) ?? null
 }
 
 export function calculateDelta(

@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table"
 import { useI18n } from "@/lib/i18n/client"
 import { getGoalLabel } from "@/lib/i18n/labels"
+import type { Goal } from "@/lib/db/enums"
 
 type RecentClients = Awaited<
   ReturnType<typeof getDashboardData>
@@ -51,7 +52,7 @@ export function RecentClients({ clients }: { clients: RecentClients }) {
               </TableCell>
               <TableCell className="py-3.5">
                 {client.goal ? (
-                  <Badge variant="outline" className="font-medium">{getGoalLabel(client.goal, locale)}</Badge>
+                  <Badge variant="outline" className="font-medium">{getGoalLabel(client.goal as Goal, locale)}</Badge>
                 ) : (
                   <span className="text-muted-foreground">—</span>
                 )}

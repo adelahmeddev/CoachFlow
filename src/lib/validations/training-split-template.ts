@@ -3,7 +3,7 @@ import {
   Goal,
   SplitType,
   TrainingDayFocus,
-} from "@/generated/prisma/enums"
+} from "@/lib/db/enums"
 import {
   MAX_EXERCISES_PER_DAY,
   splitDayExerciseSchema,

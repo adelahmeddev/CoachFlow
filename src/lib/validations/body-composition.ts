@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { BodyCompositionSource } from "@/generated/prisma/enums"
+import { BodyCompositionSource } from "@/lib/db/enums"
 
 const optionalFloat = z
   .union([z.number(), z.string().transform((v) => (v === "" ? "" : Number(v))), z.literal("")])

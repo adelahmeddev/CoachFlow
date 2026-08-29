@@ -10,7 +10,7 @@ import type {
   BoardEntry,
   WeekSummary,
 } from "@/lib/calculations/week-schedule"
-import { ScheduleMode } from "@/generated/prisma/enums"
+import { ScheduleMode } from "@/lib/db/enums"
 import { formatDate } from "@/lib/i18n/format"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"

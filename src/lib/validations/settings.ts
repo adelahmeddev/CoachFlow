@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { Units, WeekStartDay } from "@/generated/prisma/enums"
+import { Units, WeekStartDay } from "@/lib/db/enums"
 import { LOCALES, type Locale } from "@/lib/i18n/config"
 import { interpolate } from "@/lib/i18n/format"
 import type { Dictionary } from "@/lib/i18n/messages/en"
@@ -15,9 +15,7 @@ const phone = (t: Dictionary) =>
   z
     .string()
     .trim()
-    .min(7, t.settings.profile.errors.phoneInvalid)
-    .max(20, t.settings.profile.errors.phoneInvalid)
-    .regex(/^[+\d][\d\s\-()]*$/, t.settings.profile.errors.phoneInvalid)
+    .regex(/^\d{11}$/, t.settings.profile.errors.phoneInvalid)
 
 export function buildProfileSchema(t: Dictionary) {
   return z.object({
@@ -150,9 +148,7 @@ export const profileSchema = z.object({
   phone: z
     .string()
     .trim()
-    .min(7, "PHONE_INVALID")
-    .max(20, "PHONE_INVALID")
-    .regex(/^[+\d][\d\s\-()]*$/, "PHONE_INVALID"),
+    .regex(/^\d{11}$/, "PHONE_INVALID"),
 })
 
 export const securitySchema = z
