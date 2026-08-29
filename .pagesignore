@@ -1,2 +1,4 @@
 # Exclude Next.js cache files that exceed Cloudflare Pages limits
 .next/cache/**
+.next/standalone/**
+.turbo-cache/**
