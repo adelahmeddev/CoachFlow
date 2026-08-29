@@ -1,4 +1,4 @@
-import { hash, verify } from '@node-rs/bcrypt'
+import { hash, compare } from 'bcryptjs'
 
 const SALT_ROUNDS = process.env.BCRYPT_SALT_ROUNDS
   ? Number(process.env.BCRYPT_SALT_ROUNDS)
@@ -12,5 +12,5 @@ export async function comparePassword(
   password: string,
   hashedPassword: string
 ): Promise<boolean> {
-  return verify(hashedPassword, password)
+  return compare(password, hashedPassword)
 }
