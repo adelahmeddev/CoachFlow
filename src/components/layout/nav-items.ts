@@ -80,11 +80,6 @@ export const CLIENT_NAV_ITEMS: NavItem[] = [
     icon: Dumbbell,
   },
   {
-    titleKey: "client.progress.title",
-    href: "/client/progress",
-    icon: BarChart3,
-  },
-  {
     titleKey: "client.nutrition.myPlan",
     href: "/client/nutrition",
     icon: Apple,
