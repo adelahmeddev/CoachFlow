@@ -50,3 +50,5 @@ next-env.d.ts
 # debug artifacts
 cookies.txt
 query.sql
+
+.vercel
