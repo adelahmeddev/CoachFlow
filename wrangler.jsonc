@@ -3,7 +3,6 @@
   "name": "coach",
   "compatibility_date": "2024-09-23",
   "compatibility_flags": ["nodejs_compat"],
-  "pages_build_output_dir": ".vinext/dist",
   "kv_namespaces": [
     { "binding": "VINEXT_KV_CACHE", "id": "your-kv-namespace-id" }
   ]
