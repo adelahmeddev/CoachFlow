@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "cross-env NEXT_DISABLE_TURBOPACK=1 next build",
-    "build:cf": "cross-env NEXT_DISABLE_TURBOPACK=1 next build && npx @cloudflare/next-on-pages",
+    "build:cf": "cross-env NEXT_DISABLE_TURBOPACK=1 next build && npx @cloudflare/next-on-pages --legacy-peer-deps",
     "postbuild": "rimraf .next/cache",
     "start": "next start",
     "lint": "eslint",
