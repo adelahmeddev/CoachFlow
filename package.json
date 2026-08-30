@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "next dev",
     "build": "cross-env NEXT_DISABLE_TURBOPACK=1 next build",
-    "build:cf": "cross-env NEXT_DISABLE_TURBOPACK=1 next build && npx @cloudflare/next-on-pages --legacy-peer-deps",
     "postbuild": "rimraf .next/cache",
     "start": "next start",
     "lint": "eslint",
@@ -45,7 +44,6 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@cloudflare/next-on-pages": "^1.13.16",
     "@cloudflare/vite-plugin": "^1.54.2",
     "@next/bundle-analyzer": "^16.3.0",
     "@tailwindcss/postcss": "^4",
