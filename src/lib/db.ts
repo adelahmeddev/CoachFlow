@@ -7,10 +7,15 @@ const globalForPg = globalThis as unknown as {
   pgPool?: Pool
 }
 
-function createPool() {
+let _pool: Pool | null = null
+
+function createPool(): Pool {
   const connectionString = process.env.DATABASE_URL
   if (!connectionString) {
-    throw new Error("DATABASE_URL is not set")
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("DATABASE_URL is not set")
+    }
+    return new Pool()
   }
   return new Pool({
     connectionString,
@@ -22,17 +27,23 @@ function createPool() {
   })
 }
 
-export const pool: Pool =
-  globalForPg.pgPool ?? createPool()
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPg.pgPool = pool
-  if (process.env.DATABASE_URL) {
-    setTimeout(() => {
-      pool.query("SELECT 1").catch(() => {})
-    }, 0)
+function getPool(): Pool {
+  if (!_pool) {
+    _pool = globalForPg.pgPool ?? createPool()
+    if (process.env.NODE_ENV !== "production") {
+      globalForPg.pgPool = _pool
+    }
   }
+  return _pool
 }
+
+export const pool = new Proxy({} as Pool, {
+  get(_target, prop) {
+    const p = getPool()
+    const value = (p as unknown as Record<string | symbol, unknown>)[prop]
+    return typeof value === "function" ? value.bind(p) : value
+  },
+})
 
 export async function query<T extends QueryResultRow = QueryResultRow>(
   text: string,
