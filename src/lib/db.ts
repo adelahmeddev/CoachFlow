@@ -17,13 +17,17 @@ function createPool(): Pool {
     }
     return new Pool()
   }
+
+  const isServerless = process.env.VERCEL === "1" || process.env.AWS_LAMBDA_FUNCTION_NAME
+
   return new Pool({
     connectionString,
-    max: 10,
-    idleTimeoutMillis: 10_000,
-    connectionTimeoutMillis: 2_000,
-    keepAlive: true,
-    statement_timeout: 5000,
+    max: isServerless ? 1 : 10,
+    idleTimeoutMillis: isServerless ? 5_000 : 10_000,
+    connectionTimeoutMillis: isServerless ? 10_000 : 2_000,
+    keepAlive: !isServerless,
+    statement_timeout: 10_000,
+    ssl: isServerless ? { rejectUnauthorized: false } : undefined,
   })
 }
 
@@ -141,4 +145,13 @@ export function isForeignKeyViolation(error: unknown): boolean {
     "code" in error &&
     (error as { code?: string }).code === "23503"
   )
+}
+
+export async function healthCheck(): Promise<boolean> {
+  try {
+    await pool.query("SELECT 1")
+    return true
+  } catch {
+    return false
+  }
 }
