@@ -2,13 +2,11 @@
 import { getCurrentSession } from "@/server/auth"
 import { getClientProfile } from "@/server/services/client-portal.service"
 import { pool } from "@/lib/db"
-import { getAppUrl } from "@/lib/app-url"
 import type { BodyComposition } from "@/lib/db/types"
 import { MyInfoSection } from "@/components/features/client/profile/client-info-section"
 import { MyGoalsSection } from "@/components/features/client/profile/client-goals-section"
 import { MySubscriptionSection } from "@/components/features/client/profile/client-subscription-section"
 import { MySettingsSection } from "@/components/features/client/profile/client-settings-section"
-import { ClientQuickActions } from "@/components/features/client/profile/client-quick-actions"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PainFlagsForm } from "@/components/features/body-composition/pain-flags-form"
 import { BodyCompositionForm } from "@/components/features/body-composition/body-composition-form"
@@ -36,11 +34,6 @@ export default async function ClientProfilePage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-8">
-      <ClientQuickActions
-        phone={client.phone ?? null}
-        clientName={client.fullName ?? "Client"}
-        portalUrl={`${getAppUrl()}/client/home`}
-      />
       <Tabs defaultValue="info">
         <TabsList className="!h-auto flex-wrap">
           <TabsTrigger value="info">My Info</TabsTrigger>

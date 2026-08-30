@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DeleteClientButton } from "@/components/features/clients/delete-client-button"
+import { CopyPortalLinkButton } from "@/components/features/clients/copy-portal-link-button"
 import type { ClientProfile } from "@/server/services/client-profile.service"
 import {
   getClientStatusBadgeVariant,
@@ -14,6 +15,7 @@ import {
 } from "@/lib/constants"
 import { calcAge } from "@/lib/format"
 import { getI18n } from "@/lib/i18n"
+import { getAppUrl } from "@/lib/app-url"
 
 interface ClientProfileHeaderProps {
   profile: ClientProfile
@@ -26,7 +28,8 @@ export async function ClientProfileHeader({ profile }: ClientProfileHeaderProps)
   const age = calcAge(client.birthDate)
   const phone = client.phone
   const normalizedPhone = phone ? normalizePhone(phone) : null
-  const whatsappUrl = normalizedPhone ? buildWhatsAppUrl(normalizedPhone, name, locale) : null
+  const portalUrl = `${getAppUrl()}/client/home`
+  const whatsappUrl = normalizedPhone ? buildWhatsAppUrl(normalizedPhone, name, portalUrl, locale) : null
   const whatsappLabel = locale === "ar" ? "إرسال تذكير واتساب" : "Send WhatsApp Reminder"
 
   return (
@@ -39,6 +42,7 @@ export async function ClientProfileHeader({ profile }: ClientProfileHeaderProps)
           </Link>
         </Button>
         <div className="flex items-center gap-2">
+          <CopyPortalLinkButton portalUrl={portalUrl} />
           {whatsappUrl && (
             <Button asChild variant="outline" size="sm" className="gap-2">
               <Link href={whatsappUrl} target="_blank" rel="noopener noreferrer">
@@ -129,9 +133,9 @@ function normalizePhone(phone: string): string {
   return digits
 }
 
-function buildWhatsAppUrl(phone: string, clientName: string, locale: string) {
-  const arMessage = `أهلاً ${clientName} 👋 متنساش تبدأ تمرينك النهارده 💪🔥 شد حيلك وخلّي التمرين يخلص قبل ما اليوم يخلص!`
-  const enMessage = `Hey ${clientName} 👋 Don't forget to start your workout today! 💪🔥 Stay on track and get it done!`
+function buildWhatsAppUrl(phone: string, clientName: string, portalUrl: string, locale: string) {
+  const arMessage = `أهلاً ${clientName} 👋\nتفضل رابط بوابتك عشان تتابع خطتك التدريبية:\n${portalUrl}`
+  const enMessage = `Hey ${clientName} 👋\nHere's your portal link to follow your training plan:\n${portalUrl}`
   const message = locale === "ar" ? arMessage : enMessage
   const encoded = encodeURIComponent(message)
   return `https://wa.me/${phone}?text=${encoded}`
