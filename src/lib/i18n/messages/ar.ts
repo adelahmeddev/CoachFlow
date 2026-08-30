@@ -1427,6 +1427,11 @@ export const ar: Dictionary = {
       save: "حفظ",
       saving: "جاري الحفظ...",
       edit: "تعديل",
+      whatsappReminder: "تذكير واتساب",
+      portalLink: "رابط بوابتي",
+      portalLinkDescription: "شارك هذا الرابط للوصول لخطتك التدريبية",
+      copyLink: "نسخ الرابط",
+      linkCopied: "تم نسخ الرابط!",
     },
     noLongerSubscribed: {
       title: "انتهى اشتراكك",

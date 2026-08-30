@@ -1425,6 +1425,11 @@ export const en = {
       save: "Save",
       saving: "Saving...",
       edit: "Edit",
+      whatsappReminder: "WhatsApp Reminder",
+      portalLink: "My Portal Link",
+      portalLinkDescription: "Share this link to access your training plan",
+      copyLink: "Copy Link",
+      linkCopied: "Link copied!",
     },
     noLongerSubscribed: {
       title: "No longer subscribed",
