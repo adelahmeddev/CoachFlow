@@ -16,7 +16,6 @@ const TRAINER_PATHS = [
 const CLIENT_PATHS = [
   "/client/home",
   "/client/workout",
-  "/client/progress",
   "/client/nutrition",
   "/client/profile",
   "/client/messages",

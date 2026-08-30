@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
-import { LayoutDashboard, CalendarDays, BarChart3, Apple, UserRound, Dumbbell, MessageCircle } from "lucide-react"
+import { LayoutDashboard, CalendarDays, Apple, UserRound, Dumbbell, MessageCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/lib/i18n/client"
 import type { Dictionary } from "@/lib/i18n/messages/en"
@@ -20,7 +20,6 @@ const CLIENT_BOTTOM_NAV_ITEMS: BottomNavItem[] = [
   { key: "week", labelKey: "client.week.myWeek", icon: CalendarDays, href: "/client/week" },
   { key: "workout", labelKey: "client.workout.startWorkout", icon: Dumbbell, href: "/client/workout/today" },
   { key: "messages", labelKey: "nav.messages", icon: MessageCircle, href: "/client/messages" },
-  { key: "progress", labelKey: "client.progress.title", icon: BarChart3, href: "/client/progress" },
   { key: "nutrition", labelKey: "client.nutrition.myPlan", icon: Apple, href: "/client/nutrition" },
   { key: "profile", labelKey: "client.profile.myInfo", icon: UserRound, href: "/client/profile" },
 ]

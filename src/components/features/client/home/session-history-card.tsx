@@ -6,7 +6,22 @@ import { formatDate } from "@/lib/i18n/format"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { groupSessionsByDate } from "@/lib/calculations/session-progress"
-import type { ClientSessionView } from "@/components/features/client/progress/client-session-log"
+
+type ClientSessionView = {
+  date: Date
+  dayLabel: string
+  adherencePct: number | null
+  rows: Array<{
+    exerciseName: string
+    targetSets: number | null
+    targetReps: number | null
+    actualSets: number | null
+    actualReps: number | null
+    weightKg: number | null
+    rpe: number | null
+    notes: string | null
+  }>
+}
 
 interface SessionHistoryCardProps {
   sessionHistory: Array<{
