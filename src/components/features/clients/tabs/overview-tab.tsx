@@ -24,6 +24,7 @@ import { calcAge } from "@/lib/format"
 import { formatDate } from "@/lib/i18n/format"
 import { cn } from "@/lib/utils"
 import { ResetPasswordDialog } from "@/components/features/clients/reset-password-dialog"
+import { EditClientInfoDialog } from "@/components/features/clients/edit-client-info-dialog"
 import { PainFlagsForm } from "@/components/features/body-composition/pain-flags-form"
 
 type I18n = Awaited<ReturnType<typeof getI18n>>
@@ -41,7 +42,7 @@ export async function OverviewTab({ clientId, profile }: OverviewTabProps) {
     <div className="space-y-6">
       <QuickActions clientId={clientId} clientName={profile.client.fullName ?? ""} t={t} />
       <div className="grid gap-6 lg:grid-cols-2">
-        <ClientInfoCard profile={profile} t={t} locale={locale} />
+        <ClientInfoCard clientId={clientId} profile={profile} t={t} locale={locale} />
         <InBodyCard clientId={clientId} profile={profile} t={t} locale={locale} />
         <PainFlagsForm
           clientId={clientId}
@@ -95,15 +96,28 @@ function QuickActions({ clientId, clientName, t }: { clientId: string; clientNam
   )
 }
 
-function ClientInfoCard({ profile, t, locale }: { profile: ClientProfile; t: T; locale: Locale }) {
+function ClientInfoCard({ clientId, profile, t, locale }: { clientId: string; profile: ClientProfile; t: T; locale: Locale }) {
   const { client } = profile
   const age = calcAge(client.birthDate)
+  const birthDateStr = client.birthDate ? new Date(client.birthDate).toISOString().split("T")[0] : ""
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>{t.profile.overview.clientInfoTitle}</CardTitle>
-        <CardDescription>{t.profile.overview.clientInfoSubtitle}</CardDescription>
+      <CardHeader className="flex-row items-start justify-between space-y-0">
+        <div>
+          <CardTitle>{t.profile.overview.clientInfoTitle}</CardTitle>
+          <CardDescription>{t.profile.overview.clientInfoSubtitle}</CardDescription>
+        </div>
+        <EditClientInfoDialog
+          clientId={clientId}
+          initial={{
+            fullName: client.fullName ?? "",
+            phone: client.phone ?? "",
+            birthDate: birthDateStr,
+            goal: client.goal ?? "",
+            status: client.status,
+          }}
+        />
       </CardHeader>
       <CardContent>
         <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
