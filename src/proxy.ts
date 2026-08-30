@@ -47,6 +47,7 @@ export async function proxy(request: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET,
     cookieName:
       process.env.NODE_ENV === "production" ||
+      (process.env.VERCEL_URL ?? "") !== "" ||
       (process.env.NEXTAUTH_URL ?? "").startsWith("https://")
         ? "__Secure-next-auth.session-token"
         : "next-auth.session-token",

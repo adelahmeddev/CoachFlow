@@ -6,9 +6,16 @@ import { pool, generateId } from "@/lib/db";
 import { comparePassword } from "@/lib/auth";
 import type { Role } from "@/lib/db/enums";
 
+// Ensure NEXTAUTH_URL matches the actual deployment on Vercel
+if (!process.env.NEXTAUTH_URL && process.env.VERCEL_URL) {
+  process.env.NEXTAUTH_URL = `https://${process.env.VERCEL_URL}`;
+}
+
 function getSecureCookie() {
   if (process.env.NODE_ENV === "production") return true;
-  const host = process.env.NEXTAUTH_URL || "";
+  const host = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : process.env.NEXTAUTH_URL || "";
   return host.startsWith("https://");
 }
 
