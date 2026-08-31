@@ -221,15 +221,31 @@ export function NutritionBuilder({
         substituteGroups: groups.map((g) => ({
           category: g.category,
           caloriesLabel: g.caloriesLabel || null,
-          items: g.items.filter((i) => i.name.trim()),
+          items: g.items
+            .filter((i) => i.name.trim() || i.nameAr?.trim())
+            .map((i) => ({
+              name: i.name || i.nameAr || "",
+              nameAr: i.nameAr || null,
+              amount: i.amount,
+              unit: i.unit,
+            })),
         })),
         meals: meals
-          .filter((m) => m.name.trim())
+          .filter((m) => m.name.trim() || m.nameAr?.trim())
           .map((m) => ({
             kind: m.kind,
-            name: m.name,
+            name: m.name || m.nameAr || "",
             nameAr: m.nameAr || null,
-            items: m.items.filter((i) => i.foodName.trim()),
+            items: m.items
+              .filter((i) => i.foodName.trim() || i.foodNameAr?.trim())
+              .map((i) => ({
+                groupNumber: i.groupNumber,
+                foodName: i.foodName || i.foodNameAr || "",
+                foodNameAr: i.foodNameAr || null,
+                amount: i.amount,
+                unit: i.unit,
+                calories: i.calories,
+              })),
           })),
       }
 
