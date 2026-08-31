@@ -144,6 +144,7 @@ export async function assignTemplateAction(
     for (const clientId of parsed.data.clientIds) {
       invalidate([`client:${clientId}:nutrition`, `client:${clientId}:profile`])
       revalidatePath(`/clients/${clientId}?tab=nutrition`)
+      revalidatePath("/client/nutrition")
     }
     revalidatePath("/clients")
     return { ok: true as const, count }
@@ -176,6 +177,7 @@ export async function refreshPlanFromTemplateAction(planId: string, clientId: st
     `client:${clientId}:profile`,
   ])
   revalidatePath(`/clients/${clientId}?tab=nutrition`)
+  revalidatePath("/client/nutrition")
   return { ok: true as const }
 }
 
@@ -204,6 +206,7 @@ export async function savePlanContentAction(
     `client:${clientId}:profile`,
   ])
   revalidatePath(`/clients/${clientId}?tab=nutrition`)
+  revalidatePath("/client/nutrition")
   return { ok: true as const }
 }
 
