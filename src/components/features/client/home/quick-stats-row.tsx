@@ -5,6 +5,7 @@ import type { SubscriptionStatus } from "@/lib/db/enums"
 import { useI18n } from "@/lib/i18n/client"
 import { lookup } from "@/lib/i18n/lookup"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 
 export function QuickStatsRow({
   workoutsDone,
@@ -45,17 +46,28 @@ export function QuickStatsRow({
   return (
     <div className="grid gap-4 sm:grid-cols-3">
       {stats.map((stat) => (
-        <Card key={stat.label}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              {stat.label}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex items-center gap-2">
-            <stat.icon className="size-5 text-brand-600 dark:text-brand-400" />
-            <span className="text-xl font-semibold">{stat.value}</span>
-          </CardContent>
-        </Card>
+          <Card
+            key={stat.label}
+            className={cn(
+              "border bg-card shadow-soft btn-pop hover:shadow-medium",
+              "group"
+            )}
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {stat.label}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center gap-2">
+              <stat.icon
+                className={cn(
+                  "size-5 transition-transform duration-200",
+                  "group-hover:scale-105"
+                )}
+              />
+              <span className="text-xl font-semibold">{stat.value}</span>
+            </CardContent>
+          </Card>
       ))}
     </div>
   )

@@ -159,7 +159,7 @@ export function TodayWorkoutCard({ workout }: { workout: TodayWorkoutResult }) {
                 </div>
               </div>
             </div>
-            <Button asChild size="lg" className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-brand-600 to-energy-500 shadow-soft hover:brightness-110 gap-2 shrink-0">
+            <Button asChild size="lg" className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-brand-600 to-energy-500 shadow-soft hover:brightness-110 btn-pop gap-2 shrink-0">
               <Link href={startHref}>
                 <Play className="size-5 fill-white" />
                 {lookup(t, "client.common.startWorkout")}

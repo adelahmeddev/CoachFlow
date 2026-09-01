@@ -1,4 +1,4 @@
-import { unstable_cache, updateTag, revalidateTag } from "next/cache"
+import { unstable_cache, updateTag } from "next/cache"
 
 type Serializable = string | number | boolean | null
 
