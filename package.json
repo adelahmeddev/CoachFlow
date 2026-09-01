@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "dev:lan": "cross-env HOST=0.0.0.0 PORT=3000 NEXTAUTH_URL=http://192.168.1.9:3000 USE_TURBOPACK=0 next dev",
+    "dev:lan": "cross-env HOST=0.0.0.0 PORT=3000 NEXTAUTH_URL=http://192.168.1.9:3000 next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
