@@ -47,7 +47,7 @@ export function WeeklySummaryCard({
     planned > 0 ? Math.min(100, Math.round((done / planned) * 100)) : 0
 
   return (
-    <Card>
+    <Card className={cn("btn-pop", "card-fitness")}>
       <CardHeader>
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
