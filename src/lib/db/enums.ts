@@ -136,3 +136,15 @@ export const MealKind = {
   SNACK: 'SNACK',
 } as const
 export type MealKind = (typeof MealKind)[keyof typeof MealKind]
+
+export const CoachingMode = {
+  ONLINE: 'ONLINE',
+  IN_PERSON: 'IN_PERSON',
+} as const
+export type CoachingMode = (typeof CoachingMode)[keyof typeof CoachingMode]
+
+export const WorkoutDisplayMode = {
+  FULL: 'FULL',
+  DAY_NAME_ONLY: 'DAY_NAME_ONLY',
+} as const
+export type WorkoutDisplayMode = (typeof WorkoutDisplayMode)[keyof typeof WorkoutDisplayMode]

@@ -127,6 +127,8 @@ function ClientInfoCard({ clientId, profile, t, locale }: { clientId: string; pr
             birthDate: birthDateStr,
             goal: client.goal ?? "",
             status: client.status,
+            coachingMode: (client as unknown as { coachingMode?: string }).coachingMode ?? "ONLINE",
+            workoutDisplayMode: (client as unknown as { workoutDisplayMode?: string }).workoutDisplayMode ?? "FULL",
           }}
         />
       </CardHeader>

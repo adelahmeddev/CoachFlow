@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { ClientStatus, Goal } from "@/lib/db/enums"
+import { ClientStatus, Goal, CoachingMode, WorkoutDisplayMode } from "@/lib/db/enums"
 
 export const phoneSchema = z
   .string()
@@ -22,6 +22,8 @@ export const clientCreateSchema = z.object({
     .transform((v) => (v ? new Date(`${v}T00:00:00Z`) : null)),
   goal: z.nativeEnum(Goal).nullable().optional(),
   status: z.enum(["INVITED", "PENDING_ASSESSMENT", "ACTIVE", "PAUSED"]),
+  coachingMode: z.nativeEnum(CoachingMode).optional(),
+  workoutDisplayMode: z.nativeEnum(WorkoutDisplayMode).optional(),
 })
 
 export type ClientCreateInput = z.infer<typeof clientCreateSchema>

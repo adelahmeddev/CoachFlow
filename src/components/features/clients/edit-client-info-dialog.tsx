@@ -31,6 +31,8 @@ interface EditClientInfoDialogProps {
     birthDate: string
     goal: string
     status: string
+    coachingMode: string
+    workoutDisplayMode: string
   }
   trigger?: React.ReactNode
 }
@@ -57,6 +59,8 @@ type FormValues = {
   birthDate: string
   goal: Goal | undefined
   status: "INVITED" | "PENDING_ASSESSMENT" | "ACTIVE" | "PAUSED"
+  coachingMode: "ONLINE" | "IN_PERSON"
+  workoutDisplayMode: "FULL" | "DAY_NAME_ONLY"
 }
 
 export function EditClientInfoDialog({
@@ -76,6 +80,8 @@ export function EditClientInfoDialog({
       birthDate: initial.birthDate,
       goal: (initial.goal as Goal) || undefined,
       status: (initial.status as FormValues["status"]) || "ACTIVE",
+      coachingMode: (initial.coachingMode as FormValues["coachingMode"]) || "ONLINE",
+      workoutDisplayMode: (initial.workoutDisplayMode as FormValues["workoutDisplayMode"]) || "FULL",
     },
   })
 
@@ -179,6 +185,42 @@ export function EditClientInfoDialog({
                           {isAr ? s.labelAr : s.labelEn}
                         </SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{isAr ? "وضع التدريب" : "Coaching Mode"}</Label>
+              <Controller
+                control={form.control}
+                name="coachingMode"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ONLINE">{isAr ? "أونلاين" : "Online"}</SelectItem>
+                      <SelectItem value="IN_PERSON">{isAr ? "حضوري" : "In Person"}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>{isAr ? "عرض التمرين" : "Workout Display Mode"}</Label>
+              <Controller
+                control={form.control}
+                name="workoutDisplayMode"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="FULL">{isAr ? "كامل" : "Full"}</SelectItem>
+                      <SelectItem value="DAY_NAME_ONLY">{isAr ? "اسم اليوم فقط" : "Day Name Only"}</SelectItem>
                     </SelectContent>
                   </Select>
                 )}

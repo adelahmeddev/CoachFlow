@@ -71,6 +71,8 @@ model Client {
   shoulderPain         Boolean               @default(false)
   backPain             Boolean               @default(false)
   kneePain             Boolean               @default(false)
+  coachingMode         CoachingMode          @default(ONLINE)
+  workoutDisplayMode   WorkoutDisplayMode    @default(FULL)
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
   bodyCompositions     BodyComposition[]
@@ -319,19 +321,21 @@ model Exercise {
 }
 
 model TrainingSplitTemplate {
-  id          String                     @id @default(cuid())
-  trainerId   String?
-  name        String
-  goal        Goal?
-  level       String?
-  splitType   SplitType
-  daysPerWeek Int
-  description String?
-  isGlobal    Boolean                    @default(false)
-  createdAt   DateTime                   @default(now())
-  updatedAt   DateTime                   @updatedAt
-  trainer     TrainerProfile?            @relation(fields: [trainerId], references: [id], onDelete: Cascade)
-  days        TrainingSplitTemplateDay[]
+  id             String                     @id @default(cuid())
+  trainerId      String?
+  name           String
+  goal           Goal?
+  level          String?
+  splitType      SplitType
+  daysPerWeek    Int
+  description    String?
+  isGlobal       Boolean                    @default(false)
+  isMultiSplit   Boolean                    @default(false)
+  splitGroup     Int?                       @default(1)
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+  trainer        TrainerProfile?            @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  days           TrainingSplitTemplateDay[]
 
   @@index([trainerId])
   @@index([isGlobal])
@@ -669,4 +673,27 @@ enum QuantityUnit {
 enum MealKind {
   MEAL
   SNACK
+}
+
+enum CoachingMode {
+  ONLINE
+  IN_PERSON
+}
+
+enum WorkoutDisplayMode {
+  FULL
+  DAY_NAME_ONLY
+}
+
+model PresenceSession {
+  id              String    @id @default(cuid())
+  clientId        String
+  trainerId       String?
+  lastHeartbeatAt DateTime  @default(now())
+  expiresAt       DateTime
+  createdAt       DateTime  @default(now())
+
+  @@index([clientId])
+  @@index([trainerId])
+  @@index([expiresAt])
 }

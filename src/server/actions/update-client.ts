@@ -46,7 +46,7 @@ export async function updateClientInfoAction(
     }
   }
 
-  const { fullName, phone, birthDate, goal, status } = parsed.data
+  const { fullName, phone, birthDate, goal, status, coachingMode, workoutDisplayMode } = parsed.data
 
   await pool.query(
     `UPDATE "Client" SET
@@ -55,9 +55,20 @@ export async function updateClientInfoAction(
       "birthDate" = $3,
       "goal" = $4::"Goal",
       "status" = $5::"ClientStatus",
+      "coachingMode" = $6::"CoachingMode",
+      "workoutDisplayMode" = $7::"WorkoutDisplayMode",
       "updatedAt" = NOW()
-    WHERE "id" = $6`,
-    [fullName, phone ?? null, birthDate ?? null, goal ?? null, status, clientId]
+    WHERE "id" = $8`,
+    [
+      fullName,
+      phone ?? null,
+      birthDate ?? null,
+      goal ?? null,
+      status,
+      coachingMode ?? 'ONLINE',
+      workoutDisplayMode ?? 'FULL',
+      clientId,
+    ]
   )
 
   revalidatePath(`/clients/${clientId}`)
