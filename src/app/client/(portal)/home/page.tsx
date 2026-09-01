@@ -1,6 +1,7 @@
 ﻿import { redirect } from "next/navigation"
 import { getCurrentSession } from "@/server/auth"
 import { getClientHomeData } from "@/server/services/client-portal.service"
+import { useI18n } from "@/lib/i18n/client"
 import { GreetingCard } from "@/components/features/client/home/greeting-card"
 import { TodayWorkoutCard } from "@/components/features/client/home/today-workout-card"
 import { DailyChecklistCard } from "@/components/features/client/home/daily-checklist-card"
@@ -9,10 +10,13 @@ import { QuickStatsRow } from "@/components/features/client/home/quick-stats-row
 import { TrainerMessageCard } from "@/components/features/client/home/trainer-message-card"
 import { ProgressStatsRow } from "@/components/features/client/home/progress-stats-row"
 import { SessionHistoryCard } from "@/components/features/client/home/session-history-card"
+import { BrandLogo } from "@/components/brand/brand-logo"
 
 export default async function ClientHomePage() {
   const session = await getCurrentSession()
   const clientId = session?.user.clientProfileId
+  const { t, locale } = await useI18n()
+  const isAr = locale === "ar"
 
   if (!clientId) {
     redirect("/client/login")
