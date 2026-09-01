@@ -1,5 +1,12 @@
 -- Enable pg_cron extension for scheduled tasks
-CREATE EXTENSION IF NOT EXISTS pg_cron;
+DO $$
+BEGIN
+  CREATE EXTENSION IF NOT EXISTS pg_cron;
+EXCEPTION
+  WHEN insufficient_privilege OR duplicate_object THEN
+    NULL;
+END
+$$;
 
 -- Function to auto-delete messages older than 10 days
 -- and update conversation metadata accordingly
@@ -39,8 +46,15 @@ END;
 $$;
 
 -- Schedule daily cleanup at 3 AM
-SELECT cron.schedule(
-  'cleanup-old-messages',
-  '0 3 * * *',
-  'SELECT cleanup_old_messages()'
-);
+DO $$
+BEGIN
+  PERFORM cron.schedule(
+    'cleanup-old-messages',
+    '0 3 * * *',
+    'SELECT cleanup_old_messages()'
+  );
+EXCEPTION
+  WHEN undefined_function OR insufficient_privilege THEN
+    NULL;
+END
+$$;
