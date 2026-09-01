@@ -31,6 +31,24 @@ export default async function ClientHomePage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-8">
+      <section
+        className="w-full rounded-2xl bg-gradient-to-br from-brand-500 to-energy-500 p-6 text-center text-white"
+      >
+        <BrandLogo
+          variant="mark"
+          height={48}
+          width={96}
+          alt="NANOUSH"
+          quality={95}
+          className="mb-4 drop-shadow-2xl"
+        />
+        <h1 className="text-2xl font-extrabold tracking-tight">
+          {isAr ? "اتصال ناجح — التصميم aktualisiert" : "Design Update Connected"}
+        </h1>
+        <p className="text-base mt-2">
+          {isAr ? "تظهر التحديثات أعلاه" : "Updates appear above"}
+        </p>
+      </section>
       <GreetingCard client={client} streak={data.client.streak} />
       <TodayWorkoutCard workout={data.todayWorkout} />
     <QuickStatsRow
