@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "2mb",
     },
   },
+  turbopack: {},
   webpack: (config, { dev }) => {
     if (dev) {
       // Workaround for "Cannot write to a CLOSED writable stream" on mobile dev origins
