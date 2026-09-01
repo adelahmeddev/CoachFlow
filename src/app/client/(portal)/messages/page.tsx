@@ -5,6 +5,9 @@ import { getConversationForClient, getMessages } from "@/server/services/message
 import { ChatThread } from "@/components/features/messages/chat-thread"
 import { getI18n } from "@/lib/i18n"
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function ClientMessagesPage({
   searchParams,
 }: {

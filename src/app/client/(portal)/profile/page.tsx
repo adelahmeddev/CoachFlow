@@ -14,6 +14,9 @@ import { BodyCompositionHistory } from "@/components/features/body-composition/b
 import { BodyCompositionComparison } from "@/components/features/body-composition/body-composition-comparison"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function ClientProfilePage() {
   const session = await getCurrentSession()
   const clientId = session?.user.clientProfileId

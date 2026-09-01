@@ -3,6 +3,9 @@ import { getCurrentSession } from "@/server/auth"
 import { getSessionWorkout } from "@/server/services/client-portal.service"
 import { SessionMode } from "@/components/features/client/workout/session-mode"
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function ClientWorkoutSessionPage({
   searchParams,
 }: {

@@ -8,6 +8,9 @@ import { getDayDetail, type DayDetail } from "@/server/services/week.service"
 import { TodayWorkoutCard } from "@/components/features/client/home/today-workout-card"
 import { TodayWorkoutClient } from "@/components/features/client/workout/today-workout-client"
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 function detailToWorkout(detail: DayDetail): TodayWorkoutResult {
   return {
     day: {

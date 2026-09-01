@@ -4,6 +4,9 @@ import { pool } from "@/lib/db"
 
 import { NoLongerSubscribedCard } from "@/components/features/client/no-longer-subscribed"
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function ClientSessionLayout({
   children,
 }: {

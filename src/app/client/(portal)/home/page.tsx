@@ -3,6 +3,9 @@ import { getCurrentSession } from "@/server/auth"
 import { getClientHomeData } from "@/server/services/client-portal.service"
 import { ClientHomeUI } from "./ClientHomeUI"
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function ClientHomePage() {
   const session = await getCurrentSession()
   const clientId = session?.user.clientProfileId

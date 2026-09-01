@@ -11,6 +11,9 @@ import {
 import { Card, CardContent } from "@/components/ui/card"
 import { getI18n } from "@/lib/i18n"
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function ClientNutritionPage() {
   const { t, locale } = await getI18n()
   const session = await getCurrentSession()
