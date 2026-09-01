@@ -1,7 +1,6 @@
 "use client"
 
 import { useI18n } from "@/lib/i18n/client"
-import { GreetingCard } from "@/components/features/client/home/greeting-card"
 import { TodayWorkoutCard } from "@/components/features/client/home/today-workout-card"
 import { DailyChecklistCard } from "@/components/features/client/home/daily-checklist-card"
 import { WeeklySummaryCard } from "@/components/features/client/home/weekly-summary-card"
@@ -9,7 +8,7 @@ import { QuickStatsRow } from "@/components/features/client/home/quick-stats-row
 import { TrainerMessageCard } from "@/components/features/client/home/trainer-message-card"
 import { ProgressStatsRow } from "@/components/features/client/home/progress-stats-row"
 import { SessionHistoryCard } from "@/components/features/client/home/session-history-card"
-import { BrandLogo } from "@/components/brand/brand-logo"
+import { DashboardActionCard } from "@/components/features/client/home/DashboardActionCard"
 
 interface ClientHomeUIProps {
   client: {
@@ -36,30 +35,9 @@ interface ClientHomeUIProps {
 }
 
 export function ClientHomeUI({ client, data }: ClientHomeUIProps) {
-  const { t, locale } = useI18n()
-  const isAr = locale === "ar"
-
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-8">
-      <section
-        className="w-full rounded-2xl bg-gradient-to-br from-brand-500 to-energy-500 p-6 text-center text-white"
-      >
-        <BrandLogo
-          variant="mark"
-          height={48}
-          width={96}
-          alt="NANOUSH"
-          quality={95}
-          className="mb-4 drop-shadow-2xl"
-        />
-        <h1 className="text-2xl font-extrabold tracking-tight">
-          {isAr ? "اتصال ناجح — التصميم مُحدّث" : "Design Update Connected"}
-        </h1>
-        <p className="text-base mt-2">
-          {isAr ? "تظهر التحديثات أعلاه" : "Updates appear above"}
-        </p>
-      </section>
-      <GreetingCard client={client} streak={data.client.streak} />
+      <DashboardActionCard client={client} data={data} />
       <TodayWorkoutCard workout={data.todayWorkout} />
       <QuickStatsRow
         workoutsDone={data.week.summary.done}
