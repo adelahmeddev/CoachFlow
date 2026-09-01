@@ -121,7 +121,7 @@ export function DayCard({
         isActive &&
           (entry.done
             ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-            : "bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-soft dark:from-brand-500 dark:to-brand-600"),
+            : "bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-soft dark:from-brand-500 dark:to-brand-600"),
         entry.status === "DONE" &&
           "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
         entry.status === "MISSED" &&
@@ -139,7 +139,7 @@ export function DayCard({
       className={cn(
         "flex size-11 shrink-0 items-center justify-center rounded-xl text-base font-semibold tabular-nums",
         isActive
-          ? "bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-soft dark:from-brand-500 dark:to-brand-600"
+          ? "bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-soft dark:from-brand-500 dark:to-brand-600"
           : isRest
             ? "bg-muted text-muted-foreground"
             : "bg-background text-foreground"
@@ -153,7 +153,7 @@ export function DayCard({
       className={cn(
         "flex size-11 shrink-0 items-center justify-center rounded-xl text-xs font-semibold tabular-nums",
         isActive
-          ? "bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-soft dark:from-brand-500 dark:to-brand-600"
+          ? "bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-soft dark:from-brand-500 dark:to-brand-600"
           : isRest
             ? "bg-muted text-muted-foreground"
             : "bg-background text-foreground"

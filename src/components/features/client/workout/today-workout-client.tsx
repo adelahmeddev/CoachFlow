@@ -83,8 +83,8 @@ export function TodayWorkoutClient({
   useEffect(() => {
     if (restRemaining === null) return
     if (restRemaining <= 0) {
-      setTimeout(() => setRestRemaining(null), 0)
-      return
+      const t = setTimeout(() => setRestRemaining(null), 0)
+      return () => clearTimeout(t)
     }
     const id = setInterval(() => {
       setRestRemaining((v) => (v === null ? null : v - 1))
@@ -132,13 +132,15 @@ export function TodayWorkoutClient({
 
   return (
     <>
-      {exercises.map((exercise) => {
+      {exercises.map((exercise, idx) => {
         const isDone = savedIds.has(exercise.id)
         const isSkipped = skippedIds.has(exercise.id)
         return (
           <div
             key={exercise.id}
             ref={exercise.id === firstUnsavedId ? firstUnsavedRef : undefined}
+            className="animate-slide-soft opacity-0"
+            style={{ animationDelay: `${idx * 70}ms`, animationFillMode: "forwards" }}
           >
             <ExerciseLogCard
               exercise={exercise}
@@ -168,8 +170,8 @@ export function TodayWorkoutClient({
       })}
 
       {!started && exercises.length > 0 ? (
-        <div className="sticky bottom-0 z-30 border-t bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-          <Button size="lg" className="w-full min-h-[48px] text-base" onClick={handleStart}>
+        <div className="sticky bottom-0 z-30 border-t bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 animate-slide-soft">
+          <Button size="lg" className="w-full min-h-[48px] text-base btn-pop" onClick={handleStart}>
             <Play className="size-5" />
             {lookup(t, "client.workout.startWorkout")}
           </Button>
@@ -177,7 +179,7 @@ export function TodayWorkoutClient({
       ) : null}
 
       {started && exercises.length > 0 ? (
-        <div className="sticky bottom-0 z-30 space-y-2 border-t bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="sticky bottom-0 z-30 space-y-2 border-t bg-background/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 animate-slide-soft">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">
               {lookup(t, "client.workout.exercisesDone")}
@@ -199,13 +201,18 @@ export function TodayWorkoutClient({
       ) : null}
 
       {restRemaining !== null && restRemaining > 0 ? (
-        <div className="fixed inset-x-4 bottom-24 z-40 mx-auto flex max-w-sm items-center justify-between rounded-full border bg-popover/95 px-4 py-3 shadow-glass backdrop-blur">
-          <div className="flex items-center gap-2">
-            <Timer className="size-5 text-brand-600 dark:text-brand-400" />
-            <span className="font-medium tabular-nums">
-              {String(Math.floor(restRemaining / 60)).padStart(2, "0")}:
-              {String(restRemaining % 60).padStart(2, "0")}
+        <div className="fixed inset-x-4 bottom-24 z-40 mx-auto flex max-w-sm items-center justify-between rounded-2xl border bg-card/95 px-4 py-3 shadow-glow backdrop-blur animate-pop-in">
+          <div className="flex items-center gap-3">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400 animate-breathe">
+              <Timer className="size-5" />
             </span>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Rest — breathe</p>
+              <span className="font-bold tabular-nums text-lg leading-none">
+                {String(Math.floor(restRemaining / 60)).padStart(2, "0")}:
+                {String(restRemaining % 60).padStart(2, "0")}
+              </span>
+            </div>
           </div>
           <Button
             type="button"
@@ -213,6 +220,7 @@ export function TodayWorkoutClient({
             size="icon-sm"
             aria-label={lookup(t, "client.workout.skipExercise")}
             onClick={() => setRestRemaining(null)}
+            className="rounded-xl"
           >
             <X className="size-4" />
           </Button>

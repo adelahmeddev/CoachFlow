@@ -268,33 +268,36 @@ export function ChatThread({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[var(--msg-paper)]">
+    <div className="flex h-full min-h-0 flex-col bg-background">
       <div
         ref={scrollRef}
         onScroll={onScroll}
         aria-live="polite"
         aria-relevant="additions"
-        className="flex-1 overflow-y-auto overscroll-contain bg-[var(--msg-paper)]"
+        className="flex-1 overflow-y-auto overscroll-contain bg-background"
       >
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-6">
           {nextCursor ? (
             <div className="flex justify-center py-2">
-              <Button variant="outline" size="sm" onClick={loadOlder} disabled={isPending} className="rounded-full border-[var(--msg-mist)] bg-[var(--msg-paper)] font-[var(--font-barlow)] text-xs hover:bg-[var(--msg-steel)] hover:text-[var(--msg-text-on-steel)]">
+              <Button variant="outline" size="sm" onClick={loadOlder} disabled={isPending} className="rounded-full text-xs">
                 {t.client.messages.loadMore}
               </Button>
             </div>
           ) : null}
 
           {messages.length === 0 ? (
-            <div className="rounded-2xl py-16 text-center">
-              <p className="font-[var(--font-barlow-condensed)] text-lg tracking-wide text-[var(--msg-text-on-paper)]">No messages yet</p>
-              <p className="mt-1 font-[var(--font-barlow)] text-sm text-[var(--msg-text-muted)]">{t.client.messages.noMessages}</p>
+            <div className="rounded-2xl border border-dashed bg-card py-16 text-center">
+              <p className="text-base font-semibold">No messages yet</p>
+              <p className="mt-1 text-sm text-muted-foreground">{t.client.messages.noMessages}</p>
+              <p className="mt-1 text-xs text-muted-foreground">ابدأ محادثة خفيفة مع البطل 👋</p>
             </div>
           ) : (
             grouped.map(([day, msgs]) => (
-              <div key={day} className="space-y-2">
-                <div className="text-center text-[11px] text-[var(--msg-text-muted)] font-[var(--font-barlow-condensed)] tracking-wide">
-                  {(() => { const d = new Date(day); const today = new Date().toISOString().slice(0, 10); const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10); if (day === today) return t.client.messages.today; if (day === yesterday) return t.client.messages.yesterday; return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-GB", { day: "2-digit", month: "short" }).format(new Date(day)) })()}
+              <div key={day} className="space-y-3">
+                <div className="flex justify-center">
+                  <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+                    {(() => { const d = new Date(day); const today = new Date().toISOString().slice(0, 10); const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10); if (day === today) return t.client.messages.today; if (day === yesterday) return t.client.messages.yesterday; return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-GB", { day: "2-digit", month: "short" }).format(new Date(day)) })()}
+                  </span>
                 </div>
                 {msgs.map((m) => (
                   <MessageBubble key={m.id} message={m as any} isOwn={m.senderId === currentUserId} />

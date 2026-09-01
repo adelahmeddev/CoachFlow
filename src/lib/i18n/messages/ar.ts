@@ -70,17 +70,17 @@ export const ar: Dictionary = {
   },
 
   nav: {
-    dashboard: "لوحة التحكم",
-    clients: "العملاء",
-    onboarding: "التسجيل",
-    trainingSplitTemplates: "قوالب التدريب",
+    dashboard: "الرئيسية",
+    clients: "عملائي",
+    onboarding: "دعوة جديدة",
+    trainingSplitTemplates: "قوالب التمرين",
     nutritionTemplates: "قوالب التغذية",
-    subscriptionPlans: "خطط الاشتراك",
+    subscriptionPlans: "الباقات",
     messages: "الرسائل",
     settings: "الإعدادات",
     admin: "الإدارة",
     signOut: "تسجيل الخروج",
-    clientProfile: "ملف العميل",
+    clientProfile: "ملف البطل",
   },
 
   auth: {
@@ -121,21 +121,21 @@ export const ar: Dictionary = {
   },
 
   dashboard: {
-    title: "لوحة التحكم",
-    subtitle: "نظرة عامة على أعمال التدريب",
-    totalClients: "إجمالي العملاء",
-    pendingAssessment: "تقييم معلق",
-    activeClients: "العملاء النشطين",
-    recentClients: "العملاء الجدد",
-    quickActions: "إجراءات سريعة",
-    inviteClient: "دعوة عميل",
-    viewClients: "عرض العملاء",
-    emptyTitle: "لا يوجد عملاء بعد",
-    emptyDescription: "ادعُ أول عميل لبدء بناء أعمالك.",
-    welcomeBack: "مرحبًا بعودتك، {name}",
-    whatsHappening: "إليك ما يحدث مع عملائك.",
-    recentlyAdded: "أُضيف مؤخراً (30 يوم)",
-    recentClientsTitle: "العملاء الأحدث",
+    title: "الرئيسية",
+    subtitle: "يومك التدريبي في نظرة واحدة",
+    totalClients: "إجمالي الأبطال",
+    pendingAssessment: "محتاج متابعة",
+    activeClients: "بيتمرنوا حالياً",
+    recentClients: "انضموا مؤخراً",
+    quickActions: "سريع",
+    inviteClient: "دعوة بطل جديد",
+    viewClients: "شوف كل عملائي",
+    emptyTitle: "لسه مفيش أبطال",
+    emptyDescription: "ابدأ بدعوة أول بطل وشوف شغلك يكبر 🔥",
+    welcomeBack: "أهلاً يا كوتش {name} 💪",
+    whatsHappening: "ده ملخص يومك مع الأبطال — مين محتاج متابعة؟",
+    recentlyAdded: "جداد آخر 30 يوم",
+    recentClientsTitle: "آخر المنضمين",
   },
 
   invite: {
@@ -191,14 +191,14 @@ export const ar: Dictionary = {
   },
 
   clients: {
-    title: "العملاء",
-    subtitle: "إدارة عملائك وبرامجهم",
-    searchPlaceholder: "بحث بالاسم أو رقم الهاتف...",
-    filterStatus: "تصفية حسب الحالة",
+    title: "عملائي",
+    subtitle: "كل أبطالك في مكان واحد — تابع تقدمهم أول بأول",
+    searchPlaceholder: "دوّر على بطل بالاسم أو التليفون...",
+    filterStatus: "الحالة",
     filterGoal: "الهدف",
     clearFilters: "مسح الفلاتر",
-    newClient: "عميل جديد",
-    inviteClient: "دعوة عميل",
+    newClient: "بطل جديد",
+    inviteClient: "دعوة بطل جديد",
     emptyTitle: "لم يتم العثور على عملاء",
     emptyDescription: "لا يوجد عملاء يتطابقون مع بحثك أو فلاترك.",
     noClientsTitle: "لا يوجد عملاء بعد",
@@ -238,12 +238,12 @@ export const ar: Dictionary = {
 
   profile: {
     tabs: {
-      overview: "نظرة عامة",
-      bodyComposition: "تركيب الجسم",
+      overview: "ملخص",
+      bodyComposition: "المتابعة",
       nutrition: "التغذية",
-      trainingSplit: "جدول التدريب",
+      trainingSplit: "التمرين",
       progress: "التقدم",
-      subscription: "الاشتراك",
+      subscription: "الباقة",
     },
     overview: {
       aboutTitle: "عن العميل",
@@ -313,8 +313,8 @@ export const ar: Dictionary = {
   },
 
   bodyComposition: {
-    title: "تركيب الجسم",
-    subtitle: "تتبع قياسات InBody",
+    title: "المتابعات",
+    subtitle: "تابع قياسات الـ InBody و شوف التغيير",
     addInBody: "إضافة تحليل InBody",
     newEntry: "إدخال جديد",
     editEntry: "تعديل الإدخال",
@@ -374,7 +374,7 @@ export const ar: Dictionary = {
 
   nutrition: {
     title: "التغذية",
-    subtitle: "إنشاء وإدارة خطط التغذية",
+    subtitle: "خطط الأكل اللي هتغيّر جسم البطل",
     comingSoon: "جارٍ إعادة بناء قسم التغذية الاحترافي — عد قريبًا.",
     templates: "قوالب التغذية",
     templatesSubtitle: "قوالب قابلة لإعادة الاستخدام للأهداف الشائعة",
@@ -488,9 +488,9 @@ export const ar: Dictionary = {
   },
 
   trainingSplit: {
-    title: "جدول التدريب",
-    subtitle: "تصميم جدول التدريب الأسبوعي",
-    newSplit: "جدول تدريب جديد",
+    title: "برامج التمرين",
+    subtitle: "صمّم برنامج يبني عضلات ويحرق دهون",
+    newSplit: "برنامج جديد",
     editSplit: "تعديل جدول التدريب",
     splitName: "اسم الجدول",
     splitType: "نوع الجدول",
@@ -607,8 +607,8 @@ export const ar: Dictionary = {
   },
 
   templates: {
-    title: "قوالب التدريب",
-    subtitle: "إنشاء قوالب تدريب قابلة لإعادة الاستخدام لعملائك",
+    title: "قوالب التمرين",
+    subtitle: "جهّز برامج جاهزة — وفر وقتك وادّي كل بطل اللي يناسبه",
     newTemplate: "قالب جديد",
     newSubtitle: "تصميم قالب تدريب أسبوعي قابل لإعادة الاستخدام",
     editTemplate: "تعديل القالب",
@@ -689,8 +689,8 @@ export const ar: Dictionary = {
   },
 
   progress: {
-    title: "التقدم",
-    subtitle: "مقارنة InBody وتتبع السجلات ومراجعة التقدم",
+    title: "التقدّم",
+    subtitle: "شوف تعب البطل بيتحوّل لنتايج — وزن، قياسات، وقوة",
     summaryTitle: "ملخص التقدم",
     weight: "الوزن",
     measurements: "القياسات",
@@ -761,10 +761,10 @@ export const ar: Dictionary = {
   },
 
   subscription: {
-    title: "الاشتراك",
-    subtitle: "إدارة الاشتراك والجلسات وحالة الدفع",
-    newSubscription: "اشتراك جديد",
-    currentSubscription: "الاشتراك الحالي",
+    title: "باقة الكوتشينج",
+    subtitle: "تابع الباقة والجلسات والدفع",
+    newSubscription: "باقة جديدة",
+    currentSubscription: "الباقة الحالية",
     history: "سجل الاشتراكات",
     planName: "اسم الخطة",
     plan: "الخطة",
@@ -870,9 +870,9 @@ export const ar: Dictionary = {
   },
 
   subscriptionPlans: {
-    title: "خطط الاشتراك",
-    subtitle: "أنشئ خططًا قابلة لإعادة الاستخدام وعيّنها للعملاء",
-    newPlan: "خطة جديدة",
+    title: "باقات الكوتشينج",
+    subtitle: "صمّم باقاتك — بالشهر أو بالجلسات — وابدأ تبيع",
+    newPlan: "باقة جديدة",
     backToList: "العودة للخطط",
     newTitle: "خطة اشتراك جديدة",
     editTitle: "تعديل خطة الاشتراك",
@@ -1225,16 +1225,16 @@ export const ar: Dictionary = {
   },
 
   onboarding: {
-    title: "التسجيل",
-    description: "مرحبًا! لنبدأ عملية التسجيل.",
+    title: "دعوة الأبطال",
+    description: "ابعت دعوة لبطل جديد وخليه يبدأ رحلته معاك 💪",
     generateInvite: {
       button: "إنشاء دعوة",
       error: "فشل إنشاء الدعوة",
       generated: "تم إنشاء الدعوة",
     },
     inviteCard: {
-      title: "إرسال دعوة",
-      description: "أنشئ رابط دعوة وأرسله لعميلك. رابط واحد يعمل لكل العملاء.",
+      title: "ابعت دعوة",
+      description: "رابط واحد ثابت — انسخه وابعته لأي بطل جديد على الواتساب 🔥",
       linkCopied: "تم نسخ الرابط",
       copy: "نسخ الرابط",
       copied: "تم النسخ",

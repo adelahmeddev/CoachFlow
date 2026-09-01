@@ -73,23 +73,34 @@ function QuickActions({ clientId, clientName, t }: { clientId: string; clientNam
   ]
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
       {actions.map((action) => (
-        <Button key={action.href} asChild variant="outline" className="h-auto flex-col gap-2 py-3 text-xs">
-          <Link href={action.href}>
+        <Link
+          key={action.href}
+          href={action.href}
+          className="group flex items-center gap-3 rounded-xl border bg-card px-3 py-3 text-start transition-all duration-200 hover:-translate-y-0.5 hover:shadow-soft hover:border-brand-200 hover:bg-card dark:hover:border-brand-900/30"
+        >
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-brand-500 group-hover:text-white">
             <action.icon className="size-4" />
-            {action.label}
-          </Link>
-        </Button>
+          </span>
+          <span className="min-w-0 flex-1 truncate text-sm font-medium leading-tight">{action.label}</span>
+          <span className="hidden sm:inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground group-hover:bg-brand-500 group-hover:text-white transition-colors">
+            <span aria-hidden="true" className="text-[11px]">→</span>
+          </span>
+        </Link>
       ))}
       <ResetPasswordDialog
         clientId={clientId}
         clientName={clientName}
         trigger={
-          <Button variant="outline" className="h-auto flex-col gap-2 py-3 text-xs">
-            <KeyRound className="size-4" />
-            {t.clients.resetPassword}
-          </Button>
+          <button className="group flex items-center gap-3 rounded-xl border bg-card px-3 py-3 text-start transition-all duration-200 hover:-translate-y-0.5 hover:shadow-soft hover:border-brand-200 w-full">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-foreground group-hover:text-background">
+              <KeyRound className="size-4" />
+            </span>
+            <span className="min-w-0 flex-1 truncate text-sm font-medium text-muted-foreground group-hover:text-foreground">
+              {t.clients.resetPassword}
+            </span>
+          </button>
         }
       />
     </div>

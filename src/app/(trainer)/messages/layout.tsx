@@ -21,12 +21,12 @@ export default async function MessagesLayout({
 
   return (
     <div
-      className={`${barlowCondensed.variable} ${barlow.variable} ${mono.variable} messages-root flex h-[calc(100dvh-64px)] flex-col overflow-hidden rounded-[20px] border border-[var(--msg-mist)] bg-[var(--msg-paper)] md:h-[calc(100dvh-72px)] md:flex-row`}
+      className={`${barlowCondensed.variable} ${barlow.variable} ${mono.variable} flex h-[calc(100dvh-64px)] flex-col overflow-hidden rounded-2xl border bg-card shadow-soft md:h-[calc(100dvh-72px)] md:flex-row`}
     >
-      <div className="hidden w-[360px] shrink-0 flex-col bg-[var(--msg-steel)] md:flex">
+      <div className="hidden w-[360px] shrink-0 flex-col border-e bg-muted/10 md:flex">
         <ConversationList conversations={conversations as any} />
       </div>
-      <div className="flex min-w-0 flex-1 flex-col bg-[var(--msg-paper)]">{children}</div>
+      <div className="flex min-w-0 flex-1 flex-col bg-background">{children}</div>
     </div>
   )
 }

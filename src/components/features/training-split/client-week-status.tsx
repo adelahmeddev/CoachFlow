@@ -12,8 +12,8 @@ import {
 const STATUS_DOT_CLASSES: Record<string, string> = {
   DONE: "bg-emerald-500 text-white",
   MISSED: "bg-rose-500 text-white",
-  TODAY: "bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-soft dark:from-brand-500 dark:to-brand-600",
-  CURRENT: "bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-soft dark:from-brand-500 dark:to-brand-600",
+  TODAY: "bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-soft dark:from-brand-500 dark:to-brand-600",
+  CURRENT: "bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-soft dark:from-brand-500 dark:to-brand-600",
   UPCOMING: "border bg-background text-muted-foreground",
   REST: "bg-muted text-muted-foreground",
 }

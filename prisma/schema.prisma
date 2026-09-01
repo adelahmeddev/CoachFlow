@@ -8,6 +8,547 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                 String          @id @default(cuid())
+  username           String?         @unique
+  phone              String?         @unique
+  email              String?         @unique
+  passwordHash       String
+  role               Role            @default(TRAINER)
+  mustChangePassword Boolean         @default(false)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  clientProfile      Client?
+  messages           Message[]
+  trainerProfile     TrainerProfile?
+
+  @@index([role])
+}
+
+model TrainerProfile {
+  id                          String                  @id @default(cuid())
+  userId                      String                  @unique
+  fullName                    String
+  phone                       String
+  createdAt                   DateTime                @default(now())
+  updatedAt                   DateTime                @updatedAt
+  email                       String?
+  businessName                String?
+  units                       Units                   @default(METRIC)
+  weekStartDay                WeekStartDay            @default(SAT)
+  timezone                    String?
+  notifyReassessment          Boolean                 @default(true)
+  notifyInactivity            Boolean                 @default(true)
+  notifySubscription          Boolean                 @default(true)
+  weeklySummary               Boolean                 @default(false)
+  inviteSlug                  String?                 @unique
+  inviteSlugCreatedAt         DateTime?
+  previousInviteSlug          String?                 @unique
+  previousInviteSlugExpiresAt DateTime?
+  clients                     Client[]
+  conversations               Conversation[]
+  nutritionTemplates          NutritionTemplate[]
+  subscriptionPlans           SubscriptionPlan[]
+  user                        User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  splitTemplates              TrainingSplitTemplate[]
+}
+
+model Client {
+  id                   String                @id @default(cuid())
+  trainerId            String
+  userId               String?               @unique
+  fullName             String?
+  birthDate            DateTime?
+  phone                String?
+  goal                 Goal?
+  status               ClientStatus          @default(INVITED)
+  inviteToken          String?               @unique
+  inviteExpiresAt      DateTime?
+  basicInfoCompletedAt DateTime?
+  passwordHash         String?
+  email                String?
+  neckPain             Boolean               @default(false)
+  shoulderPain         Boolean               @default(false)
+  backPain             Boolean               @default(false)
+  kneePain             Boolean               @default(false)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  bodyCompositions     BodyComposition[]
+  trainer              TrainerProfile        @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  user                 User?                 @relation(fields: [userId], references: [id])
+  clientNutritionPlans ClientNutritionPlan[]
+  conversation         Conversation?
+  dailyLogs            DailyLog[]
+  exerciseLogs         ExerciseLog[]
+  mealChoices          MealChoice[]
+  progressReviews      ProgressReview[]
+  subscriptions        Subscription[]
+  trainingSplits       TrainingSplit[]
+  weeklyCheckIns       WeeklyCheckIn[]
+  workoutLogs          WorkoutLog[]
+
+  @@index([trainerId])
+  @@index([status])
+  @@index([goal])
+}
+
+model NutritionTemplate {
+  id               String                @id @default(cuid())
+  trainerId        String?
+  name             String
+  isGlobal         Boolean               @default(false)
+  calories         Int?
+  proteinGrams     Float?
+  carbsGrams       Float?
+  fatsGrams        Float?
+  waterLiters      Float?
+  coachMessage     String?
+  guidelines       String[]              @default([])
+  avoidFoods       String[]              @default([])
+  recommendedFoods String[]              @default([])
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  plans            ClientNutritionPlan[]
+  meals            Meal[]
+  trainer          TrainerProfile?       @relation(fields: [trainerId], references: [id])
+  substituteGroups SubstituteGroup[]
+  supplementDefs   SupplementDef[]
+
+  @@index([trainerId])
+}
+
+model SupplementDef {
+  id           String               @id @default(cuid())
+  templateId   String?
+  planId       String?
+  name         String
+  nameAr       String?
+  definition   String?
+  definitionAr String?
+  importance   String?
+  importanceAr String?
+  order        Int
+  plan         ClientNutritionPlan? @relation(fields: [planId], references: [id], onDelete: Cascade)
+  template     NutritionTemplate?   @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId])
+  @@index([planId])
+}
+
+model SubstituteGroup {
+  id            String               @id @default(cuid())
+  templateId    String?
+  planId        String?
+  category      SubstituteCategory
+  caloriesLabel String?
+  order         Int
+  plan          ClientNutritionPlan? @relation(fields: [planId], references: [id], onDelete: Cascade)
+  template      NutritionTemplate?   @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  items         SubstituteItem[]
+
+  @@index([templateId])
+  @@index([planId])
+}
+
+model SubstituteItem {
+  id      String          @id @default(cuid())
+  groupId String
+  name    String
+  nameAr  String?
+  amount  Float?
+  unit    QuantityUnit    @default(G)
+  order   Int
+  group   SubstituteGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+}
+
+model ClientNutritionPlan {
+  id               String             @id @default(cuid())
+  clientId         String
+  templateId       String?
+  calories         Int?
+  proteinGrams     Float?
+  carbsGrams       Float?
+  fatsGrams        Float?
+  waterLiters      Float?
+  coachMessage     String?
+  guidelines       String[]           @default([])
+  avoidFoods       String[]           @default([])
+  recommendedFoods String[]           @default([])
+  status           PlanStatus         @default(ACTIVE)
+  startDate        DateTime?
+  endDate          DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  client           Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  template         NutritionTemplate? @relation(fields: [templateId], references: [id])
+  meals            Meal[]
+  substituteGroups SubstituteGroup[]
+  supplementDefs   SupplementDef[]
+
+  @@index([clientId])
+  @@index([status])
+}
+
+model TrainingSplit {
+  id           String             @id @default(cuid())
+  clientId     String
+  splitType    SplitType
+  daysPerWeek  Int
+  scheduleMode ScheduleMode       @default(FIXED_WEEKDAYS)
+  notes        String?
+  status       PlanStatus         @default(ACTIVE)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  client       Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  days         TrainingSplitDay[]
+
+  @@index([clientId])
+  @@index([status])
+}
+
+model TrainingSplitDay {
+  id          String             @id @default(cuid())
+  splitId     String
+  dayNumber   Int
+  focus       TrainingDayFocus
+  customFocus String?
+  weekday     Weekday?
+  notes       String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  exercises   SplitDayExercise[]
+  split       TrainingSplit      @relation(fields: [splitId], references: [id], onDelete: Cascade)
+
+  @@unique([splitId, dayNumber])
+  @@index([splitId])
+}
+
+model Subscription {
+  id                String             @id @default(cuid())
+  clientId          String
+  planId            String?
+  planName          String
+  planType          PlanType           @default(PERIOD)
+  status            SubscriptionStatus @default(ACTIVE)
+  startDate         DateTime?
+  endDate           DateTime?
+  durationDays      Int?
+  sessionsCount     Int?
+  remainingSessions Int?
+  paymentStatus     PaymentStatus      @default(NOT_REQUIRED)
+  autoRenew         Boolean            @default(false)
+  notes             String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  client            Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  plan              SubscriptionPlan?  @relation(fields: [planId], references: [id])
+
+  @@index([clientId])
+  @@index([status])
+}
+
+model SubscriptionPlan {
+  id            String         @id @default(cuid())
+  trainerId     String
+  name          String
+  planType      PlanType
+  sessionsCount Int?
+  durationDays  Int?
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  subscriptions Subscription[]
+  trainer       TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+
+  @@index([trainerId])
+}
+
+model ProgressReview {
+  id                 String    @id @default(cuid())
+  clientId           String
+  reviewDate         DateTime  @default(now())
+  trainerNotes       String?
+  adherencePct       Float?
+  energyLevel        Int?
+  nextAssessmentDate DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  client             Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+}
+
+model WorkoutLog {
+  id           String   @id @default(cuid())
+  clientId     String
+  date         DateTime @default(now())
+  exerciseName String
+  sets         Int?
+  reps         Int?
+  weightKg     Float?
+  rpe          Int?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([date])
+}
+
+model Exercise {
+  id                   String                @id @default(cuid())
+  name                 String                @unique
+  nameAr               String?
+  muscleGroup          String
+  equipment            String?
+  tags                 String[]              @default([])
+  defaultSets          Int?
+  defaultReps          Int?
+  defaultRestSeconds   Int?
+  isGlobal             Boolean               @default(true)
+  youtubeUrl           String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  splitDayExercises    SplitDayExercise[]
+  templateDayExercises TemplateDayExercise[]
+
+  @@index([muscleGroup])
+}
+
+model TrainingSplitTemplate {
+  id          String                     @id @default(cuid())
+  trainerId   String?
+  name        String
+  goal        Goal?
+  level       String?
+  splitType   SplitType
+  daysPerWeek Int
+  description String?
+  isGlobal    Boolean                    @default(false)
+  createdAt   DateTime                   @default(now())
+  updatedAt   DateTime                   @updatedAt
+  trainer     TrainerProfile?            @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  days        TrainingSplitTemplateDay[]
+
+  @@index([trainerId])
+  @@index([isGlobal])
+}
+
+model TrainingSplitTemplateDay {
+  id          String                @id @default(cuid())
+  templateId  String
+  dayNumber   Int
+  focus       TrainingDayFocus
+  customFocus String?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  exercises   TemplateDayExercise[]
+  template    TrainingSplitTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, dayNumber])
+  @@index([templateId])
+}
+
+model TemplateDayExercise {
+  id             String                   @id @default(cuid())
+  templateDayId  String
+  order          Int
+  exerciseId     String?
+  exerciseName   String
+  targetSets     Int?
+  targetReps     Int?
+  targetWeightKg Float?
+  restSeconds    Int?
+  notes          String?
+  videoUrl       String?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  exercise       Exercise?                @relation(fields: [exerciseId], references: [id])
+  templateDay    TrainingSplitTemplateDay @relation(fields: [templateDayId], references: [id], onDelete: Cascade)
+
+  @@index([templateDayId])
+}
+
+model SplitDayExercise {
+  id             String           @id @default(cuid())
+  splitDayId     String
+  order          Int
+  exerciseId     String?
+  exerciseName   String
+  targetSets     Int?
+  targetReps     Int?
+  targetWeightKg Float?
+  restSeconds    Int?
+  notes          String?
+  videoUrl       String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  logs           ExerciseLog[]
+  exercise       Exercise?        @relation(fields: [exerciseId], references: [id])
+  splitDay       TrainingSplitDay @relation(fields: [splitDayId], references: [id], onDelete: Cascade)
+
+  @@index([splitDayId])
+}
+
+model ExerciseLog {
+  id                 String           @id @default(cuid())
+  splitDayExerciseId String
+  clientId           String
+  date               DateTime         @default(now())
+  actualSets         Int?
+  actualReps         Int?
+  actualWeightKg     Float?
+  rpe                Int?
+  notes              String?
+  setData            Json?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  client             Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  splitDayExercise   SplitDayExercise @relation(fields: [splitDayExerciseId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([clientId, date])
+  @@index([date])
+}
+
+model DailyLog {
+  id                 String   @id @default(cuid())
+  clientId           String
+  date               DateTime @db.Date
+  weightKg           Float?
+  sleepHours         Float?
+  waterLiters        Float?
+  energyLevel        Int?
+  moodLevel          Int?
+  nutritionCompliant Boolean?
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  client             Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, date])
+  @@index([clientId])
+  @@index([date])
+}
+
+model Meal {
+  id         String               @id @default(cuid())
+  templateId String?
+  planId     String?
+  kind       MealKind             @default(MEAL)
+  order      Int
+  name       String
+  nameAr     String?
+  plan       ClientNutritionPlan? @relation(fields: [planId], references: [id], onDelete: Cascade)
+  template   NutritionTemplate?   @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  items      MealItem[]
+
+  @@index([templateId])
+  @@index([planId])
+}
+
+model MealItem {
+  id          String       @id @default(cuid())
+  mealId      String
+  groupNumber Int          @default(1)
+  foodName    String
+  foodNameAr  String?
+  amount      Float?
+  unit        QuantityUnit @default(G)
+  calories    Int?
+  order       Int
+  mealChoices MealChoice[]
+  meal        Meal         @relation(fields: [mealId], references: [id], onDelete: Cascade)
+
+  @@index([mealId])
+}
+
+model MealChoice {
+  id         String   @id @default(cuid())
+  clientId   String
+  mealItemId String
+  date       DateTime @db.Date
+  createdAt  DateTime @default(now())
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  mealItem   MealItem @relation(fields: [mealItemId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, mealItemId, date])
+  @@index([clientId, date])
+}
+
+model BodyComposition {
+  id               String                @id @default(cuid())
+  clientId         String
+  date             DateTime              @db.Date
+  source           BodyCompositionSource
+  weightKg         Float?
+  muscleMassKg     Float?
+  bodyFatKg        Float?
+  bodyWaterPct     Float?
+  fatControlKg     Float?
+  bmrKcal          Float?
+  fitnessScore     Int?
+  waistHipRatio    Float?
+  visceralFatLevel Int?
+  notes            String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  client           Client                @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([date])
+}
+
+model WeeklyCheckIn {
+  id        String   @id @default(cuid())
+  clientId  String
+  date      DateTime @db.Date
+  weightKg  Float?
+  photoUrl  String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, date])
+  @@index([clientId])
+}
+
+model Conversation {
+  id                 String         @id @default(cuid())
+  trainerId          String
+  clientId           String         @unique
+  lastMessageAt      DateTime?
+  lastMessagePreview String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  client             Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  trainer            TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  messages           Message[]
+
+  @@unique([trainerId, clientId])
+  @@index([trainerId, lastMessageAt])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  senderId       String
+  senderRole     Role
+  body           String
+  readAt         DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+}
+
 enum Role {
   ADMIN
   TRAINER
@@ -128,612 +669,4 @@ enum QuantityUnit {
 enum MealKind {
   MEAL
   SNACK
-}
-
-model User {
-  id                 String   @id @default(cuid())
-  username           String?  @unique
-  phone              String?  @unique
-  email              String?  @unique
-  passwordHash       String
-  role               Role     @default(TRAINER)
-  mustChangePassword Boolean  @default(false)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  trainerProfile TrainerProfile?
-  clientProfile  Client?
-  messages       Message[]
-
-  @@index([role])
-}
-
-model TrainerProfile {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  fullName  String
-  phone     String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  email              String?
-  businessName       String?
-  units              Units        @default(METRIC)
-  weekStartDay       WeekStartDay @default(SAT)
-  timezone           String?
-  notifyReassessment Boolean      @default(true)
-  notifyInactivity   Boolean      @default(true)
-  notifySubscription Boolean      @default(true)
-  weeklySummary      Boolean      @default(false)
-
-  inviteSlug                   String?   @unique
-  inviteSlugCreatedAt          DateTime?
-  previousInviteSlug           String?   @unique
-  previousInviteSlugExpiresAt  DateTime?
-
-  clients            Client[]
-  nutritionTemplates NutritionTemplate[]
-  splitTemplates     TrainingSplitTemplate[]
-  subscriptionPlans  SubscriptionPlan[]
-  conversations      Conversation[]
-}
-
-model Client {
-  id        String         @id @default(cuid())
-  trainerId String
-  trainer   TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
-
-  userId String? @unique
-  user   User?   @relation(fields: [userId], references: [id])
-
-  fullName  String?
-  birthDate DateTime?
-  phone     String?
-  goal      Goal?
-  status    ClientStatus @default(INVITED)
-
-  inviteToken          String?   @unique
-  inviteExpiresAt      DateTime?
-  basicInfoCompletedAt DateTime?
-
-  passwordHash String?
-  email        String?
-
-  neckPain     Boolean @default(false)
-  shoulderPain Boolean @default(false)
-  backPain     Boolean @default(false)
-  kneePain     Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  dailyLogs            DailyLog[]
-  clientNutritionPlans ClientNutritionPlan[]
-  trainingSplits       TrainingSplit[]
-  subscriptions        Subscription[]
-  progressReviews      ProgressReview[]
-  workoutLogs          WorkoutLog[]
-  exerciseLogs         ExerciseLog[]
-  bodyCompositions     BodyComposition[]
-  mealChoices          MealChoice[]
-  weeklyCheckIns       WeeklyCheckIn[]
-  conversation         Conversation?
-
-  @@index([trainerId])
-  @@index([status])
-  @@index([goal])
-}
-
-model NutritionTemplate {
-  id        String          @id @default(cuid())
-  trainerId String?
-  trainer   TrainerProfile? @relation(fields: [trainerId], references: [id], onDelete: SetNull)
-
-  name     String
-  isGlobal Boolean @default(false)
-
-  calories     Int?
-  proteinGrams Float?
-  carbsGrams   Float?
-  fatsGrams    Float?
-  waterLiters  Float?
-
-  coachMessage     String?
-  guidelines       String[] @default([])
-  avoidFoods       String[] @default([])
-  recommendedFoods String[] @default([])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  supplementDefs   SupplementDef[]
-  substituteGroups SubstituteGroup[]
-  meals            Meal[]
-  plans            ClientNutritionPlan[]
-
-  @@index([trainerId])
-}
-
-model SupplementDef {
-  id         String               @id @default(cuid())
-  templateId String?
-  template   NutritionTemplate?   @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  planId     String?
-  plan       ClientNutritionPlan? @relation(fields: [planId], references: [id], onDelete: Cascade)
-
-  name         String
-  nameAr       String?
-  definition   String?
-  definitionAr String?
-  importance   String?
-  importanceAr String?
-  order        Int
-
-  @@index([templateId])
-  @@index([planId])
-}
-
-model SubstituteGroup {
-  id         String               @id @default(cuid())
-  templateId String?
-  template   NutritionTemplate?   @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  planId     String?
-  plan       ClientNutritionPlan? @relation(fields: [planId], references: [id], onDelete: Cascade)
-
-  category      SubstituteCategory
-  caloriesLabel String?
-  order         Int
-
-  items SubstituteItem[]
-
-  @@index([templateId])
-  @@index([planId])
-}
-
-model SubstituteItem {
-  id      String          @id @default(cuid())
-  groupId String
-  group   SubstituteGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-
-  name   String
-  nameAr String?
-  amount Float?
-  unit   QuantityUnit @default(G)
-  order  Int
-
-  @@index([groupId])
-}
-
-model ClientNutritionPlan {
-  id       String @id @default(cuid())
-  clientId String
-  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-
-  templateId String?
-  template   NutritionTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-
-  calories     Int?
-  proteinGrams Float?
-  carbsGrams   Float?
-  fatsGrams    Float?
-  waterLiters  Float?
-
-  coachMessage     String?
-  guidelines       String[] @default([])
-  avoidFoods       String[] @default([])
-  recommendedFoods String[] @default([])
-
-  status    PlanStatus @default(ACTIVE)
-  startDate DateTime?
-  endDate   DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  supplementDefs   SupplementDef[]
-  substituteGroups SubstituteGroup[]
-  meals            Meal[]
-
-  @@index([clientId])
-  @@index([status])
-}
-
-model TrainingSplit {
-  id       String @id @default(cuid())
-  clientId String
-  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-
-  splitType    SplitType
-  daysPerWeek  Int
-  scheduleMode ScheduleMode @default(FIXED_WEEKDAYS)
-  notes        String?
-  status       PlanStatus   @default(ACTIVE)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  days TrainingSplitDay[]
-
-  @@index([clientId])
-  @@index([status])
-}
-
-model TrainingSplitDay {
-  id      String        @id @default(cuid())
-  splitId String
-  split   TrainingSplit @relation(fields: [splitId], references: [id], onDelete: Cascade)
-
-  dayNumber   Int
-  focus       TrainingDayFocus
-  customFocus String?
-  weekday     Weekday?
-  notes       String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  exercises SplitDayExercise[]
-
-  @@unique([splitId, dayNumber])
-  @@index([splitId])
-}
-
-model Subscription {
-  id       String @id @default(cuid())
-  clientId String
-  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-
-  planId String?
-  plan   SubscriptionPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
-
-  planName          String
-  planType          PlanType           @default(PERIOD)
-  status            SubscriptionStatus @default(ACTIVE)
-  startDate         DateTime?
-  endDate           DateTime?
-  durationDays      Int?
-  sessionsCount     Int?
-  remainingSessions Int?
-  paymentStatus     PaymentStatus      @default(NOT_REQUIRED)
-  autoRenew         Boolean            @default(false)
-  notes             String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([clientId])
-  @@index([status])
-}
-
-model SubscriptionPlan {
-  id        String         @id @default(cuid())
-  trainerId String
-  trainer   TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
-
-  name          String
-  planType      PlanType
-  sessionsCount Int?
-  durationDays  Int?
-  notes         String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  subscriptions Subscription[]
-
-  @@index([trainerId])
-}
-
-model ProgressReview {
-  id       String @id @default(cuid())
-  clientId String
-  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-
-  reviewDate         DateTime  @default(now())
-  trainerNotes       String?
-  adherencePct       Float?
-  energyLevel        Int?
-  nextAssessmentDate DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([clientId])
-}
-
-model WorkoutLog {
-  id       String @id @default(cuid())
-  clientId String
-  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-
-  date         DateTime @default(now())
-  exerciseName String
-  sets         Int?
-  reps         Int?
-  weightKg     Float?
-  rpe          Int?
-  notes        String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([clientId])
-  @@index([date])
-}
-
-model Exercise {
-  id                 String   @id @default(cuid())
-  name               String   @unique
-  nameAr             String?
-  muscleGroup        String
-  equipment          String?
-  tags               String[] @default([])
-  defaultSets        Int?
-  defaultReps        Int?
-  defaultRestSeconds Int?
-  isGlobal           Boolean  @default(true)
-  youtubeUrl         String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  templateDayExercises TemplateDayExercise[]
-  splitDayExercises    SplitDayExercise[]
-
-  @@index([muscleGroup])
-}
-
-model TrainingSplitTemplate {
-  id        String          @id @default(cuid())
-  trainerId String?
-  trainer   TrainerProfile? @relation(fields: [trainerId], references: [id], onDelete: Cascade)
-
-  name        String
-  goal        Goal?
-  level       String?
-  splitType   SplitType
-  daysPerWeek Int
-  description String?
-  isGlobal    Boolean   @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  days TrainingSplitTemplateDay[]
-
-  @@index([trainerId])
-  @@index([isGlobal])
-}
-
-model TrainingSplitTemplateDay {
-  id         String                @id @default(cuid())
-  templateId String
-  template   TrainingSplitTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
-
-  dayNumber   Int
-  focus       TrainingDayFocus
-  customFocus String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  exercises TemplateDayExercise[]
-
-  @@unique([templateId, dayNumber])
-  @@index([templateId])
-}
-
-model TemplateDayExercise {
-  id            String                   @id @default(cuid())
-  templateDayId String
-  templateDay   TrainingSplitTemplateDay @relation(fields: [templateDayId], references: [id], onDelete: Cascade)
-
-  order          Int
-  exerciseId     String?
-  exercise       Exercise? @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
-  exerciseName   String
-  targetSets     Int?
-  targetReps     Int?
-  targetWeightKg Float?
-  restSeconds    Int?
-  notes          String?
-  videoUrl       String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([templateDayId])
-}
-
-model SplitDayExercise {
-  id         String           @id @default(cuid())
-  splitDayId String
-  splitDay   TrainingSplitDay @relation(fields: [splitDayId], references: [id], onDelete: Cascade)
-
-  order          Int
-  exerciseId     String?
-  exercise       Exercise? @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
-  exerciseName   String
-  targetSets     Int?
-  targetReps     Int?
-  targetWeightKg Float?
-  restSeconds    Int?
-  notes          String?
-  videoUrl       String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  logs ExerciseLog[]
-
-  @@index([splitDayId])
-}
-
-model ExerciseLog {
-  id                 String           @id @default(cuid())
-  splitDayExerciseId String
-  splitDayExercise   SplitDayExercise @relation(fields: [splitDayExerciseId], references: [id], onDelete: Cascade)
-  clientId           String
-  client             Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
-
-  date           DateTime @default(now())
-  actualSets     Int?
-  actualReps     Int?
-  actualWeightKg Float?
-  rpe            Int?
-  notes          String?
-  setData        Json?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([clientId])
-  @@index([clientId, date])
-  @@index([date])
-}
-
-model DailyLog {
-  id                 String   @id @default(cuid())
-  clientId           String
-  client             Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  date               DateTime @db.Date
-  weightKg           Float?
-  sleepHours         Float?
-  waterLiters        Float?
-  energyLevel        Int?
-  moodLevel          Int?
-  nutritionCompliant Boolean?
-  notes              String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  @@unique([clientId, date])
-  @@index([clientId])
-  @@index([date])
-}
-
-model Meal {
-  id         String               @id @default(cuid())
-  templateId String?
-  template   NutritionTemplate?   @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  planId     String?
-  plan       ClientNutritionPlan? @relation(fields: [planId], references: [id], onDelete: Cascade)
-
-  kind   MealKind @default(MEAL)
-  order  Int
-  name   String
-  nameAr String?
-
-  items MealItem[]
-
-  @@index([templateId])
-  @@index([planId])
-}
-
-model MealItem {
-  id     String @id @default(cuid())
-  mealId String
-  meal   Meal   @relation(fields: [mealId], references: [id], onDelete: Cascade)
-
-  groupNumber Int          @default(1)
-  foodName    String
-  foodNameAr  String?
-  amount      Float?
-  unit        QuantityUnit @default(G)
-  calories    Int?
-  order       Int
-
-  mealChoices MealChoice[]
-
-  @@index([mealId])
-}
-
-model MealChoice {
-  id         String   @id @default(cuid())
-  clientId   String
-  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  mealItemId String
-  mealItem   MealItem @relation(fields: [mealItemId], references: [id], onDelete: Cascade)
-  date       DateTime @db.Date
-
-  createdAt DateTime @default(now())
-
-  @@unique([clientId, mealItemId, date])
-  @@index([clientId, date])
-}
-
-model BodyComposition {
-  id       String @id @default(cuid())
-  clientId String
-  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-
-  date   DateTime              @db.Date
-  source BodyCompositionSource
-
-  weightKg         Float?
-  muscleMassKg     Float?
-  bodyFatKg        Float?
-  bodyWaterPct     Float?
-  fatControlKg     Float?
-  bmrKcal          Float?
-  fitnessScore     Int?
-  waistHipRatio    Float?
-  visceralFatLevel Int?
-  notes            String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([clientId])
-  @@index([date])
-}
-
-model WeeklyCheckIn {
-  id       String @id @default(cuid())
-  clientId String
-  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-
-  date     DateTime @db.Date
-  weightKg Float?
-  photoUrl String?
-  notes    String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([clientId, date])
-  @@index([clientId])
-}
-
-model Conversation {
-  id                 String         @id @default(cuid())
-  trainerId          String
-  trainer            TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
-  clientId           String         @unique
-  client             Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  lastMessageAt      DateTime?
-  lastMessagePreview String?
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
-  messages           Message[]
-
-  @@unique([trainerId, clientId])
-  @@index([trainerId, lastMessageAt])
-}
-
-model Message {
-  id             String       @id @default(cuid())
-  conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  senderId       String
-  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  senderRole     Role
-  body           String       @db.Text
-  readAt         DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  @@index([conversationId, createdAt])
-  @@index([senderId])
 }

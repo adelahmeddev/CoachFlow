@@ -5,17 +5,16 @@ import {
   Settings,
   UserPlus,
   Users,
-  UtensilsCrossed,
   CreditCard,
   UserCog,
   ShieldCheck,
-  CalendarRange,
   Dumbbell,
-  BarChart3,
   Apple,
   UserRound,
   CalendarDays,
   MessageCircle,
+  Crown,
+  Flame,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
@@ -26,23 +25,23 @@ export type NavItem = {
 }
 
 export const TRAINER_NAV_ITEMS: NavItem[] = [
-  { titleKey: "nav.dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { titleKey: "nav.dashboard", href: "/dashboard", icon: Flame },
   { titleKey: "nav.clients", href: "/clients", icon: Users },
   { titleKey: "nav.onboarding", href: "/onboarding", icon: UserPlus },
   {
     titleKey: "nav.trainingSplitTemplates",
     href: "/training-split-templates",
-    icon: CalendarRange,
+    icon: Dumbbell,
   },
   {
     titleKey: "nav.nutritionTemplates",
     href: "/nutrition-templates",
-    icon: UtensilsCrossed,
+    icon: Apple,
   },
   {
     titleKey: "nav.subscriptionPlans",
     href: "/subscription-plans",
-    icon: CreditCard,
+    icon: Crown,
   },
   { titleKey: "nav.messages", href: "/messages", icon: MessageCircle },
   { titleKey: "nav.settings", href: "/settings", icon: Settings },

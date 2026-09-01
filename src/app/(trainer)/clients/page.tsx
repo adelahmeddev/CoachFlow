@@ -4,10 +4,9 @@ import { getTrainerClients } from "@/server/services/client.service"
 import { clientsListQuerySchema } from "@/lib/validations/client"
 import { ClientsPageHeader } from "@/components/features/clients/clients-page-header"
 import { ClientsFilters } from "@/components/features/clients/clients-filters"
-import { ClientsTable } from "@/components/features/clients/clients-table"
+import { ClientsGrid } from "@/components/features/clients/clients-grid"
 import { ClientsPagination } from "@/components/features/clients/clients-pagination"
 import { ClientsEmptyState } from "@/components/features/clients/clients-empty-state"
-import { Card, CardContent } from "@/components/ui/card"
 import { getI18n } from "@/lib/i18n"
 import type { Metadata } from "next"
 
@@ -60,17 +59,13 @@ export default async function ClientsPage({
         <ClientsFilters />
       </Suspense>
 
-      <Card className="overflow-hidden border bg-card shadow-soft">
-        <CardContent className="p-0">
-          {showNoClients ? (
-            <ClientsEmptyState variant="no-clients" />
-          ) : showNoResults ? (
-            <ClientsEmptyState variant="no-results" />
-          ) : (
-            <ClientsTable clients={result.clients} />
-          )}
-        </CardContent>
-      </Card>
+      {showNoClients ? (
+        <ClientsEmptyState variant="no-clients" />
+      ) : showNoResults ? (
+        <ClientsEmptyState variant="no-results" />
+      ) : (
+        <ClientsGrid clients={result.clients} />
+      )}
 
       <Suspense fallback={null}>
         <ClientsPagination page={result.page} totalPages={result.totalPages} />

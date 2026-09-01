@@ -10,7 +10,7 @@ const globalForPg = globalThis as unknown as {
 let _pool: Pool | null = null
 
 function createPool(): Pool {
-  const connectionString = process.env.DATABASE_URL
+  let connectionString = process.env.DATABASE_URL
   if (!connectionString) {
     if (process.env.NODE_ENV === "production") {
       throw new Error("DATABASE_URL is not set")
@@ -18,16 +18,25 @@ function createPool(): Pool {
     return new Pool()
   }
 
+  // Silence pg-connection-string v3 warning: add uselibpqcompat to keep current sslmode=require behavior
+  // Without it, 'require' will become 'verify-full' in next major and may break Neon pooler
+  if (connectionString.includes("sslmode=require") && !connectionString.includes("uselibpqcompat")) {
+    const sep = connectionString.includes("?") ? "&" : "?"
+    connectionString = `${connectionString}${sep}uselibpqcompat=true`
+  }
+
   const isServerless = process.env.VERCEL === "1" || process.env.AWS_LAMBDA_FUNCTION_NAME
 
   return new Pool({
     connectionString,
-    max: isServerless ? 1 : 10,
-    idleTimeoutMillis: isServerless ? 5_000 : 10_000,
-    connectionTimeoutMillis: isServerless ? 10_000 : 2_000,
-    keepAlive: !isServerless,
-    statement_timeout: 10_000,
+    max: isServerless ? 5 : 10,
+    idleTimeoutMillis: isServerless ? 10_000 : 30_000,
+    connectionTimeoutMillis: isServerless ? 15_000 : 10_000,
+    keepAlive: true,
+    statement_timeout: 15_000,
+    // query_timeout is not a standard pg Pool option; use statement_timeout only
     ssl: isServerless ? { rejectUnauthorized: false } : undefined,
+    // Neon serverless: keepAlive + longer timeouts avoids "Connection terminated"
   })
 }
 
@@ -37,6 +46,14 @@ function getPool(): Pool {
     if (process.env.NODE_ENV !== "production") {
       globalForPg.pgPool = _pool
     }
+    // Prevent "Connection terminated unexpectedly" from crashing process
+    // Neon serverless often terminates idle connections
+    _pool.on("error", (err) => {
+      console.error("[pg] pool error (idle client)", err)
+    })
+    _pool.on("connect", () => {
+      // optional: set session params if needed
+    })
   }
   return _pool
 }
@@ -49,18 +66,46 @@ export const pool = new Proxy({} as Pool, {
   },
 })
 
+function isTransientDbError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false
+  const msg = ((err as { message?: string }).message ?? "").toLowerCase()
+  const code = (err as { code?: string }).code ?? ""
+  return (
+    msg.includes("timeout exceeded") ||
+    msg.includes("connection terminated") ||
+    msg.includes("connection timeout") ||
+    msg.includes("terminated unexpectedly") ||
+    code === "ETIMEDOUT" ||
+    code === "ECONNRESET" ||
+    code === "57P01" // admin shutdown
+  )
+}
+
+async function withDbRetry<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn()
+  } catch (err) {
+    if (isTransientDbError(err)) {
+      console.warn("[db] transient error, retrying once", (err as Error).message)
+      await new Promise((r) => setTimeout(r, 500))
+      return fn()
+    }
+    throw err
+  }
+}
+
 export async function query<T extends QueryResultRow = QueryResultRow>(
   text: string,
   params?: unknown[]
 ): Promise<QueryResult<T>> {
-  return pool.query<T>(text, params as unknown[])
+  return withDbRetry(() => pool.query<T>(text, params as unknown[]))
 }
 
 export async function queryOne<T extends QueryResultRow = QueryResultRow>(
   text: string,
   params?: unknown[]
 ): Promise<T | null> {
-  const res = await pool.query<T>(text, params as unknown[])
+  const res = await withDbRetry(() => pool.query<T>(text, params as unknown[]))
   return (res.rows[0] as T) ?? null
 }
 
@@ -68,12 +113,12 @@ export async function queryMany<T extends QueryResultRow = QueryResultRow>(
   text: string,
   params?: unknown[]
 ): Promise<T[]> {
-  const res = await pool.query<T>(text, params as unknown[])
+  const res = await withDbRetry(() => pool.query<T>(text, params as unknown[]))
   return res.rows as T[]
 }
 
 export async function execute(text: string, params?: unknown[]): Promise<number> {
-  const res = await pool.query(text, params as unknown[])
+  const res = await withDbRetry(() => pool.query(text, params as unknown[]))
   return res.rowCount ?? 0
 }
 

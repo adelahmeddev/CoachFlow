@@ -7,6 +7,7 @@ import {
   joinClientSchema,
 } from "@/lib/validations/invite"
 import { hashPassword } from "@/lib/auth"
+import { invalidateDashboard } from "@/lib/cache"
 
 const DEFAULT_INVITE_EXPIRY_DAYS = 7
 
@@ -63,6 +64,7 @@ export async function createClientInvite(
        VALUES ($1, $2, $3, $4, $5::"ClientStatus", $6, $6) RETURNING *`,
       [id, trainerProfileId, inviteToken, inviteExpiresAt, ClientStatus.INVITED, now]
     )
+    invalidateDashboard(trainerProfileId)
     return res.rows[0]
   } catch (error) {
     if (isForeignKeyViolation(error)) {
@@ -248,6 +250,7 @@ export async function submitJoinClient(
       )
       return res.rows[0] as { id: string }
     })
+    invalidateDashboard(trainer.trainerProfileId)
     return { ok: true, clientId: client.id }
   } catch (error) {
     if (isUniqueViolation(error)) {

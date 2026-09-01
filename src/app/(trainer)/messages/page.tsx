@@ -14,24 +14,18 @@ export default async function MessagesPage() {
   return (
     <>
       {/* Mobile list */}
-      <div className="flex h-full flex-col bg-[var(--msg-steel)] md:hidden">
+      <div className="flex h-full flex-col bg-card md:hidden">
         <ConversationList conversations={conversations as any} />
       </div>
       {/* Desktop placeholder */}
-      <div className="hidden flex-1 flex-col items-center justify-center gap-6 p-8 text-center md:flex">
-        <div className="relative size-14 flex-shrink-0">
-          <div className="relative size-14 rounded-full border-2 border-[var(--msg-orange)] bg-[var(--msg-steel)]">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <MessageSquare className="size-7 text-[var(--msg-orange)]" aria-hidden="true" />
-            </div>
-          </div>
-          <div className="absolute -bottom-2 -right-2 flex size-6 items-center justify-center rounded-full border-2 border-[var(--msg-orange)] bg-[var(--msg-orange)]">
-            <div className="size-3 rounded-full bg-white" />
-          </div>
+      <div className="hidden flex-1 flex-col items-center justify-center gap-4 p-8 text-center md:flex">
+        <div className="flex size-16 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-600">
+          <MessageSquare className="size-8" aria-hidden="true" />
         </div>
         <div>
-          <h2 className="font-[var(--font-barlow-condensed)] text-lg tracking-wide text-[var(--msg-text-on-steel)]">{t.client.messages.selectConversation}</h2>
-          <p className="mt-1 font-[var(--font-barlow)] text-sm text-[var(--msg-text-muted)]">{t.client.messages.selectConversationDesc}</p>
+          <h2 className="text-base font-bold tracking-tight">{t.client.messages.selectConversation}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t.client.messages.selectConversationDesc}</p>
+          <p className="mt-2 text-xs text-muted-foreground">اختر بطل من القائمة وابدأ المحادثة 💬</p>
         </div>
       </div>
     </>

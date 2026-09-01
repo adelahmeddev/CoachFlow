@@ -10,7 +10,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "border-transparent bg-gradient-to-r from-brand-600 to-brand-700 text-white font-semibold shadow-soft hover:from-brand-500 hover:to-brand-600 hover:shadow-brand-500/25 dark:from-brand-500 dark:to-brand-600 dark:hover:from-brand-400 dark:hover:to-brand-500",
+          "border-transparent bg-gradient-to-r from-brand-500 to-brand-600 text-white font-semibold shadow-soft hover:from-brand-400 hover:to-brand-500 hover:shadow-brand-500/25 dark:from-brand-500 dark:to-brand-600 dark:hover:from-brand-400 dark:hover:to-brand-500",
         outline:
           "border bg-card text-foreground shadow-soft hover:bg-accent hover:text-accent-foreground aria-expanded:bg-accent aria-expanded:text-accent-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:

@@ -11,11 +11,16 @@ export async function GET() {
 
   const role = session.user.role
   let count = 0
-  if (role === "TRAINER") {
-    const trainerId = session.user.trainerProfileId
-    if (trainerId) count = await countUnreadForTrainer(trainerId)
-  } else if (role === "CLIENT") {
-    count = await countUnreadForClient(session.user.id)
+  try {
+    if (role === "TRAINER") {
+      const trainerId = session.user.trainerProfileId
+      if (trainerId) count = await countUnreadForTrainer(trainerId)
+    } else if (role === "CLIENT") {
+      count = await countUnreadForClient(session.user.id)
+    }
+  } catch (err) {
+    console.error("[unread-count] failed, returning 0", err)
+    count = 0
   }
 
   // Browser cache 5s + server in-memory 10s (see message.service) => polling every 30s

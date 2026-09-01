@@ -320,34 +320,41 @@ export async function countUnreadForTrainer(trainerId: string) {
   const cached = unreadTrainerCache.get(trainerId)
   if (cached && cached.expires > Date.now()) return cached.count
 
-  // Single query with sub-select: 1 round-trip instead of 2, no placeholder explosion
-  // Previously: SELECT ids (1) + SELECT COUNT WHERE IN (...) (2) = 2 R/Os + IN list build
-  const res = await pool.query(
-    `SELECT COUNT(*)::int AS count FROM "Message"
-     WHERE "conversationId" IN (SELECT "id" FROM "Conversation" WHERE "trainerId" = $1)
-       AND "senderRole" = $2::"Role" AND "readAt" IS NULL`,
-    [trainerId, "CLIENT"]
-  )
-  const count = (res.rows[0] as { count: number }).count
-  unreadTrainerCache.set(trainerId, { count, expires: Date.now() + UNREAD_TTL_MS })
-  return count
+  try {
+    const res = await pool.query(
+      `SELECT COUNT(*)::int AS count FROM "Message"
+       WHERE "conversationId" IN (SELECT "id" FROM "Conversation" WHERE "trainerId" = $1)
+         AND "senderRole" = $2::"Role" AND "readAt" IS NULL`,
+      [trainerId, "CLIENT"]
+    )
+    const count = (res.rows[0] as { count: number }).count
+    unreadTrainerCache.set(trainerId, { count, expires: Date.now() + UNREAD_TTL_MS })
+    return count
+  } catch (err) {
+    console.error("[countUnreadForTrainer] failed", err)
+    return cached?.count ?? 0
+  }
 }
 
 export async function countUnreadForClient(userId: string) {
   const cached = unreadClientCache.get(userId)
   if (cached && cached.expires > Date.now()) return cached.count
 
-  // Single JOIN: was 3 queries (Client -> Conversation -> COUNT), now 1
-  const res = await pool.query(
-    `SELECT COUNT(*)::int AS count FROM "Message" m
-     JOIN "Conversation" c ON m."conversationId" = c."id"
-     JOIN "Client" cl ON c."clientId" = cl."id"
-     WHERE cl."userId" = $1 AND m."senderRole" = $2::"Role" AND m."readAt" IS NULL`,
-    [userId, "TRAINER"]
-  )
-  const count = (res.rows[0] as { count: number }).count
-  unreadClientCache.set(userId, { count, expires: Date.now() + UNREAD_TTL_MS })
-  return count
+  try {
+    const res = await pool.query(
+      `SELECT COUNT(*)::int AS count FROM "Message" m
+       JOIN "Conversation" c ON m."conversationId" = c."id"
+       JOIN "Client" cl ON c."clientId" = cl."id"
+       WHERE cl."userId" = $1 AND m."senderRole" = $2::"Role" AND m."readAt" IS NULL`,
+      [userId, "TRAINER"]
+    )
+    const count = (res.rows[0] as { count: number }).count
+    unreadClientCache.set(userId, { count, expires: Date.now() + UNREAD_TTL_MS })
+    return count
+  } catch (err) {
+    console.error("[countUnreadForClient] failed", err)
+    return cached?.count ?? 0
+  }
 }
 
 // Call after marking read or sending message to bust cache immediately

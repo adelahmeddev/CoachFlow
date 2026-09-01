@@ -9,61 +9,82 @@ export async function getDashboardData(trainerProfileId: string) {
       const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000)
       const sixtyDaysAgo = new Date(now - 60 * 24 * 60 * 60 * 1000)
 
-      const [
-        totalClientsRes,
-        pendingAssessmentRes,
-        activeClientsRes,
-        recentlyAddedRes,
-        prevPeriodAddedRes,
-        prevPendingAssessmentRes,
-        prevActiveClientsRes,
-        recentClientsRes,
-      ] = await Promise.all([
-        pool.query<{ count: number }>(`SELECT COUNT(*)::int AS count FROM "Client" WHERE "trainerId" = $1`, [
-          trainerProfileId,
-        ]),
-        pool.query<{ count: number }>(
-          `SELECT COUNT(*)::int AS count FROM "Client" WHERE "trainerId" = $1 AND "status" = $2::"ClientStatus"`,
-          [trainerProfileId, ClientStatus.PENDING_ASSESSMENT]
-        ),
-        pool.query<{ count: number }>(
-          `SELECT COUNT(*)::int AS count FROM "Client" WHERE "trainerId" = $1 AND "status" = $2::"ClientStatus"`,
-          [trainerProfileId, ClientStatus.ACTIVE]
-        ),
-        pool.query<{ count: number }>(
-          `SELECT COUNT(*)::int AS count FROM "Client" WHERE "trainerId" = $1 AND "createdAt" >= $2::timestamptz`,
-          [trainerProfileId, thirtyDaysAgo]
-        ),
-        pool.query<{ count: number }>(
-          `SELECT COUNT(*)::int AS count FROM "Client" WHERE "trainerId" = $1 AND "createdAt" >= $2::timestamptz AND "createdAt" < $3::timestamptz`,
-          [trainerProfileId, sixtyDaysAgo, thirtyDaysAgo]
-        ),
-        pool.query<{ count: number }>(
-          `SELECT COUNT(*)::int AS count FROM "Client" WHERE "trainerId" = $1 AND "status" = $2::"ClientStatus" AND "createdAt" < $3::timestamptz`,
-          [trainerProfileId, ClientStatus.PENDING_ASSESSMENT, thirtyDaysAgo]
-        ),
-        pool.query<{ count: number }>(
-          `SELECT COUNT(*)::int AS count FROM "Client" WHERE "trainerId" = $1 AND "status" = $2::"ClientStatus" AND "createdAt" < $3::timestamptz`,
-          [trainerProfileId, ClientStatus.ACTIVE, thirtyDaysAgo]
-        ),
-        pool.query(
-          `SELECT "id", "fullName", "phone", "goal", "status", "createdAt"
-           FROM "Client"
-           WHERE "trainerId" = $1
-           ORDER BY "createdAt" DESC
-           LIMIT 5`,
-          [trainerProfileId]
-        ),
-      ])
+      // Reduced from 8 parallel queries to 2 to avoid pool exhaustion / Neon "Connection terminated"
+      // Single aggregated stats query + recent clients
+      const statsQuery = `
+        SELECT
+          COUNT(*)::int AS "totalClients",
+          COUNT(*) FILTER (WHERE "status" = $4::"ClientStatus")::int AS "pendingAssessment",
+          COUNT(*) FILTER (WHERE "status" = $5::"ClientStatus")::int AS "activeClients",
+          COUNT(*) FILTER (WHERE "createdAt" >= $2::timestamptz)::int AS "recentlyAdded",
+          COUNT(*) FILTER (WHERE "createdAt" >= $3::timestamptz AND "createdAt" < $2::timestamptz)::int AS "prevPeriodAdded",
+          COUNT(*) FILTER (WHERE "status" = $4::"ClientStatus" AND "createdAt" < $2::timestamptz)::int AS "prevPendingAssessment",
+          COUNT(*) FILTER (WHERE "status" = $5::"ClientStatus" AND "createdAt" < $2::timestamptz)::int AS "prevActiveClients"
+        FROM "Client"
+        WHERE "trainerId" = $1
+      `
+      const recentQuery = `
+        SELECT "id", "fullName", "phone", "goal", "status", "createdAt"
+        FROM "Client"
+        WHERE "trainerId" = $1
+        ORDER BY "createdAt" DESC
+        LIMIT 5
+      `
 
-      const totalClients = (totalClientsRes.rows[0] as { count: number }).count
-      const pendingAssessment = (pendingAssessmentRes.rows[0] as { count: number }).count
-      const activeClients = (activeClientsRes.rows[0] as { count: number }).count
-      const recentlyAdded = (recentlyAddedRes.rows[0] as { count: number }).count
-      const prevPeriodAdded = (prevPeriodAddedRes.rows[0] as { count: number }).count
-      const prevPendingAssessment = (prevPendingAssessmentRes.rows[0] as { count: number }).count
-      const prevActiveClients = (prevActiveClientsRes.rows[0] as { count: number }).count
-      const recentClients = recentClientsRes.rows as {
+      let statsRow: {
+        totalClients: number
+        pendingAssessment: number
+        activeClients: number
+        recentlyAdded: number
+        prevPeriodAdded: number
+        prevPendingAssessment: number
+        prevActiveClients: number
+      } | null = null
+      let recentClientsRes: { rows: unknown[] } | null = null
+
+      try {
+        const [statsRes, recentRes] = await Promise.all([
+          pool.query(statsQuery, [
+            trainerProfileId,
+            thirtyDaysAgo,
+            sixtyDaysAgo,
+            ClientStatus.PENDING_ASSESSMENT,
+            ClientStatus.ACTIVE,
+          ]),
+          pool.query(recentQuery, [trainerProfileId]),
+        ])
+        statsRow = statsRes.rows[0] as typeof statsRow
+        recentClientsRes = recentRes
+      } catch (err) {
+        // Fallback: log and return degraded data instead of crashing DashboardPage
+        console.error("[dashboard] query failed, returning fallback", err)
+        // Try single recent query at least, if stats fails
+        try {
+          if (!recentClientsRes) {
+            const fallbackRecent = await pool.query(recentQuery, [trainerProfileId])
+            recentClientsRes = fallbackRecent
+          }
+        } catch {}
+        statsRow = statsRow ?? {
+          totalClients: 0,
+          pendingAssessment: 0,
+          activeClients: 0,
+          recentlyAdded: 0,
+          prevPeriodAdded: 0,
+          prevPendingAssessment: 0,
+          prevActiveClients: 0,
+        }
+        recentClientsRes = recentClientsRes ?? { rows: [] as unknown[] }
+      }
+
+      const totalClients = statsRow!.totalClients
+      const pendingAssessment = statsRow!.pendingAssessment
+      const activeClients = statsRow!.activeClients
+      const recentlyAdded = statsRow!.recentlyAdded
+      const prevPeriodAdded = statsRow!.prevPeriodAdded
+      const prevPendingAssessment = statsRow!.prevPendingAssessment
+      const prevActiveClients = statsRow!.prevActiveClients
+      const recentClients = (recentClientsRes!.rows as unknown) as {
         id: string
         fullName: string | null
         phone: string | null

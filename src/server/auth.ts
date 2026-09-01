@@ -1,6 +1,7 @@
 import type { NextAuthOptions } from "next-auth";
 import { getServerSession } from "next-auth";
 import { cache } from "react";
+import { updateTag } from "next/cache";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { pool, generateId } from "@/lib/db";
 import { comparePassword } from "@/lib/auth";
@@ -204,6 +205,8 @@ export const authOptions: NextAuthOptions = {
                 [id, user.id, fullName, phone]
               );
               profile = createdRes.rows[0] as { id: string };
+              // Clear any stale dashboard cache that may have been cached with no trainer profile
+              try { updateTag(`trainer:${profile.id}:dashboard`); } catch {}
             } catch {
               // If creation fails due to race, re-fetch
               const retryRes = await pool.query(
@@ -245,7 +248,7 @@ export const authOptions: NextAuthOptions = {
         token.name = (user as any).name;
         token.role = user.role;
         token.mustChangePassword = (user as any).mustChangePassword ?? false;
-        token.trainerProfileId = (user as any).trainerProfileId;
+         token.trainerProfileId = (user as any).trainerProfileId;
         token.clientProfileId = (user as any).clientProfileId;
       }
       // Refresh display name from profile (cached 60s) so renames are picked up
@@ -325,6 +328,7 @@ export const authOptions: NextAuthOptions = {
                         );
                         const created = createdRes.rows[0] as { id: string };
                         token.trainerProfileId = created.id;
+                        try { updateTag(`trainer:${created.id}:dashboard`); } catch {}
                       } catch {
                         const retryRes = await pool.query(
                           `SELECT "id" FROM "TrainerProfile" WHERE "userId"=$1 LIMIT 1`,

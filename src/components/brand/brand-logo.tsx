@@ -1,6 +1,9 @@
 "use client"
 
 import Image from "next/image"
+import { useEffect, useState } from "react"
+import { useTheme } from "next-themes"
+import { cn } from "@/lib/utils"
 
 type Variant = "full" | "mark"
 
@@ -12,21 +15,42 @@ interface BrandLogoProps {
   variant?: Variant
   priority?: boolean
   quality?: number
+  /** Render the gradient "NANOUSH" wordmark next to the image */
+  showWordmark?: boolean
 }
 
 const RATIOS = {
-  full: 520 / 304, // 1.71 from actual 520x304
+  full: 520 / 304, // 1.71
   mark: 256 / 166, // 1.54
 }
 
 const SIZES = {
-  full: { height: 80, width: 137 }, // 80*1.71=137 preserves ratio
-  mark: { height: 32, width: 49 }, // 32*1.54=49
+  full: { height: 80, width: 137 },
+  mark: { height: 32, width: 49 },
 }
 
 const FILES = {
   full: { dark: "/brand/logo-on-dark.png", light: "/brand/logo-on-light.png" },
   mark: { dark: "/brand/logo-mark-dark.png", light: "/brand/logo-mark-light.png" },
+}
+
+/**
+ * Gradient wordmark — used as graceful fallback when the image fails to load,
+ * and alongside the mark when showWordmark is set.
+ */
+function Wordmark({ fontSize, className }: { fontSize: number; className?: string }) {
+  return (
+    <span
+      dir="ltr"
+      className={cn(
+        "select-none bg-gradient-to-r from-brand-600 to-energy-500 bg-clip-text font-extrabold tracking-tight text-transparent dark:from-brand-400 dark:to-energy-400",
+        className
+      )}
+      style={{ fontSize }}
+    >
+      NANOUSH
+    </span>
+  )
 }
 
 export function BrandLogo({
@@ -37,7 +61,16 @@ export function BrandLogo({
   variant = "full",
   priority = false,
   quality = 95,
+  showWordmark = false,
 }: BrandLogoProps) {
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const defaults = SIZES[variant]
   const ratio = RATIOS[variant]
   let h = height ?? defaults.height
@@ -48,47 +81,70 @@ export function BrandLogo({
     w = Math.round(h * ratio)
   } else if (width !== undefined && height === undefined) {
     h = Math.round(w / ratio)
-  } else if (height === undefined && width === undefined) {
-    // use defaults already
   }
-  // if both given but ratio mismatched, respect caller's explicit size but ensure contain
-  const { dark, light } = FILES[variant]
 
-  // Use next/image for optimization; keep two images for light/dark but only one visible
-  // Browser will still download both (hidden via display:none), but next/image + sharp serves WebP ~15-25k vs 170k
-  // For true single-download, picture+media would be needed — kept simple for next-themes class toggle.
+  const sizesAttr =
+    variant === "mark"
+      ? "(max-width: 768px) 48px, 72px"
+      : "(max-width: 640px) 150px, 190px"
+
+  // Before mount: themed placeholder with exact dimensions → zero layout shift,
+  // zero wrong-theme flash. Only ONE image is ever downloaded (theme-aware).
+  if (!mounted) {
+    return (
+      <span
+        aria-hidden="true"
+        className={cn("inline-flex shrink-0 items-center", className)}
+        style={{ gap: 10 }}
+      >
+        <span
+          className={cn(
+            "inline-block rounded-lg bg-brand-500/10 dark:bg-brand-500/15",
+            !priority && "animate-pulse"
+          )}
+          style={{ width: w, height: h }}
+        />
+        {showWordmark && <Wordmark fontSize={Math.max(14, h * 0.42)} />}
+      </span>
+    )
+  }
+
+  // Graceful fallback if the image can't load (missing file, offline, blocked).
+  if (error) {
+    return (
+      <span
+        className={cn("inline-flex shrink-0 items-center justify-center", className)}
+        style={{ width: w, height: h }}
+      >
+        <Wordmark fontSize={Math.max(12, h * 0.32)} />
+      </span>
+    )
+  }
+
+  const src = resolvedTheme === "dark" ? FILES[variant].dark : FILES[variant].light
+
   return (
-    <span className={`inline-flex shrink-0 items-center justify-center ${className}`} aria-hidden={alt ? undefined : true}>
-      {/* dark */}
+    <span
+      className={cn("inline-flex shrink-0 items-center", className)}
+      style={{ gap: 10 }}
+      aria-hidden={alt ? undefined : true}
+    >
       <Image
-        src={dark}
+        src={src}
         alt={alt}
         height={h}
         width={w}
-        className="hidden dark:block h-auto w-auto max-w-full object-contain"
+        className="h-auto w-auto max-w-full object-contain transition-opacity duration-300"
         priority={priority}
         loading={priority ? "eager" : undefined}
         fetchPriority={priority ? "high" : undefined}
         decoding="async"
         quality={quality}
-        sizes={variant === "mark" ? "(max-width: 768px) 44px, 64px" : "(max-width: 640px) 140px, 180px"}
-        style={{ height: h, width: w, imageRendering: "auto" as const }}
+        sizes={sizesAttr}
+        style={{ height: h, width: w }}
+        onError={() => setError(true)}
       />
-      {/* light */}
-      <Image
-        src={light}
-        alt={alt}
-        height={h}
-        width={w}
-        className="block dark:hidden h-auto w-auto max-w-full object-contain"
-        priority={priority}
-        loading={priority ? "eager" : undefined}
-        fetchPriority={priority ? "high" : undefined}
-        decoding="async"
-        quality={quality}
-        sizes={variant === "mark" ? "(max-width: 768px) 44px, 64px" : "(max-width: 640px) 140px, 180px"}
-        style={{ height: h, width: w, imageRendering: "auto" as const }}
-      />
+      {showWordmark && <Wordmark fontSize={Math.max(14, h * 0.42)} />}
     </span>
   )
 }

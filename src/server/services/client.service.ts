@@ -4,6 +4,7 @@ import {
   clientCreateSchema,
   type ClientCreateInput,
 } from "@/lib/validations/client"
+import { invalidateDashboard } from "@/lib/cache"
 
 export async function createClientManually(
   trainerProfileId: string,
@@ -47,6 +48,7 @@ export async function createClientManually(
         now,
       ]
     )
+    invalidateDashboard(trainerProfileId)
     return { ok: true as const, clientId: res.rows[0].id as string }
   } catch (error) {
     if (

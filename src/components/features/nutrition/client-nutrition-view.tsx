@@ -118,31 +118,35 @@ export function ClientNutritionView({
 
   return (
     <div className="space-y-6">
-      {/* Coach message */}
+      {/* Coach message — hero */}
       {plan.coachMessage ? (
-        <Card className="border-primary/30 bg-primary/5">
-          <CardHeader>
-            <CardTitle className="text-base">{n.coachMessage}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className={`whitespace-pre-wrap text-sm leading-relaxed ${isAr ? "font-[var(--font-arabic)]" : ""}`}>
+        <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-brand-500/[0.07] via-energy-500/[0.03] to-transparent p-5 shadow-soft">
+          <div className="absolute -right-8 -top-8 size-24 rounded-full bg-gradient-to-br from-brand-500/15 to-energy-500/10 blur-xl" aria-hidden="true" />
+          <div className="relative">
+            <div className="flex items-center gap-2 text-sm font-bold">
+              <span className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-energy-500 text-white shadow-soft">
+                <Sparkles className="size-4" />
+              </span>
+              {n.coachMessage}
+            </div>
+            <p className={`mt-3 whitespace-pre-wrap text-sm leading-relaxed ${isAr ? "font-[var(--font-arabic)]" : ""}`}>
               {plan.coachMessage}
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : null}
 
       {/* 1 Supplements Definitions */}
-      <Card>
-        <CardHeader className="flex-row items-center gap-3 space-y-0">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-500/10 text-brand-600 dark:text-brand-400">
+      <Card className="overflow-hidden rounded-2xl shadow-soft border">
+        <CardHeader className="flex-row items-center gap-3 space-y-0 border-b bg-muted/20">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-performance-500 to-performance-600 text-white shadow-soft">
             <Pill className="size-5" />
           </span>
           <div className="min-w-0 flex-1">
             <CardTitle className="text-base">{n.supplementsDefinitions}</CardTitle>
           </div>
           {plan.supplementDefs.length > 0 ? (
-            <Badge variant="secondary" className="tabular-nums">
+            <Badge variant="secondary" className="tabular-nums rounded-full">
               {plan.supplementDefs.length}
             </Badge>
           ) : null}
@@ -182,7 +186,7 @@ export function ClientNutritionView({
                     className={cn(
                       "flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-semibold tabular-nums",
                       isOpen
-                        ? "bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-soft dark:from-brand-500 dark:to-brand-600"
+                        ? "bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-soft dark:from-brand-500 dark:to-brand-600"
                         : "bg-muted text-muted-foreground"
                     )}
                   >
@@ -244,13 +248,18 @@ export function ClientNutritionView({
       {plan.meals.map((meal, mealIndex) => {
         const counts = groupsByMeal[mealIndex]
         const mealName = isAr && meal.nameAr ? meal.nameAr : meal.name
+        const isSnack = meal.kind === "SNACK"
         return (
-          <Card key={meal.id}>
-            <CardHeader className="flex-row items-center gap-2 space-y-0">
-              <Badge variant={meal.kind === "SNACK" ? "secondary" : "default"}>
-                {meal.kind === "SNACK" ? n.snack : n.meal}
+          <Card key={meal.id} className="overflow-hidden rounded-2xl shadow-soft border">
+            <CardHeader className="flex-row items-center gap-2 space-y-0 border-b bg-gradient-to-r from-brand-500/[0.04] to-transparent">
+              <span className={`flex size-8 items-center justify-center rounded-xl text-white shadow-soft ${isSnack ? "bg-gradient-to-br from-energy-500 to-energy-600" : "bg-gradient-to-br from-brand-500 to-brand-600"}`}>
+                {isSnack ? "🥜" : "🍽️"}
+              </span>
+              <Badge variant={isSnack ? "secondary" : "default"} className="rounded-full">
+                {isSnack ? n.snack : n.meal}
               </Badge>
               <CardTitle className="text-base">{mealName}</CardTitle>
+              <span className="ms-auto text-xs text-muted-foreground tabular-nums">{meal.items.length} {isAr ? "أصناف" : "items"}</span>
             </CardHeader>
             <CardContent>
               <ul className="space-y-1.5">
@@ -302,18 +311,20 @@ export function ClientNutritionView({
       {/* 3 Macros: Calories — Protein — Carbs — Fat — Water */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {([
-          [n.calories, plan.calories, ""],
-          [n.protein, plan.proteinGrams, "g"],
-          [n.carbs, plan.carbsGrams, "g"],
-          [n.fat, plan.fatsGrams, "g"],
-          [n.water, plan.waterLiters, "L"],
-        ] as const).map(([label, value, unit]) => (
-          <Card key={label} className="p-4">
-            <p className="text-xs text-muted-foreground">{label}</p>
-            <p className="mt-1 text-lg font-semibold">
-              {value !== null && value !== undefined ? `${value}${unit ? ` ${unit}` : ""}` : "—"}
+          [n.calories, plan.calories, "kcal", "from-brand-500 to-energy-500", "bg-brand-500/10 text-brand-600"],
+          [n.protein, plan.proteinGrams, "g", "from-performance-500 to-performance-600", "bg-performance-500/10 text-performance-600"],
+          [n.carbs, plan.carbsGrams, "g", "from-energy-500 to-energy-600", "bg-energy-500/10 text-energy-600"],
+          [n.fat, plan.fatsGrams, "g", "from-muscle-500 to-muscle-600", "bg-muscle-500/10 text-muscle-600"],
+          [n.water, plan.waterLiters, "L", "from-sky-500 to-sky-600", "bg-sky-500/10 text-sky-600"],
+        ] as const).map(([label, value, unit, gradient, bg]) => (
+          <div key={label} className="relative overflow-hidden rounded-2xl border bg-card p-4 shadow-soft hover:shadow-medium hover:-translate-y-0.5 transition-all">
+            <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r ${gradient} opacity-30`} aria-hidden="true" />
+            <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
+            <p className="mt-1 text-xl font-extrabold leading-none tabular-nums">
+              {value !== null && value !== undefined ? `${value}` : "—"}
+              <span className="ms-1 text-xs font-medium text-muted-foreground">{unit}</span>
             </p>
-          </Card>
+          </div>
         ))}
       </div>
 

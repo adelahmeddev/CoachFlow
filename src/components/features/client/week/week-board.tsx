@@ -68,20 +68,29 @@ export function WeekBoard({
 
   return (
     <section className="space-y-4" aria-label={t.client.week.myWeek}>
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-xl font-semibold tracking-tight">
-          {t.client.week.myWeek}
-        </h1>
-        <Badge variant="secondary">
-          {mode === ScheduleMode.SEQUENTIAL
-            ? lookup(t, "trainingSplit.scheduleModeSequential")
-            : lookup(t, "trainingSplit.scheduleModeFixed")}
-        </Badge>
-        {rangeLabel ? (
-          <span className="text-xs text-muted-foreground" dir="auto">
-            {rangeLabel}
-          </span>
-        ) : null}
+      <div className="relative overflow-hidden rounded-[20px] border bg-card shadow-soft">
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-500/[0.06] via-energy-500/[0.03] to-transparent" aria-hidden="true" />
+        <div className="absolute -right-10 -top-10 size-24 rounded-full bg-gradient-to-br from-brand-500/15 to-energy-500/10 blur-xl" aria-hidden="true" />
+        <div className="relative p-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl font-extrabold tracking-tight">
+              {t.client.week.myWeek}
+            </h1>
+            <Badge variant="secondary" className="rounded-full">
+              {mode === ScheduleMode.SEQUENTIAL
+                ? lookup(t, "trainingSplit.scheduleModeSequential")
+                : lookup(t, "trainingSplit.scheduleModeFixed")}
+            </Badge>
+            {rangeLabel ? (
+              <span className="text-xs text-muted-foreground" dir="auto">
+                {rangeLabel}
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {mode === ScheduleMode.SEQUENTIAL ? (locale === "ar" ? "بالترتيب — خلص يوم عشان اللي بعده يفتح" : "Sequential — finish a day to unlock next") : (locale === "ar" ? "أيام ثابتة — التزم بالجدول" : "Fixed weekdays — stick to the plan")}
+          </p>
+        </div>
       </div>
 
       {activeEntry ? (
@@ -114,38 +123,43 @@ export function WeekBoard({
         ))}
       </div>
 
-      {/* Weekly stats */}
-      <div className="rounded-2xl border bg-white/40 p-4 dark:bg-white/5">
-        <div className="grid grid-cols-3 gap-2 text-center text-sm">
-          <div className="rounded-xl border bg-background p-3">
-            <p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+      {/* Weekly stats — fitness */}
+      <div className="rounded-[20px] border bg-card p-4 shadow-soft">
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="rounded-2xl border bg-muted/20 p-3">
+            <p className="flex items-center justify-center gap-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
               <CalendarCheck2 className="size-3.5" />
               {t.client.week.workoutsThisWeek}
             </p>
-            <p className="mt-0.5 font-semibold tabular-nums" dir="ltr">
-              {summary.done} / {summary.planned}
+            <p className="mt-1 text-xl font-extrabold tabular-nums" dir="ltr">
+              {summary.done} <span className="text-sm font-medium text-muted-foreground">/ {summary.planned}</span>
             </p>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+              <div className="h-full bg-gradient-to-r from-brand-500 to-energy-500 transition-all" style={{ width: `${summary.planned ? (summary.done/summary.planned)*100 : 0}%` }} />
+            </div>
           </div>
-          <div className="rounded-xl border bg-background p-3">
-            <p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-              <CheckCircle2 className="size-3.5" />
+          <div className="rounded-2xl border bg-muted/20 p-3">
+            <p className="flex items-center justify-center gap-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+              <CheckCircle2 className="size-3.5 text-performance-600" />
               {t.client.week.done}
             </p>
+            <p className="mt-1 text-xl font-extrabold tabular-nums text-performance-600" dir="ltr">
+              {summary.planned ? Math.round((summary.done/summary.planned)*100) : 0}%
+            </p>
             <Progress
-              value={
-                summary.planned ? (summary.done / summary.planned) * 100 : 0
-              }
+              value={summary.planned ? (summary.done / summary.planned) * 100 : 0}
               className="mt-2 h-1.5"
             />
           </div>
-          <div className="rounded-xl border bg-background p-3">
-            <p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-              <Flame className="size-3.5 text-orange-500" />
+          <div className="rounded-2xl border bg-gradient-to-br from-energy-500 to-brand-500 p-3 text-white shadow-soft">
+            <p className="flex items-center justify-center gap-1 text-[11px] font-bold uppercase tracking-widest text-white/90">
+              <Flame className="size-3.5 fill-white/20" />
               {t.client.week.streak}
             </p>
-            <p className="mt-0.5 font-semibold tabular-nums" dir="ltr">
-              {summary.streak}
+            <p className="mt-1 text-xl font-extrabold tabular-nums" dir="ltr">
+              {summary.streak} <span className="text-sm font-medium text-white/80">{locale === "ar" ? "يوم" : "d"}</span>
             </p>
+            <p className="mt-1 text-[11px] text-white/70">{summary.streak >=7 ? (locale==="ar"?"وحش!":"Beast!") : ""}</p>
           </div>
         </div>
       </div>
@@ -190,14 +204,14 @@ function TodaySpotlight({
   return (
     <Link
       href={`/client/workout/session?dayId=${entry.dayId}`}
-      className="group block rounded-2xl bg-gradient-to-r from-brand-600 to-brand-700 p-[1px] shadow-glass transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.99] dark:from-brand-500 dark:to-brand-600"
+      className="group block rounded-2xl bg-gradient-to-r from-brand-500 to-brand-600 p-[1px] shadow-glass transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.99] dark:from-brand-500 dark:to-brand-600"
     >
       <div className="flex items-center gap-4 rounded-[15px] bg-background p-4">
         <span
           className={
             done
               ? "flex size-12 shrink-0 items-center justify-center rounded-full bg-emerald-600/10 text-emerald-600 dark:text-emerald-400"
-              : "flex size-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-soft dark:from-brand-500 dark:to-brand-600"
+              : "flex size-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-soft dark:from-brand-500 dark:to-brand-600"
           }
         >
           {done ? (
@@ -222,7 +236,7 @@ function TodaySpotlight({
           ) : null}
         </div>
         {!done ? (
-          <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-gradient-to-r from-brand-600 to-brand-700 px-4 py-2 text-sm font-medium text-white shadow-soft transition-transform group-hover:scale-105 dark:from-brand-500 dark:to-brand-600">
+          <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-gradient-to-r from-brand-500 to-brand-600 px-4 py-2 text-sm font-medium text-white shadow-soft transition-transform group-hover:scale-105 dark:from-brand-500 dark:to-brand-600">
             <Play className="size-4" />
             {lookup(t, "client.workout.startWorkout")}
           </span>

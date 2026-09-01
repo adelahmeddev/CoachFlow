@@ -26,19 +26,28 @@ export function MessageBubble({
   const showFailed = isOwn && message.failed === true
 
   return (
-    <div className={cn("flex w-full", isOwn ? "justify-end" : "justify-start")}>
-      <div className="max-w-[85%]">
-        <div className={cn(
-          "rounded-2xl border px-3 py-2 shadow-sm backdrop-blur",
-          isOwn
-            ? "border-[var(--msg-orange)]/30 bg-[var(--msg-orange)]/10 border-r-[3px] border-r-[var(--msg-orange)]"
-            : "border-[var(--msg-mist)] bg-[var(--msg-paper)]/80 border-l-[3px] border-l-[var(--msg-mist)]"
-        )}>
-          <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-[var(--msg-text-on-paper)]">{message.body}</p>
-          <div className={cn("flex items-center gap-1.5 mt-1 text-[10px] text-[var(--msg-text-muted)]", isOwn ? "justify-end" : "justify-start")}>
-            <time>{format(new Date(message.createdAt), "HH:mm")}</time>
-            {showSending && <span>Sending...</span>}
-            {showFailed && <span className="text-[var(--msg-orange)] font-medium">Failed — tap to retry</span>}
+    <div className={cn("flex w-full animate-in fade-in-0 slide-in-from-bottom-1 duration-200", isOwn ? "justify-end" : "justify-start")}>
+      <div className="max-w-[78%] sm:max-w-[68%]">
+        <div
+          className={cn(
+            "rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed shadow-soft transition-all",
+            isOwn
+              ? "bg-gradient-to-r from-brand-500 to-brand-600 text-white rounded-br-md"
+              : "bg-card border text-foreground rounded-bl-md"
+          )}
+        >
+          <p className="whitespace-pre-wrap break-words">{message.body}</p>
+          <div className={cn("mt-1 flex items-center gap-1 text-[10px]", isOwn ? "justify-end text-white/80" : "justify-start text-muted-foreground")}>
+            <time className="tabular-nums">{time}</time>
+            {isOwn && !showSending && !showFailed && (
+              <span className="inline-flex items-center gap-0.5">
+                <span aria-hidden="true" className="text-[11px] leading-none">
+                  {message.readAt ? "✓✓" : "✓"}
+                </span>
+              </span>
+            )}
+            {showSending && <span className="animate-pulse">Sending...</span>}
+            {showFailed && <span className="font-medium text-amber-200">Failed — tap to retry</span>}
           </div>
         </div>
       </div>

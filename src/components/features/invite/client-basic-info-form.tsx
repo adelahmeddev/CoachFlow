@@ -103,7 +103,7 @@ export function ClientBasicInfoForm({ token }: { token: string }) {
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {serverError && (
-            <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive animate-shake">
               {serverError}
             </p>
           )}
@@ -118,7 +118,7 @@ export function ClientBasicInfoForm({ token }: { token: string }) {
               {...register("fullName")}
             />
             {errors.fullName && (
-              <p className="text-sm text-destructive">
+              <p className="text-sm text-destructive animate-shake">
                 {errors.fullName.message}
               </p>
             )}
@@ -134,7 +134,7 @@ export function ClientBasicInfoForm({ token }: { token: string }) {
               {...register("birthDate")}
             />
             {errors.birthDate && (
-              <p className="text-sm text-destructive">
+              <p className="text-sm text-destructive animate-shake">
                 {errors.birthDate.message}
               </p>
             )}
@@ -150,7 +150,7 @@ export function ClientBasicInfoForm({ token }: { token: string }) {
               {...register("phone")}
             />
             {errors.phone && (
-              <p className="text-sm text-destructive">{errors.phone.message}</p>
+              <p className="text-sm text-destructive animate-shake">{errors.phone.message}</p>
             )}
           </div>
 
@@ -179,11 +179,11 @@ export function ClientBasicInfoForm({ token }: { token: string }) {
               )}
             />
             {errors.goal && (
-              <p className="text-sm text-destructive">{errors.goal.message}</p>
+              <p className="text-sm text-destructive animate-shake">{errors.goal.message}</p>
             )}
           </div>
 
-          <Button type="submit" className="w-full" disabled={isPending}>
+          <Button type="submit" className="w-full btn-pop" disabled={isPending}>
             {isPending && <Loader2 className="animate-spin" />}
             {t.invite.form.submitButton}
           </Button>

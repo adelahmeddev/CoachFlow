@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { getI18n } from "@/lib/i18n"
 
 export default async function ClientNutritionPage() {
-  const { t } = await getI18n()
+  const { t, locale } = await getI18n()
   const session = await getCurrentSession()
   const clientId = session?.user.clientProfileId
 
@@ -86,9 +86,22 @@ export default async function ClientNutritionPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-4 md:p-8">
-      <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-        {t.nutrition.dailyPlan}
-      </h1>
+      <div className="relative overflow-hidden rounded-[20px] border bg-card shadow-soft">
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-500/[0.06] via-energy-500/[0.03] to-transparent" aria-hidden="true" />
+        <div className="absolute -right-10 -top-10 size-24 rounded-full bg-gradient-to-br from-brand-500/15 to-energy-500/10 blur-xl" aria-hidden="true" />
+        <div className="relative p-5">
+          <div className="inline-flex items-center gap-2 rounded-full bg-brand-500/10 px-2.5 py-1 text-xs font-bold text-brand-700 ring-1 ring-brand-500/15">
+            <span aria-hidden="true">🍽️</span>
+            {t.nutrition.dailyPlan}
+          </div>
+          <h1 className="mt-2 text-xl font-extrabold tracking-tight sm:text-2xl">
+            {t.nutrition.dailyPlan}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {locale === "ar" ? "اضغط على الأكلة اللي كلتها النهاردة — التزامك بيفرق" : "Tap what you ate today — adherence matters"}
+          </p>
+        </div>
+      </div>
       <ClientNutritionView plan={view} chosenItemIds={chosenItemIds} />
     </div>
   )

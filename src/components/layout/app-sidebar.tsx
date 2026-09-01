@@ -76,8 +76,7 @@ function SidebarNav({
         className="mb-4 flex h-16 shrink-0 items-center gap-3.5 rounded-2xl px-4 py-3 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         aria-label="NANOUSH"
       >
-        <BrandLogo variant="mark" height={36} width={56} alt="" priority quality={100} className="drop-shadow-sm" />
-        <span className="text-lg font-extrabold tracking-tight">NANOUSH</span>
+        <BrandLogo variant="mark" height={36} width={56} alt="" priority quality={95} className="drop-shadow-sm" showWordmark />
       </Link>
 
       {items.map((item) => {
@@ -92,22 +91,25 @@ function SidebarNav({
             onClick={onNavigate}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "group relative flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98]",
+              "group relative flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98] btn-pop",
               isActive
-                ? "bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-soft ring-1 ring-brand-700/20 dark:from-brand-500 dark:to-brand-600 dark:ring-white/10"
-                : "text-muted-foreground hover:bg-card hover:text-foreground hover:shadow-soft hover:ring-1 hover:ring-border dark:hover:bg-white/[0.06] dark:hover:text-foreground"
+                ? "bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-soft ring-1 ring-brand-600/20 dark:from-brand-500 dark:to-brand-600 dark:ring-white/10"
+                : "text-muted-foreground hover:bg-white hover:text-foreground hover:shadow-soft hover:ring-1 hover:ring-border/60 dark:hover:bg-white/[0.06] dark:hover:text-foreground card-lift"
             )}
           >
+            {isActive && (
+              <span className="absolute start-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-white/90 shadow-sm" aria-hidden="true" />
+            )}
             <item.icon
               className={cn(
-                "size-[18px] shrink-0 transition-colors",
-                isActive ? "text-white" : "text-muted-foreground group-hover:text-foreground"
+                "size-[18px] shrink-0 transition-all duration-200",
+                isActive ? "text-white" : "text-muted-foreground group-hover:text-foreground group-hover:scale-105"
               )}
               aria-hidden="true"
             />
             <span className="truncate">{lookup(t, item.titleKey)}</span>
             {showBadge && (
-              <span className="absolute end-2 top-1/2 -translate-y-1/2 min-w-[20px] h-5 px-1 rounded-full bg-[var(--msg-orange)] text-white text-[10px] font-bold flex items-center justify-center">
+              <span className="absolute end-2 top-1/2 -translate-y-1/2 min-w-[20px] h-5 px-1 rounded-full bg-[var(--msg-orange)] text-white text-[10px] font-bold flex items-center justify-center animate-pulse">
                 {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             )}
@@ -152,12 +154,12 @@ function getInitials(name: string) {
 
 function UserSummary({ name, role }: { name: string; role: Role }) {
   return (
-    <div className="mx-3 flex min-h-[52px] items-center gap-3 rounded-xl border bg-card px-3 py-2 shadow-soft">
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-xs font-bold text-white shadow-soft">
+    <div className="mx-3 flex min-h-[56px] items-center gap-3 rounded-2xl border bg-card px-3.5 py-2.5 shadow-soft card-lift">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 text-xs font-bold text-white shadow-soft ring-1 ring-white/10">
         {getInitials(name)}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium leading-none">{name}</p>
+        <p className="truncate text-sm font-semibold leading-none tracking-tight">{name}</p>
         <Badge variant="secondary" className="mt-1 gap-1 px-1.5 text-[10px] font-medium">
           {ROLE_LABELS[role]}
         </Badge>
@@ -253,6 +255,10 @@ function MobileTopBar({
             </div>
           </SheetContent>
         </Sheet>
+
+        <Link href={homeHref} aria-label="NANOUSH home" className="flex shrink-0 items-center gap-2 rounded-lg px-1 py-1.5 transition-colors hover:bg-muted/50">
+          <BrandLogo variant="mark" height={26} width={40} alt="" quality={95} />
+        </Link>
 
         <h1 className="min-w-0 flex-1 truncate text-base font-semibold tracking-tight">
           {activeItem ? lookup(t, activeItem.titleKey) : "Coach"}

@@ -39,7 +39,23 @@ export default async function ClientProfilePage({
   const trainerProfileId =
     session.user.role === "ADMIN" ? undefined : session.user.trainerProfileId
 
-  const profile = await getClientProfile(id, trainerProfileId ?? "")
+  let profile: Awaited<ReturnType<typeof getClientProfile>> | null = null
+  try {
+    profile = await getClientProfile(id, trainerProfileId ?? "")
+  } catch (err) {
+    console.error("[ClientProfilePage] failed to load", err)
+    // Degraded: show error boundary fallback instead of crashing
+    // Return a retryable error UI
+    return (
+      <div className="space-y-6">
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-center">
+          <p className="text-sm font-semibold text-destructive">فشل تحميل بيانات العميل — انتهت مهلة الاتصال</p>
+          <p className="mt-1 text-xs text-muted-foreground">تأكد من الاتصال أو حاول تحديث الصفحة. قد تكون قاعدة البيانات في وضع الاستيقاظ (Neon cold start).</p>
+          <p className="mt-3 text-xs text-muted-foreground">ClientProfile timeout — DB pooled connection cold start. Retry in a few seconds.</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!profile) {
     notFound()

@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import { useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Monitor, Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useI18n } from "@/lib/i18n/client"
@@ -69,6 +69,11 @@ export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
   const { t } = useI18n()
   const triggerRef = useRef<HTMLButtonElement>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   function handleSelect(next: ThemeOption) {
     if (next === theme) return
@@ -79,6 +84,14 @@ export function ThemeToggle() {
       apply()
     }
     updateThemeColor(next)
+  }
+
+  if (!mounted) {
+    return (
+      <Button variant="ghost" size="icon" className="size-9" aria-label={t.common.theme.toggleTheme} title={t.common.theme.toggleTheme}>
+        <Sun className="size-4" aria-hidden="true" />
+      </Button>
+    )
   }
 
   return (
@@ -107,7 +120,7 @@ export function ThemeToggle() {
               <Icon className="size-4" aria-hidden="true" />
               <span className="flex-1">{t.common.theme[option]}</span>
               {theme === option ? (
-                <span className="size-1.5 rounded-full bg-gradient-to-r from-brand-600 to-brand-700 dark:from-brand-500 dark:to-brand-600" />
+                <span className="size-1.5 rounded-full bg-gradient-to-r from-brand-500 to-brand-600 dark:from-brand-500 dark:to-brand-600" />
               ) : null}
             </DropdownMenuItem>
           )
