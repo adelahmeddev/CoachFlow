@@ -169,7 +169,7 @@ export function isForeignKeyViolation(error: unknown): boolean {
     typeof error === "object" &&
     error !== null &&
     "code" in error &&
-    (err as { code?: string }).code === "23503"
+    (error as { code?: string }).code === "23503"
   )
 }
 
