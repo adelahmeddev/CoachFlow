@@ -45,7 +45,18 @@ function getPool(): Pool {
   return _pool
 }
 
-export const pool = getPool()
+function makeLazyPool() {
+  const handler = {
+    get(_target: any, prop: string | symbol) {
+      const p = getPool()
+      const value = p[prop]
+      return typeof value === "function" ? value.bind(p) : value
+    },
+  }
+  return new Proxy({}, handler) as Pool
+}
+
+export const pool = makeLazyPool()
 
 function isTransientDbError(err: unknown): boolean {
   if (!err || typeof err !== "object") return false
