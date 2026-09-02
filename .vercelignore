@@ -1,0 +1,10 @@
+.vinext
+.kiro
+.git
+.vscode
+node_modules
+.next
+.vercel
+.env
+.env.*
+!.env.example
