@@ -49,7 +49,7 @@ function makeLazyPool() {
   const handler = {
     get(_target: any, prop: string | symbol) {
       const p = getPool()
-      const value = p[prop]
+      const value = p[prop as keyof Pool]
       return typeof value === "function" ? value.bind(p) : value
     },
   }
