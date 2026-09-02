@@ -18,12 +18,8 @@ function createPool(): Pool {
     return new Pool()
   }
 
-  // Silence pg-connection-string v3 warning: add uselibpqcompat to keep current sslmode=require behavior
-  // Without it, 'require' will become 'verify-full' in next major and may break Neon pooler
-  if (connectionString.includes("sslmode=require") && !connectionString.includes("uselibpqcompat")) {
-    const sep = connectionString.includes("?") ? "&" : "?"
-    connectionString = `${connectionString}${sep}uselibpqcompat=true`
-  }
+  // Silence pg-connection-string v3 warning about sslmode=require
+  // Note: channel_binding=require is NOT supported by pg — stripped from connection strings
 
   const isServerless = process.env.VERCEL === "1" || process.env.AWS_LAMBDA_FUNCTION_NAME
 
