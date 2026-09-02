@@ -1,7 +1,7 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["pg", "@node-rs/bcrypt"],
+  serverExternalPackages: ["@node-rs/bcrypt"],
   allowedDevOrigins: ["192.168.1.9", "192.168.1.9:3000", "http://192.168.1.9:3000"],
   images: {
     formats: ["image/avif", "image/webp"],

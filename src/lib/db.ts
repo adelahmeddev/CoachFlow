@@ -18,9 +18,6 @@ function createPool(): Pool {
     return new Pool()
   }
 
-  // Silence pg-connection-string v3 warning about sslmode=require
-  // Note: channel_binding=require is NOT supported by pg — stripped from connection strings
-
   const isServerless = process.env.VERCEL === "1" || process.env.AWS_LAMBDA_FUNCTION_NAME
 
   return new Pool({
@@ -30,9 +27,7 @@ function createPool(): Pool {
     connectionTimeoutMillis: isServerless ? 15_000 : 10_000,
     keepAlive: true,
     statement_timeout: 15_000,
-    // query_timeout is not a standard pg Pool option; use statement_timeout only
     ssl: isServerless ? { rejectUnauthorized: false } : undefined,
-    // Neon serverless: keepAlive + longer timeouts avoids "Connection terminated"
   })
 }
 
@@ -42,25 +37,15 @@ function getPool(): Pool {
     if (process.env.NODE_ENV !== "production") {
       globalForPg.pgPool = _pool
     }
-    // Prevent "Connection terminated unexpectedly" from crashing process
-    // Neon serverless often terminates idle connections
     _pool.on("error", (err) => {
       console.error("[pg] pool error (idle client)", err)
     })
-    _pool.on("connect", () => {
-      // optional: set session params if needed
-    })
+    _pool.on("connect", () => {})
   }
   return _pool
 }
 
-export const pool = new Proxy({} as Pool, {
-  get(_target, prop) {
-    const p = getPool()
-    const value = (p as unknown as Record<string | symbol, unknown>)[prop]
-    return typeof value === "function" ? value.bind(p) : value
-  },
-})
+export const pool = getPool()
 
 function isTransientDbError(err: unknown): boolean {
   if (!err || typeof err !== "object") return false
@@ -73,7 +58,7 @@ function isTransientDbError(err: unknown): boolean {
     msg.includes("terminated unexpectedly") ||
     code === "ETIMEDOUT" ||
     code === "ECONNRESET" ||
-    code === "57P01" // admin shutdown
+    code === "57P01"
   )
 }
 
@@ -184,7 +169,7 @@ export function isForeignKeyViolation(error: unknown): boolean {
     typeof error === "object" &&
     error !== null &&
     "code" in error &&
-    (error as { code?: string }).code === "23503"
+    (err as { code?: string }).code === "23503"
   )
 }
 
