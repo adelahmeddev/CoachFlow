@@ -400,7 +400,7 @@ async function createDemoTrainer() {
     const id = generateId()
     await pool.query(
       `INSERT INTO "User" ("id","username","phone","email","passwordHash","role","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5::"Role",NOW(),NOW())`,
-      [id, "coach.karim", DEMO_TRAINER_PHONE, "coach.karim@example.com", hashed, Role.TRAINER]
+      [id, "coach.karim", DEMO_TRAINER_PHONE, "coach.karim@example.com", hashed, Role.COACH]
     )
     const fresh = await pool.query(`SELECT * FROM "User" WHERE "id" = $1`, [id])
     trainerUser = fresh.rows[0]

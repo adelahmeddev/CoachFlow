@@ -17,7 +17,7 @@ export function MessageSuggestions({
   onMention?: (text: string) => void
 }) {
   const { locale } = useI18n()
-  const normalized: "TRAINER" | "CLIENT" = role === "CLIENT" ? "CLIENT" : "TRAINER"
+  const normalized: "COACH" | "CLIENT" = role === "CLIENT" ? "CLIENT" : "COACH"
   const suggestions = pickSuggestions(normalized, locale as any, context, 6)
 
   return (

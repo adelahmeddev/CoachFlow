@@ -19,7 +19,7 @@ export default async function OnboardingPage() {
   const session = await getCurrentSession()
   // Handle missing/stale trainerProfileId (e.g., after DB reset with old JWT)
   let trainerProfileId = session?.user.trainerProfileId
-  if (session?.user.role === "TRAINER" && !trainerProfileId && session.user.id) {
+  if (session?.user.role === "COACH" && !trainerProfileId && session.user.id) {
     const byUserRes = await pool.query(`SELECT "id" FROM "TrainerProfile" WHERE "userId" = $1 LIMIT 1`, [session.user.id])
     const byUser = byUserRes.rows[0] as { id: string } | undefined
     trainerProfileId = byUser?.id

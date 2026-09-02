@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
   // RBAC
   const role = session.user.role
-  if (role === "TRAINER") {
+  if (role === "COACH") {
     if (conv.trainerId !== session.user.trainerProfileId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }

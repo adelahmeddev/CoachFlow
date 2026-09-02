@@ -45,6 +45,7 @@ export const TRAINER_NAV_ITEMS: NavItem[] = [
   },
   { titleKey: "nav.messages", href: "/messages", icon: MessageCircle },
   { titleKey: "nav.settings", href: "/settings", icon: Settings },
+  { titleKey: "subscription.title", href: "/subscription", icon: CreditCard },
 ]
 
 export const ADMIN_NAV_ITEMS: NavItem[] = [

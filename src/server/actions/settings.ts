@@ -26,7 +26,7 @@ type PreferencesResult =
 function isAuthorized(session: Awaited<ReturnType<typeof getCurrentSession>>) {
   return Boolean(
     session?.user &&
-      session.user.role === "TRAINER" &&
+      session.user.role === "COACH" &&
       session.user.trainerProfileId
   )
 }

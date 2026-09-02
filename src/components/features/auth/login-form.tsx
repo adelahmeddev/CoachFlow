@@ -56,6 +56,8 @@ export function LoginForm({
       if (result?.error) {
         if (result.error === "TOO_MANY_ATTEMPTS") {
           toast.error("محاولات خاطئة كثيرة. برجاء المحاولة بعد ١٥ دقيقة.");
+        } else if (result.error.includes("ACCOUNT_SUSPENDED")) {
+          toast.error("تم تعليق الحساب. برجاء التواصل مع الإدارة.");
         } else {
           toast.error("بيانات الدخول غير صحيحة. حاول مرة أخرى.");
         }
@@ -63,7 +65,16 @@ export function LoginForm({
         return;
       }
 
-      router.push(callbackUrl);
+      const sessionRes = await fetch("/api/auth/session");
+      const session = await sessionRes.json();
+      const role = session?.user?.role as string | undefined;
+
+      let redirectUrl = callbackUrl;
+      if (role === "SUPER_ADMIN") redirectUrl = "/admin";
+      else if (role === "COACH") redirectUrl = "/dashboard";
+      else if (role === "CLIENT") redirectUrl = "/client/home";
+
+      router.push(redirectUrl);
       router.refresh();
     } catch {
       toast.error("حدث خطأ ما. حاول مرة أخرى.");

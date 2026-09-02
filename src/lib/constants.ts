@@ -11,6 +11,7 @@ import {
   SplitType,
   SubscriptionStatus,
   TrainingDayFocus,
+  CoachSubscriptionStatus,
 } from "@/lib/db/enums"
 
 export type BadgeVariant = VariantProps<typeof badgeVariants>["variant"]
@@ -18,8 +19,8 @@ export type BadgeVariant = VariantProps<typeof badgeVariants>["variant"]
 // ─── Labels ──────────────────────────────────────────────────────────────────
 
 export const ROLE_LABELS: Record<Role, string> = {
-  ADMIN: "Admin",
-  TRAINER: "Trainer",
+  SUPER_ADMIN: "Super Admin",
+  COACH: "Coach",
   CLIENT: "Client",
 }
 
@@ -198,6 +199,18 @@ export const PAYMENT_STATUS_BADGE_VARIANTS: Record<PaymentStatus, BadgeVariant> 
   PENDING: "secondary",
   FAILED: "destructive",
   NOT_REQUIRED: "outline",
+}
+
+export const COACH_SUBSCRIPTION_STATUS_LABELS: Record<CoachSubscriptionStatus, string> = {
+  ACTIVE: "Active",
+  EXPIRED: "Expired",
+  SUSPENDED: "Suspended",
+}
+
+export const COACH_SUBSCRIPTION_STATUS_BADGE_VARIANTS: Record<CoachSubscriptionStatus, BadgeVariant> = {
+  ACTIVE: "default",
+  EXPIRED: "destructive",
+  SUSPENDED: "destructive",
 }
 
 // ─── Badge variant helpers ───────────────────────────────────────────────────

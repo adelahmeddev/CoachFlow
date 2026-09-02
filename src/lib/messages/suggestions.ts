@@ -172,12 +172,12 @@ export type ClientContext = {
 }
 
 export function pickSuggestions(
-  role: "TRAINER" | "CLIENT",
+  role: "COACH" | "CLIENT",
   locale: Locale,
   ctx?: ClientContext,
   limit = 6
 ): Suggestion[] {
-  const base = role === "TRAINER" ? TRAINER_SUGGESTIONS : CLIENT_SUGGESTIONS
+  const base = role === "COACH" ? TRAINER_SUGGESTIONS : CLIENT_SUGGESTIONS
   if (!ctx) return base.slice(0, limit)
   // score by context
   const scored = base.map((s) => {

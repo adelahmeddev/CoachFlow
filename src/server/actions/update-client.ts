@@ -13,7 +13,7 @@ export async function updateClientInfoAction(
   const session = await getCurrentSession()
   if (
     !session?.user ||
-    (session.user.role !== "ADMIN" && session.user.role !== "TRAINER")
+    (session.user.role !== "SUPER_ADMIN" && session.user.role !== "COACH")
   ) {
     return { ok: false, error: "UNAUTHORIZED" }
   }
@@ -31,7 +31,7 @@ export async function updateClientInfoAction(
   }
 
   if (
-    session.user.role === "TRAINER" &&
+    session.user.role === "COACH" &&
     client.trainerId !== session.user.trainerProfileId
   ) {
     return { ok: false, error: "UNAUTHORIZED" }

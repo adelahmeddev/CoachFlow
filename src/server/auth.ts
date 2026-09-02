@@ -96,7 +96,7 @@ const clientValidationCache = new Map<string, { value: string | undefined; expir
 const nameCache = new Map<string, { value: string | undefined; expires: number }>()
 
 export function invalidateNameCache(userId: string) {
-  for (const role of ["TRAINER", "CLIENT"]) {
+  for (const role of ["COACH", "CLIENT"]) {
     nameCache.delete(`name:${userId}:${role}`);
   }
 }
@@ -185,12 +185,12 @@ export const authOptions: NextAuthOptions = {
         let clientProfileId: string | undefined;
         let displayName: string | undefined;
 
-        if (user.role === "TRAINER") {
+        if (user.role === "COACH") {
           let profileRes = await pool.query(
             `SELECT * FROM "TrainerProfile" WHERE "userId"=$1 LIMIT 1`,
             [user.id]
           );
-          let profile = (profileRes.rows[0] as { id: string; fullName?: string } | undefined) ?? null;
+          let profile = (profileRes.rows[0] as { id: string; fullName?: string; accountStatus?: string } | undefined) ?? null;
           // Self-healing: auto-create missing TrainerProfile (e.g., after DB reset with stale token, or legacy user)
           if (!profile) {
             try {
@@ -204,7 +204,7 @@ export const authOptions: NextAuthOptions = {
                 `INSERT INTO "TrainerProfile" ("id","userId","fullName","phone","createdAt","updatedAt") VALUES ($1,$2,$3,$4,NOW(),NOW()) RETURNING *`,
                 [id, user.id, fullName, phone]
               );
-              profile = createdRes.rows[0] as { id: string };
+              profile = createdRes.rows[0] as { id: string; accountStatus?: string };
               // Clear any stale dashboard cache that may have been cached with no trainer profile
               try { updateTag(`trainer:${profile.id}:dashboard`); } catch {}
             } catch {
@@ -213,8 +213,12 @@ export const authOptions: NextAuthOptions = {
                 `SELECT * FROM "TrainerProfile" WHERE "userId"=$1 LIMIT 1`,
                 [user.id]
               );
-              profile = (retryRes.rows[0] as { id: string } | undefined) ?? null;
+              profile = (retryRes.rows[0] as { id: string; accountStatus?: string } | undefined) ?? null;
             }
+          }
+          // Block login for suspended coaches
+          if (profile && profile.accountStatus === "SUSPENDED") {
+            throw new Error("ACCOUNT_SUSPENDED");
           }
           trainerProfileId = profile?.id;
           displayName = profile?.fullName;
@@ -261,7 +265,7 @@ export const authOptions: NextAuthOptions = {
         } else {
           try {
             let dbName: string | undefined;
-            if (token.role === "TRAINER") {
+            if (token.role === "COACH") {
               const res = await pool.query(
                 `SELECT "fullName" FROM "TrainerProfile" WHERE "userId"=$1 LIMIT 1`,
                 [userId]
@@ -282,7 +286,7 @@ export const authOptions: NextAuthOptions = {
         }
       }
       // Re-validate trainerProfileId — cached 60s to avoid DB on every poll (was 2-3 queries per request)
-      if (token.role === "TRAINER") {
+      if (token.role === "COACH") {
         const trainerProfileId = token.trainerProfileId as string | undefined;
         const userId = token.id as string | undefined;
         if (userId) {

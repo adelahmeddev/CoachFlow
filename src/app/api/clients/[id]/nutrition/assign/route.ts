@@ -6,7 +6,7 @@ import { invalidate } from "@/lib/cache"
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getCurrentSession()
-  if (!session?.user || session.user.role !== "TRAINER" || !session.user.trainerProfileId) {
+  if (!session?.user || session.user.role !== "COACH" || !session.user.trainerProfileId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
   const { id } = await params

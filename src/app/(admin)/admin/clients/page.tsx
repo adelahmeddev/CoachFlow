@@ -25,7 +25,7 @@ export default async function AdminClientsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const session = await getCurrentSession()
-  if (!session?.user || session.user.role !== "ADMIN") {
+  if (!session?.user || session.user.role !== "SUPER_ADMIN") {
     notFound()
   }
 

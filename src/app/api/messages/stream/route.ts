@@ -16,7 +16,7 @@ export async function GET(req: Request) {
   if (!conv) return new Response("Not found", { status: 404 })
 
   const role = session.user.role
-  if (role === "TRAINER") {
+  if (role === "COACH") {
     if (conv.trainerId !== session.user.trainerProfileId) return new Response("Forbidden", { status: 403 })
   } else if (role === "CLIENT") {
     if (conv.client.userId !== session.user.id) return new Response("Forbidden", { status: 403 })

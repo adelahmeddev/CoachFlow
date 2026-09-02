@@ -14,11 +14,11 @@ interface BodyCompositionTabProps {
 export async function BodyCompositionTab({ clientId }: BodyCompositionTabProps) {
   const { t } = await getI18n()
   const session = await getCurrentSession()
-  if (!session?.user || (session.user.role !== "TRAINER" && session.user.role !== "ADMIN")) {
+  if (!session?.user || (session.user.role !== "COACH" && session.user.role !== "SUPER_ADMIN")) {
     return <p className="text-destructive text-sm">{t.toasts.unauthorized}</p>
   }
 
-  const isAdmin = session.user.role === "ADMIN"
+  const isAdmin = session.user.role === "SUPER_ADMIN"
   const trainerProfileId = isAdmin ? undefined : session.user.trainerProfileId
   let clientRes
   if (trainerProfileId) {

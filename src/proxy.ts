@@ -23,7 +23,7 @@ const CLIENT_PATHS = [
 
 const AUTH_PATHS = ["/login", "/register", "/client/login"];
 
-type Role = "ADMIN" | "TRAINER" | "CLIENT";
+type Role = "SUPER_ADMIN" | "COACH" | "CLIENT";
 
 function isPath(pathname: string, prefixes: string[]) {
   return prefixes.some(
@@ -32,8 +32,8 @@ function isPath(pathname: string, prefixes: string[]) {
 }
 
 function getHomeForRole(role: Role | undefined) {
-  if (role === "ADMIN") return "/admin";
-  if (role === "TRAINER") return "/dashboard";
+  if (role === "SUPER_ADMIN") return "/admin";
+  if (role === "COACH") return "/dashboard";
   if (role === "CLIENT") return "/client/home";
   return "/login";
 }
@@ -68,7 +68,7 @@ export async function proxy(request: NextRequest) {
     if (!isLoggedIn) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
-    if (role && role !== "TRAINER") {
+    if (role && role !== "COACH") {
       return NextResponse.redirect(new URL(getHomeForRole(role), request.url));
     }
   }
@@ -86,7 +86,7 @@ export async function proxy(request: NextRequest) {
     if (!isLoggedIn) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
-    if (role && role !== "ADMIN") {
+    if (role && role !== "SUPER_ADMIN") {
       return NextResponse.redirect(new URL(getHomeForRole(role), request.url));
     }
   }

@@ -16,6 +16,8 @@ import type {
   SubstituteCategory,
   QuantityUnit,
   MealKind,
+  TrainerAccountStatus,
+  CoachSubscriptionStatus,
 } from "./enums"
 
 export type User = {
@@ -42,6 +44,7 @@ export type TrainerProfile = {
   units: Units
   weekStartDay: WeekStartDay
   timezone: string | null
+  accountStatus: TrainerAccountStatus
   notifyReassessment: boolean
   notifyInactivity: boolean
   notifySubscription: boolean
@@ -408,6 +411,39 @@ export type Message = {
   senderRole: Role
   body: string
   readAt: Date | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export type CoachSubscription = {
+  id: string
+  coachId: string
+  startDate: Date
+  endDate: Date
+  amountPaid: number
+  paymentDate: Date
+  status: CoachSubscriptionStatus
+  notes: string | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export type PaymentRecord = {
+  id: string
+  coachId: string
+  subscriptionId: string
+  amount: number
+  paymentDate: Date
+  notes: string | null
+  createdAt: Date
+}
+
+export type CoachBranding = {
+  id: string
+  coachId: string
+  brandName: string | null
+  logoUrl: string | null
+  primaryColor: string | null
   createdAt: Date
   updatedAt: Date
 }

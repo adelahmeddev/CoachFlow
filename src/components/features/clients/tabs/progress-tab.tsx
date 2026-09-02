@@ -40,7 +40,7 @@ export async function ProgressTab({ clientId }: ProgressTabProps) {
   const session = await getCurrentSession()
   if (
     !session?.user ||
-    session.user.role !== "TRAINER" ||
+    session.user.role !== "COACH" ||
     !session.user.trainerProfileId
   ) {
     return (

@@ -19,7 +19,7 @@ export async function generateInviteAction() {
   const session = await getCurrentSession()
   if (
     !session?.user ||
-    session.user.role !== "TRAINER" ||
+    session.user.role !== "COACH" ||
     !session.user.trainerProfileId
   ) {
     return { ok: false as const, error: "Unauthorized — missing trainer profile. Please log out and log in again." }
@@ -99,7 +99,7 @@ export async function submitClientAccountInfoAction(
 
 export async function getJoinLinkAction() {
   const session = await getCurrentSession()
-  if (!session?.user || session.user.role !== "TRAINER" || !session.user.trainerProfileId) {
+  if (!session?.user || session.user.role !== "COACH" || !session.user.trainerProfileId) {
     return { ok: false as const, error: "Unauthorized" }
   }
   let trainerProfileId = session.user.trainerProfileId
@@ -117,7 +117,7 @@ export async function getJoinLinkAction() {
 
 export async function regenerateJoinLinkAction() {
   const session = await getCurrentSession()
-  if (!session?.user || session.user.role !== "TRAINER" || !session.user.trainerProfileId) {
+  if (!session?.user || session.user.role !== "COACH" || !session.user.trainerProfileId) {
     return { ok: false as const, error: "Unauthorized" }
   }
   let trainerProfileId = session.user.trainerProfileId

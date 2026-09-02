@@ -28,7 +28,7 @@ export default function NutritionTemplatesPage() {
 
   const { templates, loading: templatesLoading } = useTemplates(trainerProfileId)
   const { clients, loading: clientsLoading } = useClients(trainerProfileId)
-  const { count: unreadCount } = useUnreadCount("TRAINER", trainerProfileId)
+  const { count: unreadCount } = useUnreadCount("COACH", trainerProfileId)
 
   // Optionally display the unread count somewhere (e.g., badge)
   // console.log('Unread messages:', unreadCount)

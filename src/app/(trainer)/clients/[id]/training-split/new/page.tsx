@@ -26,7 +26,7 @@ export default async function NewTrainingSplitPage({
 
   if (
     !session?.user ||
-    session.user.role !== "TRAINER" ||
+    session.user.role !== "COACH" ||
     !session.user.trainerProfileId
   ) {
     notFound()

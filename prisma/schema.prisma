@@ -14,7 +14,7 @@ model User {
   phone              String?         @unique
   email              String?         @unique
   passwordHash       String
-  role               Role            @default(TRAINER)
+  role               Role            @default(COACH)
   mustChangePassword Boolean         @default(false)
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
@@ -37,6 +37,7 @@ model TrainerProfile {
   units                       Units                   @default(METRIC)
   weekStartDay                WeekStartDay            @default(SAT)
   timezone                    String?
+  accountStatus               TrainerAccountStatus    @default(ACTIVE)
   notifyReassessment          Boolean                 @default(true)
   notifyInactivity            Boolean                 @default(true)
   notifySubscription          Boolean                 @default(true)
@@ -51,6 +52,9 @@ model TrainerProfile {
   subscriptionPlans           SubscriptionPlan[]
   user                        User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   splitTemplates              TrainingSplitTemplate[]
+  coachSubscription           CoachSubscription?
+  paymentRecords              PaymentRecord[]
+  branding                    CoachBranding?
 }
 
 model Client {
@@ -554,8 +558,8 @@ model Message {
 }
 
 enum Role {
-  ADMIN
-  TRAINER
+  SUPER_ADMIN
+  COACH
   CLIENT
 }
 
@@ -675,6 +679,11 @@ enum MealKind {
   SNACK
 }
 
+enum TrainerAccountStatus {
+  ACTIVE
+  SUSPENDED
+}
+
 enum CoachingMode {
   ONLINE
   IN_PERSON
@@ -696,4 +705,54 @@ model PresenceSession {
   @@index([clientId])
   @@index([trainerId])
   @@index([expiresAt])
+}
+
+enum CoachSubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+}
+
+model CoachSubscription {
+  id          String                 @id @default(cuid())
+  coachId     String                 @unique
+  startDate   DateTime
+  endDate     DateTime
+  amountPaid  Decimal                @db.Decimal(10, 2)
+  paymentDate DateTime
+  status      CoachSubscriptionStatus @default(ACTIVE)
+  notes       String?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  coach       TrainerProfile         @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  payments    PaymentRecord[]
+
+  @@index([status])
+  @@index([endDate])
+}
+
+model PaymentRecord {
+  id             String            @id @default(cuid())
+  coachId        String
+  subscriptionId String
+  amount         Decimal           @db.Decimal(10, 2)
+  paymentDate    DateTime
+  notes          String?
+  createdAt      DateTime          @default(now())
+  coach          TrainerProfile    @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  subscription   CoachSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([coachId])
+  @@index([subscriptionId])
+}
+
+model CoachBranding {
+  id           String         @id @default(cuid())
+  coachId      String         @unique
+  brandName    String?
+  logoUrl      String?
+  primaryColor String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  coach        TrainerProfile @relation(fields: [coachId], references: [id], onDelete: Cascade)
 }

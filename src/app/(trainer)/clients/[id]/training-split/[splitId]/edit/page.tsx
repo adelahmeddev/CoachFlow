@@ -30,15 +30,15 @@ export default async function EditTrainingSplitPage({
 
   if (
     !session?.user ||
-    (session.user.role !== "TRAINER" && session.user.role !== "ADMIN") ||
-    (session.user.role === "TRAINER" && !session.user.trainerProfileId)
+    (session.user.role !== "COACH" && session.user.role !== "SUPER_ADMIN") ||
+    (session.user.role === "COACH" && !session.user.trainerProfileId)
   ) {
     notFound()
   }
 
   const { id, splitId } = await params
   const trainerProfileId =
-    session.user.role === "ADMIN" ? undefined : session.user.trainerProfileId
+    session.user.role === "SUPER_ADMIN" ? undefined : session.user.trainerProfileId
 
   const [client, split, exercises, allTemplates, cloneSources, painFlags, weekStartDay] =
     await Promise.all([

@@ -12,7 +12,7 @@ export async function GET() {
   const role = session.user.role
   let count = 0
   try {
-    if (role === "TRAINER") {
+    if (role === "COACH") {
       const trainerId = session.user.trainerProfileId
       if (trainerId) count = await countUnreadForTrainer(trainerId)
     } else if (role === "CLIENT") {

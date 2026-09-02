@@ -22,7 +22,7 @@ export default async function EditSubscriptionPage({
 
   if (
     !session?.user ||
-    session.user.role !== "TRAINER" ||
+    session.user.role !== "COACH" ||
     !session.user.trainerProfileId
   ) {
     notFound()

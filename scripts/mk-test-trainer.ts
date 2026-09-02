@@ -14,7 +14,7 @@ async function main() {
   const userId = generateId()
   const userRes = await pool.query(
     `INSERT INTO "User" ("id","username","passwordHash","role","createdAt","updatedAt") VALUES ($1,$2,$3,$4::"Role",NOW(),NOW()) RETURNING *`,
-    [userId, username, passwordHash, "TRAINER"]
+    [userId, username, passwordHash, "COACH"]
   )
   const user = userRes.rows[0] as any
   const profileId = generateId()

@@ -1,6 +1,6 @@
 export const Role = {
-  ADMIN: 'ADMIN',
-  TRAINER: 'TRAINER',
+  SUPER_ADMIN: 'SUPER_ADMIN',
+  COACH: 'COACH',
   CLIENT: 'CLIENT',
 } as const
 export type Role = (typeof Role)[keyof typeof Role]
@@ -148,3 +148,16 @@ export const WorkoutDisplayMode = {
   DAY_NAME_ONLY: 'DAY_NAME_ONLY',
 } as const
 export type WorkoutDisplayMode = (typeof WorkoutDisplayMode)[keyof typeof WorkoutDisplayMode]
+
+export const TrainerAccountStatus = {
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED',
+} as const
+export type TrainerAccountStatus = (typeof TrainerAccountStatus)[keyof typeof TrainerAccountStatus]
+
+export const CoachSubscriptionStatus = {
+  ACTIVE: 'ACTIVE',
+  EXPIRED: 'EXPIRED',
+  SUSPENDED: 'SUSPENDED',
+} as const
+export type CoachSubscriptionStatus = (typeof CoachSubscriptionStatus)[keyof typeof CoachSubscriptionStatus]

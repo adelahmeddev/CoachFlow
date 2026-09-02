@@ -19,7 +19,7 @@ export default async function EditSubscriptionPlanPage({
 
   if (
     !session?.user ||
-    session.user.role !== "TRAINER" ||
+    session.user.role !== "COACH" ||
     !session.user.trainerProfileId
   ) {
     notFound()

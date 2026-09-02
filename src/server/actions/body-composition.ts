@@ -22,8 +22,8 @@ export async function createBodyCompositionAction(
   if (!session?.user) return { ok: false, error: "Unauthorized" as const }
 
   const isClient = session.user.role === "CLIENT"
-  const isTrainer = session.user.role === "TRAINER"
-  const isAdmin = session.user.role === "ADMIN"
+  const isTrainer = session.user.role === "COACH"
+  const isAdmin = session.user.role === "SUPER_ADMIN"
 
   // Permission: client can only create for own id, trainer for own clients, admin read only (but allow? spec says admin read)
   if (isClient && session.user.clientProfileId !== clientId) {
@@ -78,8 +78,8 @@ export async function updateBodyCompositionAction(
   if (!session?.user) return { ok: false, error: "Unauthorized" as const }
 
   const isClient = session.user.role === "CLIENT"
-  const isTrainer = session.user.role === "TRAINER"
-  const isAdmin = session.user.role === "ADMIN"
+  const isTrainer = session.user.role === "COACH"
+  const isAdmin = session.user.role === "SUPER_ADMIN"
 
   // Only coach can edit (including client entries), client cannot edit, admin read only
   if (isClient) return { ok: false, error: "Forbidden" as const }
@@ -119,8 +119,8 @@ export async function deleteBodyCompositionAction(clientId: string, entryId: str
   if (!session?.user) return { ok: false, error: "Unauthorized" as const }
 
   const isClient = session.user.role === "CLIENT"
-  const isTrainer = session.user.role === "TRAINER"
-  const isAdmin = session.user.role === "ADMIN"
+  const isTrainer = session.user.role === "COACH"
+  const isAdmin = session.user.role === "SUPER_ADMIN"
 
   // Only coach can delete ANY entry (including client entries)
   if (isClient) return { ok: false, error: "Forbidden" as const }
@@ -144,8 +144,8 @@ export async function updateClientPainFlagsAction(
   if (!session?.user) return { ok: false, error: "Unauthorized" as const }
 
   const isClient = session.user.role === "CLIENT"
-  const isTrainer = session.user.role === "TRAINER"
-  const isAdmin = session.user.role === "ADMIN"
+  const isTrainer = session.user.role === "COACH"
+  const isAdmin = session.user.role === "SUPER_ADMIN"
 
   if (isAdmin) return { ok: false, error: "Forbidden" as const }
   if (isClient && session.user.clientProfileId !== clientId) return { ok: false, error: "Forbidden" as const }

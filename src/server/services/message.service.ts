@@ -249,7 +249,7 @@ export async function sendMessage(params: {
   if (!conversation) throw new Error("Conversation not found")
 
   // RBAC: ensure sender belongs to conversation
-  if (senderRole === "TRAINER") {
+  if (senderRole === "COACH") {
     if ((conversation as Conversation).trainerId !== params.trainerId) {
       const owner = await pool.query<{ id: string }>(`SELECT "id" FROM "TrainerProfile" WHERE "userId" = $1 LIMIT 1`, [senderId])
       if (!owner.rowCount || owner.rowCount === 0 || (owner.rows[0] as { id: string }).id !== (conversation as Conversation).trainerId) throw new Error("Forbidden")
@@ -299,7 +299,7 @@ export async function sendMessage(params: {
 }
 
 export async function markMessagesAsRead(conversationId: string, readerId: string, readerRole: Role) {
-  const oppositeRole: Role = readerRole === "TRAINER" ? "CLIENT" : "TRAINER"
+  const oppositeRole: Role = readerRole === "COACH" ? "CLIENT" : "COACH"
   await pool.query(
     `UPDATE "Message" SET "readAt" = NOW(), "updatedAt" = NOW()
      WHERE "conversationId" = $1 AND "senderRole" = $2::"Role" AND "readAt" IS NULL`,
@@ -346,7 +346,7 @@ export async function countUnreadForClient(userId: string) {
        JOIN "Conversation" c ON m."conversationId" = c."id"
        JOIN "Client" cl ON c."clientId" = cl."id"
        WHERE cl."userId" = $1 AND m."senderRole" = $2::"Role" AND m."readAt" IS NULL`,
-      [userId, "TRAINER"]
+      [userId, "COACH"]
     )
     const count = (res.rows[0] as { count: number }).count
     unreadClientCache.set(userId, { count, expires: Date.now() + UNREAD_TTL_MS })

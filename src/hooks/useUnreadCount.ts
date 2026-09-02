@@ -6,7 +6,7 @@ import { db } from "@/lib/idb";
 
 const TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-export function useUnreadCount(role: "TRAINER" | "CLIENT", id: string | undefined) {
+export function useUnreadCount(role: "COACH" | "CLIENT", id: string | undefined) {
   const cacheKey = id ? `${role}-${id}` : undefined;
   const [count, setCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);

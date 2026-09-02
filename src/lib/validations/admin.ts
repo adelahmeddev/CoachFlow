@@ -4,6 +4,7 @@ import {
   Goal,
   PaymentStatus,
   SubscriptionStatus,
+  CoachSubscriptionStatus,
 } from "@/lib/db/enums"
 import { interpolate } from "@/lib/i18n/format"
 import type { Dictionary } from "@/lib/i18n/messages/en"
@@ -120,3 +121,25 @@ export const adminSubscriptionsQuerySchema = z.object({
 })
 
 export type AdminSubscriptionsQuery = z.infer<typeof adminSubscriptionsQuerySchema>
+
+export const adminCoachSubscriptionsQuerySchema = z.object({
+  q: z.string().trim().max(100).optional(),
+  status: z.nativeEnum(CoachSubscriptionStatus).optional(),
+  filter: z.enum(["expiring_soon"]).optional(),
+  page: z.coerce.number().int().positive().default(1),
+  perPage: z.coerce.number().int().positive().max(100).default(10),
+})
+
+export type AdminCoachSubscriptionsQuery = z.infer<typeof adminCoachSubscriptionsQuerySchema>
+
+export const setCoachSubscriptionSchema = z.object({
+  startDate: z.coerce.date(),
+  durationDays: z.coerce.number().int().positive().max(365).optional(),
+  endDate: z.coerce.date().optional(),
+  amountPaid: z.coerce.number().positive().max(1_000_000),
+  paymentDate: z.coerce.date(),
+  notes: z.string().trim().max(1000).optional().nullable(),
+  status: z.nativeEnum(CoachSubscriptionStatus).optional(),
+}).refine((d) => d.durationDays || d.endDate, { message: "Provide durationDays or endDate", path: ["durationDays"] })
+
+export type SetCoachSubscriptionInput = z.infer<typeof setCoachSubscriptionSchema>

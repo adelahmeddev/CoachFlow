@@ -21,7 +21,7 @@ export async function sendMessageAction(input: unknown) {
   const role = session.user.role
   const senderId = session.user.id
 
-  if (role !== "TRAINER" && role !== "CLIENT") {
+  if (role !== "COACH" && role !== "CLIENT") {
     return { ok: false as const, error: "Forbidden" }
   }
 
@@ -29,7 +29,7 @@ export async function sendMessageAction(input: unknown) {
     let trainerId: string | undefined
     let clientUserId: string | undefined
 
-    if (role === "TRAINER") {
+    if (role === "COACH") {
       trainerId = session.user.trainerProfileId
       if (!trainerId) return { ok: false as const, error: "No trainer profile" }
     } else {
@@ -72,13 +72,13 @@ export async function markMessagesReadAction(conversationId: string) {
   const session = await getCurrentSession()
   if (!session?.user) return { ok: false as const, error: "Unauthorized" }
   const role = session.user.role
-  if (role !== "TRAINER" && role !== "CLIENT") return { ok: false as const, error: "Forbidden" }
+  if (role !== "COACH" && role !== "CLIENT") return { ok: false as const, error: "Forbidden" }
 
   const conv = await getConversationById(conversationId)
   if (!conv) return { ok: false as const, error: "Conversation not found" }
 
   // RBAC check
-  if (role === "TRAINER") {
+  if (role === "COACH") {
     if (conv.trainerId !== session.user.trainerProfileId) return { ok: false as const, error: "Forbidden" }
   } else {
     if (conv.client.userId !== session.user.id) return { ok: false as const, error: "Forbidden" }

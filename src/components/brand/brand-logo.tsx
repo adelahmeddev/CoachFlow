@@ -4,6 +4,7 @@ import Image from "next/image"
 import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
+import { useBranding } from "@/components/branding/branding-provider"
 
 type Variant = "full" | "mark"
 
@@ -37,8 +38,14 @@ const FILES = {
 /**
  * Gradient wordmark — used as graceful fallback when the image fails to load,
  * and alongside the mark when showWordmark is set.
+ * If coach has custom branding, show brandName, else CoachFlow/NANOUSH default.
  */
 function Wordmark({ fontSize, className }: { fontSize: number; className?: string }) {
+  let brandName = "NANOUSH"
+  try {
+    const b = useBranding()
+    if (b.brandName && b.brandName !== "CoachFlow") brandName = b.brandName
+  } catch {}
   return (
     <span
       dir="ltr"
@@ -48,7 +55,7 @@ function Wordmark({ fontSize, className }: { fontSize: number; className?: strin
       )}
       style={{ fontSize }}
     >
-      NANOUSH
+      {brandName}
     </span>
   )
 }
@@ -66,6 +73,13 @@ export function BrandLogo({
   const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [error, setError] = useState(false)
+  let brandingLogo: string | null = null
+  let brandingName: string | null = null
+  try {
+    const b = useBranding()
+    brandingLogo = b.logoUrl
+    brandingName = b.brandName
+  } catch {}
 
   useEffect(() => {
     setMounted(true)
@@ -117,6 +131,28 @@ export function BrandLogo({
         style={{ width: w, height: h }}
       >
         <Wordmark fontSize={Math.max(12, h * 0.32)} />
+      </span>
+    )
+  }
+
+  // If coach has custom logo, use it (never break on missing)
+  if (brandingLogo) {
+    return (
+      <span
+        className={cn("inline-flex shrink-0 items-center", className)}
+        style={{ gap: 10 }}
+        aria-hidden={alt ? undefined : true}
+      >
+        <img
+          src={brandingLogo}
+          alt={brandingName || alt}
+          height={h}
+          width={w}
+          className="h-auto w-auto max-w-full object-contain"
+          style={{ height: h, width: w }}
+          onError={() => setError(true)}
+        />
+        {showWordmark && <Wordmark fontSize={Math.max(14, h * 0.42)} />}
       </span>
     )
   }

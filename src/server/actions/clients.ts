@@ -18,7 +18,7 @@ export async function createClientManuallyAction(input: {
   const session = await getCurrentSession()
   if (
     !session?.user ||
-    session.user.role !== "TRAINER" ||
+    session.user.role !== "COACH" ||
     !session.user.trainerProfileId
   ) {
     return { ok: false as const, error: "Unauthorized" }
@@ -47,7 +47,7 @@ export async function deleteClientAction(clientId: string) {
   const session = await getCurrentSession()
   if (
     !session?.user ||
-    session.user.role !== "TRAINER" ||
+    session.user.role !== "COACH" ||
     !session.user.trainerProfileId
   ) {
     return { ok: false as const, error: "Unauthorized" }

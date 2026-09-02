@@ -23,7 +23,7 @@ export async function NutritionTab({ clientId }: { clientId: string }) {
   const session = await getCurrentSession()
   if (
     !session?.user ||
-    session.user.role !== "TRAINER" ||
+    session.user.role !== "COACH" ||
     !session.user.trainerProfileId
   ) {
     return <p className="text-destructive">{t.toasts.unauthorized}</p>

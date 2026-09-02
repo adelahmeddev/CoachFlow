@@ -12,7 +12,7 @@ async function main() {
     await withTransaction(async (tx) => {
       await tx.query(
         `INSERT INTO "User" ("id","phone","passwordHash","role","createdAt","updatedAt") VALUES ($1,$2,$3,$4::"Role",NOW(),NOW())`,
-        [userId, "02001112222", hash, "TRAINER"]
+        [userId, "02001112222", hash, "COACH"]
       )
       await tx.query(
         `INSERT INTO "TrainerProfile" ("id","userId","fullName","phone","createdAt","updatedAt") VALUES ($1,$2,$3,$4,NOW(),NOW())`,

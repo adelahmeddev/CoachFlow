@@ -26,8 +26,8 @@ export default async function ClientProfilePage({
 
   if (
     !session?.user ||
-    (session.user.role !== "TRAINER" && session.user.role !== "ADMIN") ||
-    (session.user.role === "TRAINER" && !session.user.trainerProfileId)
+    (session.user.role !== "COACH" && session.user.role !== "SUPER_ADMIN") ||
+    (session.user.role === "COACH" && !session.user.trainerProfileId)
   ) {
     notFound()
   }
@@ -37,7 +37,7 @@ export default async function ClientProfilePage({
   const activeTab = parseClientProfileTab(tab) ?? DEFAULT_CLIENT_PROFILE_TAB
 
   const trainerProfileId =
-    session.user.role === "ADMIN" ? undefined : session.user.trainerProfileId
+    session.user.role === "SUPER_ADMIN" ? undefined : session.user.trainerProfileId
 
   let profile: Awaited<ReturnType<typeof getClientProfile>> | null = null
   try {

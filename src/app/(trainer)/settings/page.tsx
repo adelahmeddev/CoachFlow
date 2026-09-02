@@ -24,7 +24,7 @@ export default async function SettingsPage() {
   const session = await getCurrentSession()
   if (
     !session?.user ||
-    session.user.role !== "TRAINER" ||
+    session.user.role !== "COACH" ||
     !session.user.trainerProfileId
   ) {
     redirect("/login")

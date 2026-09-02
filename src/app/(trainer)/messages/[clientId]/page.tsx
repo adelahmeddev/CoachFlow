@@ -20,7 +20,7 @@ export default async function TrainerThreadPage({
   const { clientId } = await params
   const { cursor } = await searchParams
   const session = await getCurrentSession()
-  if (!session?.user || session.user.role !== "TRAINER" || !session.user.trainerProfileId) {
+  if (!session?.user || session.user.role !== "COACH" || !session.user.trainerProfileId) {
     redirect("/login")
   }
   const trainerId = session.user.trainerProfileId

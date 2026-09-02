@@ -21,7 +21,7 @@ import { SubscriptionStatus } from "@/lib/db/enums"
 function isAuthorized(session: Awaited<ReturnType<typeof getCurrentSession>>) {
   return Boolean(
     session?.user &&
-      session.user.role === "TRAINER" &&
+      session.user.role === "COACH" &&
       session.user.trainerProfileId
   )
 }

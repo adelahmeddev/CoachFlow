@@ -25,7 +25,7 @@ export async function resetUserPasswordAction(
   const session = await getCurrentSession()
   if (
     !session?.user ||
-    (session.user.role !== "ADMIN" && session.user.role !== "TRAINER")
+    (session.user.role !== "SUPER_ADMIN" && session.user.role !== "COACH")
   ) {
     return { ok: false, error: "UNAUTHORIZED" }
   }

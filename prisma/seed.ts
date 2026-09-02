@@ -28,11 +28,16 @@ async function main() {
     const id = generateId()
     await pool.query(
       `INSERT INTO "User" ("id","username","email","passwordHash","role","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5::"Role",NOW(),NOW())`,
-      [id, adminUsername, adminEmail, passwordHash, "ADMIN"]
+      [id, adminUsername, adminEmail, passwordHash, "SUPER_ADMIN"]
     )
-    console.log(`Created admin user "${adminUsername}" (role ADMIN)`)
+    console.log(`Created admin user "${adminUsername}" (role SUPER_ADMIN)`)
   } else {
-    console.log(`Admin user "${adminUsername}" already exists, skipping`)
+    // Update role if it was changed (e.g., ADMIN -> SUPER_ADMIN)
+    await pool.query(
+      `UPDATE "User" SET "role" = $1::"Role", "updatedAt" = NOW() WHERE "username" = $2 AND "role" <> $1::"Role"`,
+      ["SUPER_ADMIN", adminUsername]
+    )
+    console.log(`Admin user "${adminUsername}" already exists, ensured role is SUPER_ADMIN`)
   }
 
   const globalTemplates = [
@@ -80,6 +85,9 @@ async function main() {
   await seedExerciseLibrary()
   await seedGlobalSplitTemplates()
 
+  // Always ensure default CoachSubscriptionPlan exists and backfill trials for existing coaches
+  await ensureCoachSubscriptionPlan()
+
   if (seedDemo) {
     console.log("Seeding demo data...")
     await seedDemoData()
@@ -99,7 +107,7 @@ async function seedDemoData() {
     await withTransaction(async (client) => {
       await client.query(
         `INSERT INTO "User" ("id","username","email","passwordHash","phone","role","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6::"Role",NOW(),NOW())`,
-        [userId, "trainer1", "trainer1@demo.local", trainerPassword, "+1555000111", "TRAINER"]
+        [userId, "trainer1", "trainer1@demo.local", trainerPassword, "+1555000111", "COACH"]
       )
       await client.query(
         `INSERT INTO "TrainerProfile" ("id","userId","fullName","phone","createdAt","updatedAt") VALUES ($1,$2,$3,$4,NOW(),NOW())`,
@@ -110,6 +118,11 @@ async function seedDemoData() {
     trainerUser = fresh.rows[0]
   } else {
     trainerUser = trainerUserRow.rows[0]
+    // Update role if it was changed (e.g., TRAINER -> COACH)
+    await pool.query(
+      `UPDATE "User" SET "role" = $1::"Role", "updatedAt" = NOW() WHERE "id" = $2 AND "role" <> $1::"Role"`,
+      ["COACH", trainerUser.id]
+    )
   }
 
   const trainerProfileRes = await pool.query(`SELECT * FROM "TrainerProfile" WHERE "userId" = $1 LIMIT 1`, [trainerUser.id])
@@ -118,6 +131,26 @@ async function seedDemoData() {
     return
   }
   const trainerProfile = trainerProfileRes.rows[0]
+
+  // Ensure coach has a subscription (simple manual model)
+  const subRes = await pool.query(
+    `SELECT "id" FROM "CoachSubscription" WHERE "coachId" = $1 LIMIT 1`,
+    [trainerProfile.id]
+  )
+  if (subRes.rowCount === 0) {
+    const subscriptionId = generateId()
+    const now = new Date()
+    const end = new Date(now)
+    end.setDate(end.getDate() + 30)
+    await pool.query(
+      `INSERT INTO "CoachSubscription" ("id","coachId","startDate","endDate","amountPaid","paymentDate","status","notes","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,'ACTIVE'::"CoachSubscriptionStatus",$7,NOW(),NOW())`,
+      [subscriptionId, trainerProfile.id, now, end, 500, now, "Demo subscription"]
+    )
+    await pool.query(
+      `INSERT INTO "PaymentRecord" ("id","coachId","subscriptionId","amount","paymentDate","notes","createdAt") VALUES ($1,$2,$3,$4,$5,$6,NOW())`,
+      [generateId(), trainerProfile.id, subscriptionId, 500, now, "Demo initial payment"]
+    )
+  }
 
   // Create demo client
   const clientId = generateId()
@@ -568,6 +601,29 @@ async function seedGlobalSplitTemplates() {
     count++
   }
   console.log(`Global split templates ready (${count} created)`)
+}
+
+async function ensureCoachSubscriptionPlan() {
+  // New manual model: create a simple 30-day ACTIVE subscription for coaches without one
+  const coaches = await pool.query(`SELECT "id" FROM "TrainerProfile"`)
+  for (const row of coaches.rows as { id: string }[]) {
+    const exists = await pool.query(`SELECT "id" FROM "CoachSubscription" WHERE "coachId" = $1 LIMIT 1`, [row.id])
+    if ((exists.rowCount ?? 0) === 0) {
+      const subId = generateId()
+      const now = new Date()
+      const end = new Date(now)
+      end.setDate(end.getDate() + 30)
+      await pool.query(
+        `INSERT INTO "CoachSubscription" ("id","coachId","startDate","endDate","amountPaid","paymentDate","status","notes","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,'ACTIVE'::"CoachSubscriptionStatus",$7,NOW(),NOW())`,
+        [subId, row.id, now, end, 500, now, "Initial 30-day subscription"]
+      )
+      await pool.query(
+        `INSERT INTO "PaymentRecord" ("id","coachId","subscriptionId","amount","paymentDate","notes","createdAt") VALUES ($1,$2,$3,$4,$5,$6,NOW())`,
+        [generateId(), row.id, subId, 500, now, "Initial subscription"]
+      )
+      console.log(`Created initial subscription for coach ${row.id}`)
+    }
+  }
 }
 
 main()

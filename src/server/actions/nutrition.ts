@@ -25,7 +25,7 @@ type Session = Awaited<ReturnType<typeof getCurrentSession>>
 function requireTrainer(session: Session): string | null {
   if (
     !session?.user ||
-    session.user.role !== "TRAINER" ||
+    session.user.role !== "COACH" ||
     !session.user.trainerProfileId
   ) {
     return null

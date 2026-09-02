@@ -14,7 +14,7 @@ export default async function AssignNutritionPage({
   const session = await getCurrentSession()
   const { t } = await getI18n()
 
-  if (!session?.user || session.user.role !== "TRAINER" || !session.user.trainerProfileId) {
+  if (!session?.user || session.user.role !== "COACH" || !session.user.trainerProfileId) {
     notFound()
   }
 

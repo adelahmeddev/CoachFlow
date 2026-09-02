@@ -21,14 +21,25 @@ export async function getAdminDashboardStats() {
     async () => {
       const [
         totalTrainersRes,
+        activeTrainersRes,
+        suspendedTrainersRes,
         totalClientsRes,
         activeSubscriptionsRes,
         pendingAssessmentsRes,
+        activeCoachSubsRes,
+        expiredCoachSubsRes,
+        expiringSoonRes,
         recentTrainersRes,
         recentClientsRes,
       ] = await Promise.all([
         pool.query<{ count: number }>(
           `SELECT COUNT(*)::int AS count FROM "TrainerProfile"`
+        ),
+        pool.query<{ count: number }>(
+          `SELECT COUNT(*)::int AS count FROM "TrainerProfile" WHERE "accountStatus" = 'ACTIVE'`
+        ),
+        pool.query<{ count: number }>(
+          `SELECT COUNT(*)::int AS count FROM "TrainerProfile" WHERE "accountStatus" = 'SUSPENDED'`
         ),
         pool.query<{ count: number }>(
           `SELECT COUNT(*)::int AS count FROM "Client"`
@@ -41,13 +52,23 @@ export async function getAdminDashboardStats() {
           `SELECT COUNT(*)::int AS count FROM "Client" WHERE "status" = $1::"ClientStatus"`,
           [ClientStatus.PENDING_ASSESSMENT]
         ),
+        pool.query<{ count: number }>(
+          `SELECT COUNT(*)::int AS count FROM "CoachSubscription" WHERE "status" = 'ACTIVE'::"CoachSubscriptionStatus"`
+        ),
+        pool.query<{ count: number }>(
+          `SELECT COUNT(*)::int AS count FROM "CoachSubscription" WHERE "status" = 'EXPIRED'::"CoachSubscriptionStatus"`
+        ),
+        pool.query<{ count: number }>(
+          `SELECT COUNT(*)::int AS count FROM "CoachSubscription" WHERE "status" = 'ACTIVE'::"CoachSubscriptionStatus" AND "endDate" BETWEEN NOW() AND NOW() + INTERVAL '7 days'`
+        ),
         pool.query<{
           id: string
           fullName: string
           phone: string
           createdAt: Date
+          accountStatus: string
         }>(
-          `SELECT "id", "fullName", "phone", "createdAt" FROM "TrainerProfile" ORDER BY "createdAt" DESC LIMIT 5`
+          `SELECT "id", "fullName", "phone", "createdAt", "accountStatus" FROM "TrainerProfile" ORDER BY "createdAt" DESC LIMIT 5`
         ),
         pool.query<{
           id: string
@@ -65,15 +86,21 @@ export async function getAdminDashboardStats() {
       ])
 
       const totalTrainers = (totalTrainersRes.rows[0] as { count: number }).count
+      const activeTrainers = (activeTrainersRes.rows[0] as { count: number }).count
+      const suspendedTrainers = (suspendedTrainersRes.rows[0] as { count: number }).count
       const totalClients = (totalClientsRes.rows[0] as { count: number }).count
       const activeSubscriptions = (activeSubscriptionsRes.rows[0] as { count: number }).count
       const pendingAssessments = (pendingAssessmentsRes.rows[0] as { count: number }).count
+      const activeCoachSubscriptions = (activeCoachSubsRes.rows[0] as { count: number }).count
+      const expiredCoachSubscriptions = (expiredCoachSubsRes.rows[0] as { count: number }).count
+      const expiringSoon = (expiringSoonRes.rows[0] as { count: number }).count
 
       const recentTrainers = recentTrainersRes.rows as {
         id: string
         fullName: string
         phone: string
         createdAt: Date
+        accountStatus: string
       }[]
 
       const recentClientsRaw = recentClientsRes.rows as {
@@ -94,9 +121,14 @@ export async function getAdminDashboardStats() {
 
       return {
         totalTrainers,
+        activeTrainers,
+        suspendedTrainers,
         totalClients,
         activeSubscriptions,
         pendingAssessments,
+        activeCoachSubscriptions,
+        expiredCoachSubscriptions,
+        expiringSoon,
         recentTrainers: recentTrainers.map((trainer) => ({
           ...trainer,
           createdAt: toIso(trainer.createdAt)!,
@@ -113,7 +145,7 @@ export async function getAdminDashboardStats() {
   )()
 }
 
-export async function getAdminTrainers(params: AdminTrainersQuery) {
+export async function getAdminTrainers(params: AdminTrainersQuery & { status?: string; filter?: string }) {
   const page = params.page ?? 1
   const perPage = params.perPage ?? 10
   const offset = (page - 1) * perPage
@@ -127,12 +159,21 @@ export async function getAdminTrainers(params: AdminTrainersQuery) {
     whereParams.push(`%${params.q}%`)
     idx++
   }
+  if ((params as { status?: string }).status) {
+    whereParts.push(`cs."status" = $${idx}::"CoachSubscriptionStatus"`)
+    whereParams.push((params as { status: string }).status)
+    idx++
+  }
+  if ((params as { filter?: string }).filter === "expiring_soon") {
+    whereParts.push(`cs."status" = 'ACTIVE'::"CoachSubscriptionStatus" AND cs."endDate" BETWEEN NOW() AND NOW() + INTERVAL '7 days'`)
+  }
 
   const whereSql = whereParts.length ? `WHERE ${whereParts.join(" AND ")}` : ""
+  const joinSql = `LEFT JOIN "CoachSubscription" cs ON cs."coachId" = tp."id" LEFT JOIN "CoachBranding" cb ON cb."coachId" = tp."id"`
 
   const [totalRes, trainersRes] = await Promise.all([
     pool.query<{ count: number }>(
-      `SELECT COUNT(*)::int AS count FROM "TrainerProfile" tp ${whereSql}`,
+      `SELECT COUNT(*)::int AS count FROM "TrainerProfile" tp ${joinSql} ${whereSql}`,
       whereParams
     ),
     pool.query<{
@@ -142,11 +183,21 @@ export async function getAdminTrainers(params: AdminTrainersQuery) {
       createdAt: Date
       username: string | null
       clientsCount: number
+      accountStatus: string
+      subscriptionStatus: string | null
+      subscriptionEndDate: Date | null
+      amountPaid: string | null
+      brandName: string | null
+      logoUrl: string | null
+      primaryColor: string | null
     }>(
-      `SELECT tp."id", tp."fullName", tp."phone", tp."createdAt", u."username",
-              (SELECT COUNT(*)::int FROM "Client" c WHERE c."trainerId" = tp."id") AS "clientsCount"
+      `SELECT tp."id", tp."fullName", tp."phone", tp."createdAt", tp."accountStatus", u."username",
+              (SELECT COUNT(*)::int FROM "Client" c WHERE c."trainerId" = tp."id") AS "clientsCount",
+              cs."status" AS "subscriptionStatus", cs."endDate" AS "subscriptionEndDate", cs."amountPaid",
+              cb."brandName", cb."logoUrl", cb."primaryColor"
        FROM "TrainerProfile" tp
        LEFT JOIN "User" u ON u."id" = tp."userId"
+       ${joinSql}
        ${whereSql}
        ORDER BY tp."createdAt" DESC
        LIMIT $${idx} OFFSET $${idx + 1}`,
@@ -160,6 +211,14 @@ export async function getAdminTrainers(params: AdminTrainersQuery) {
     fullName: r.fullName,
     phone: r.phone,
     createdAt: r.createdAt,
+    accountStatus: r.accountStatus,
+    subscriptionStatus: r.subscriptionStatus,
+    subscriptionEndDate: r.subscriptionEndDate,
+    amountPaid: r.amountPaid ? String(r.amountPaid) : null,
+    brandName: r.brandName,
+    logoUrl: r.logoUrl,
+    primaryColor: r.primaryColor,
+    hasCustomBranding: !!(r.brandName || r.logoUrl || r.primaryColor),
     user: r.username !== null ? { username: r.username } : null,
     _count: { clients: Number(r.clientsCount) },
   }))
@@ -417,7 +476,7 @@ export async function createTrainer(data: unknown) {
     await client.query(
       `INSERT INTO "User" ("id", "username", "phone", "passwordHash", "role", "createdAt", "updatedAt")
        VALUES ($1, $2, $3, $4, $5::"Role", $6, $6)`,
-      [id, phone, phone, passwordHash, "TRAINER", now]
+      [id, phone, phone, passwordHash, "COACH", now]
     )
 
     await client.query(
@@ -430,4 +489,57 @@ export async function createTrainer(data: unknown) {
   })
 
   return { ok: true as const, userId }
+}
+
+export async function getAdminCoachDetails(coachId: string) {
+  const res = await pool.query(
+    `SELECT tp."id", tp."fullName", tp."phone", tp."createdAt", tp."accountStatus",
+            u."id" AS "userId", u."username", u."email", u."mustChangePassword",
+            (SELECT COUNT(*)::int FROM "Client" c WHERE c."trainerId" = tp."id") AS "clientsCount"
+     FROM "TrainerProfile" tp
+     LEFT JOIN "User" u ON u."id" = tp."userId"
+     WHERE tp."id" = $1 LIMIT 1`,
+    [coachId]
+  )
+  if (res.rowCount === 0) return null
+  const row = res.rows[0] as {
+    id: string
+    fullName: string
+    phone: string
+    createdAt: Date
+    accountStatus: string
+    userId: string
+    username: string | null
+    email: string | null
+    mustChangePassword: boolean
+    clientsCount: number
+  }
+  return {
+    id: row.id,
+    fullName: row.fullName,
+    phone: row.phone,
+    createdAt: toIso(row.createdAt)!,
+    accountStatus: row.accountStatus,
+    userId: row.userId,
+    username: row.username,
+    email: row.email,
+    mustChangePassword: row.mustChangePassword,
+    clientsCount: row.clientsCount,
+  }
+}
+
+export async function suspendCoach(coachId: string): Promise<boolean> {
+  const res = await pool.query(
+    `UPDATE "TrainerProfile" SET "accountStatus" = 'SUSPENDED', "updatedAt" = NOW() WHERE "id" = $1 RETURNING "id"`,
+    [coachId]
+  )
+  return (res.rowCount ?? 0) > 0
+}
+
+export async function activateCoach(coachId: string): Promise<boolean> {
+  const res = await pool.query(
+    `UPDATE "TrainerProfile" SET "accountStatus" = 'ACTIVE', "updatedAt" = NOW() WHERE "id" = $1 RETURNING "id"`,
+    [coachId]
+  )
+  return (res.rowCount ?? 0) > 0
 }

@@ -3,11 +3,11 @@ import { Suspense } from "react"
 import { notFound } from "next/navigation"
 import { getCurrentSession } from "@/server/auth"
 import { getI18n } from "@/lib/i18n"
-import { getAdminSubscriptions } from "@/server/services/admin.service"
-import { adminSubscriptionsQuerySchema } from "@/lib/validations/admin"
+import { adminCoachSubscriptionsQuerySchema } from "@/lib/validations/admin"
+import { listCoachSubscriptions } from "@/server/services/coach-subscription.service"
 import { Card, CardContent } from "@/components/ui/card"
-import { AdminSubscriptionsFilters } from "@/components/features/admin/admin-subscriptions-filters"
-import { AdminSubscriptionsTable } from "@/components/features/admin/admin-subscriptions-table"
+import { AdminCoachSubscriptionsFilters } from "@/components/features/admin/admin-coach-subscriptions-filters"
+import { AdminCoachSubscriptionsTable } from "@/components/features/admin/admin-coach-subscriptions-table"
 import { AdminPagination } from "@/components/features/admin/admin-pagination"
 import { AdminEmptyState } from "@/components/features/admin/admin-empty-state"
 
@@ -22,25 +22,25 @@ export default async function AdminSubscriptionsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const session = await getCurrentSession()
-  if (!session?.user || session.user.role !== "ADMIN") {
+  if (!session?.user || session.user.role !== "SUPER_ADMIN") {
     notFound()
   }
 
   const { t } = await getI18n()
 
   const rawParams = await searchParams
-  const parsed = adminSubscriptionsQuerySchema.safeParse({
+  const parsed = adminCoachSubscriptionsQuerySchema.safeParse({
     q: rawParams.q,
     status: rawParams.status,
-    paymentStatus: rawParams.paymentStatus,
+    filter: rawParams.filter,
     page: rawParams.page,
     perPage: rawParams.perPage,
   })
   const params = parsed.success ? parsed.data : { page: 1, perPage: 10 }
 
-  const result = await getAdminSubscriptions(params)
+  const result = await listCoachSubscriptions(params as { status?: import("@/lib/db/enums").CoachSubscriptionStatus; filter?: string; q?: string; page?: number; perPage?: number })
 
-  const hasFilters = Boolean(params.q || params.status || params.paymentStatus)
+  const hasFilters = Boolean(params.q || params.status || (params as { filter?: string }).filter)
   const showNoResults = hasFilters && result.subscriptions.length === 0
   const showNoSubscriptions = !hasFilters && result.total === 0
 
@@ -48,13 +48,13 @@ export default async function AdminSubscriptionsPage({
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">
-          {t.admin.subscriptions.title}
+          Coach Subscriptions
         </h1>
-        <p className="text-muted-foreground">{t.admin.subscriptions.subtitle}</p>
+        <p className="text-muted-foreground">Admin-controlled manual subscriptions — active, expired, expiring soon, suspended.</p>
       </div>
 
       <Suspense fallback={<div className="h-10" />}>
-        <AdminSubscriptionsFilters />
+        <AdminCoachSubscriptionsFilters />
       </Suspense>
 
       <Card>
@@ -70,7 +70,7 @@ export default async function AdminSubscriptionsPage({
               description={t.admin.subscriptions.noResultsDescription}
             />
           ) : (
-            <AdminSubscriptionsTable subscriptions={result.subscriptions} />
+            <AdminCoachSubscriptionsTable subscriptions={result.subscriptions as unknown as never} />
           )}
         </CardContent>
       </Card>

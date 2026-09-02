@@ -12,7 +12,7 @@ export default async function NewSubscriptionPlanPage() {
 
   if (
     !session?.user ||
-    session.user.role !== "TRAINER" ||
+    session.user.role !== "COACH" ||
     !session.user.trainerProfileId
   ) {
     notFound()
