@@ -331,9 +331,9 @@ Hidden: `npx prisma migrate dev`, `npx prisma studio`, `npx playwright test`.
 ## 13. CI/CD & Deployment
 
 * No `.github/workflows`, `Dockerfile` absent; local `.pg/` folder suggests Docker Postgres for dev, but prod uses Neon.
-* Current prod: **Vercel** (`NEXTAUTH_URL https://coachflow-fitness-gaceradam-9189s-projects.vercel.app`, `VERCEL=1` pool `max 5` vs dev `max10`, `idle 10s/30s`, `connectionTimeout 15s/10s`, `statement_timeout 15s`, `NEXTAUTH_SECRET` set).
+* Current prod: **Vercel** (`NEXTAUTH_URL https://coach-flow-pi.vercel.app`, `NEXT_PUBLIC_APP_URL https://coach-flow-pi.vercel.app`, `VERCEL=1` pool `max 5` vs dev `max10`, `idle 10s/30s`, `connectionTimeout 15s/10s`, `statement_timeout 15s`, `NEXTAUTH_SECRET` set).
 * Build: `next build` Turbopack, output `/.next`, `vercel --prod` manual. No preview CI.
-* Env on Vercel: `DATABASE_URL` (pooled), `NEXTAUTH_SECRET`, `ADMIN_*`.
+* Env on Vercel: `DATABASE_URL` (pooled), `NEXTAUTH_SECRET`, `NEXT_PUBLIC_APP_URL`, `ADMIN_*`.
 
 ---
 
