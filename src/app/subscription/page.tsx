@@ -51,7 +51,7 @@ export default async function SubscriptionPage() {
         </Card>
       ) : (
         <Card>
-          <CardContent className="p-6 text-sm text-muted-foreground">No subscription yet. Please contact admin — your subscription will be created after you pay outside CoachFlow.</CardContent>
+          <CardContent className="p-6 text-sm text-muted-foreground">No subscription yet. Please contact admin — your subscription will be created after you pay outside Coach Flow.</CardContent>
         </Card>
       )}
 

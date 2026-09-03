@@ -16,7 +16,7 @@ export function SubscriptionExpiredView({ status, daysRemaining }: Props) {
   const isExpired = status === "EXPIRED"
 
   let title = "Subscription Required"
-  let description = "Your CoachFlow subscription has expired. Renew your subscription to continue managing your clients."
+  let description = "Your Coach Flow subscription has expired. Renew your subscription to continue managing your clients."
   let icon = <AlertTriangle className="size-6 text-amber-600" />
 
   if (isSuspended) {
