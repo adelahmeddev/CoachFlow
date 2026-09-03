@@ -162,7 +162,7 @@ export async function ClientProfileHeader({ profile }: ClientProfileHeaderProps)
               {
                 label: isAr ? "آخر نشاط" : "Last active",
                 value: client.basicInfoCompletedAt
-                  ? new Date(client.basicInfoCompletedAt).toLocaleDateString(isAr ? "ar-EG" : "en-GB", { day: "2-digit", month: "short" })
+                  ? new Date(client.basicInfoCompletedAt).toLocaleDateString(isAr ? "ar-EG-u-nu-latn" : "en-GB", { day: "2-digit", month: "short" })
                   : isAr ? "—" : "—",
                 sub: client.basicInfoCompletedAt ? (isAr ? "تابع تقدمه" : "check progress") : isAr ? "مفيش" : "—",
                 icon: "⏱️",

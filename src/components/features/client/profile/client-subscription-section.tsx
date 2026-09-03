@@ -62,7 +62,7 @@ export function MySubscriptionSection({
           </label>
           <p className="font-medium">
             {subscription?.endDate
-              ? new Date(subscription.endDate).toLocaleDateString(locale)
+              ? new Date(subscription.endDate).toLocaleDateString(locale === "ar" ? "ar-EG-u-nu-latn" : locale)
               : "—"}
           </p>
         </div>

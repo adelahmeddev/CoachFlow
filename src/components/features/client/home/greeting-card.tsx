@@ -13,7 +13,7 @@ export function GreetingCard({
 }) {
   const { t, locale } = useI18n()
   const isAr = locale === "ar"
-  const date = new Date().toLocaleDateString(locale, {
+  const date = new Date().toLocaleDateString(locale === "ar" ? "ar-EG-u-nu-latn" : locale, {
     weekday: "long",
     year: "numeric",
     month: "long",

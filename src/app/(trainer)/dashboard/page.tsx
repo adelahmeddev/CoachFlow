@@ -61,7 +61,7 @@ export default async function DashboardPage() {
     }
     recentClients = []
   }
-  const todayStr = new Date().toLocaleDateString(locale, { weekday: "long", year: "numeric", month: "long", day: "numeric" })
+  const todayStr = new Date().toLocaleDateString(locale === "ar" ? "ar-EG-u-nu-latn" : locale, { weekday: "long", year: "numeric", month: "long", day: "numeric" })
 
   const pendingCount = stats.pendingAssessment
   const activeCount = stats.activeClients

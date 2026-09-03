@@ -38,7 +38,7 @@ export function MyGoalsSection({
           </label>
           <p className="font-medium">
             {client.targetDate
-              ? new Date(client.targetDate).toLocaleDateString(locale)
+              ? new Date(client.targetDate).toLocaleDateString(locale === "ar" ? "ar-EG-u-nu-latn" : locale)
               : "—"}
           </p>
         </div>
