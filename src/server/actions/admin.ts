@@ -8,6 +8,7 @@ import {
   suspendCoach,
   activateCoach,
   getAdminCoachDetails,
+  deleteTrainer,
 } from "@/server/services/admin.service"
 import {
   setCoachSubscription,
@@ -173,4 +174,17 @@ export async function adminSetCoachSubscriptionStatusAction(
   } catch (e) {
     return { ok: false as const, error: (e as Error).message }
   }
+}
+
+export async function adminDeleteTrainerAction(coachId: string) {
+  const session = await getCurrentSession()
+  if (!session?.user || session.user.role !== "SUPER_ADMIN") {
+    return { ok: false as const, error: "UNAUTHORIZED" }
+  }
+  const ok = await deleteTrainer(coachId)
+  if (!ok) return { ok: false as const, error: "COACH_NOT_FOUND" }
+  revalidatePath("/admin")
+  revalidatePath("/admin/trainers")
+  invalidate(["admin:stats", "admin:trainers"])
+  return { ok: true as const }
 }

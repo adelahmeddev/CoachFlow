@@ -2,7 +2,7 @@ import { pool } from "@/lib/db"
 import type { CoachBranding } from "@/lib/db/types"
 
 export const DEFAULT_BRANDING = {
-  brandName: "CoachFlow",
+  brandName: "Coach Flow",
   logoUrl: null as string | null,
   primaryColor: "#E85D04",
 } as const

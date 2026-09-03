@@ -14,11 +14,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <main className="relative z-10 flex w-full max-w-md flex-col items-center gap-5 sm:gap-6">
         <div className="flex flex-col items-center gap-3 text-center">
           <div className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-medium ring-1 ring-brand-600/20 sm:h-20 sm:w-20">
-            <BrandLogo variant="mark" height={42} width={64} priority className="drop-shadow-sm" alt="NANOUSH" />
+            <BrandLogo variant="mark" height={42} width={64} priority className="drop-shadow-sm" alt="Coach Flow" />
           </div>
           <div className="space-y-1">
             <h1 className="font-heading text-2xl font-extrabold tracking-tight sm:text-[28px]">
-              NANOUSH
+              Coach Flow
             </h1>
             <p className="text-sm font-medium text-muted-foreground">
               نظام إدارة المدرب الشخصي
@@ -29,7 +29,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
           <span className="text-xs text-muted-foreground/60">•</span>
-          <span className="text-xs text-muted-foreground">© 2026 NANOUSH</span>
+          <span className="text-xs text-muted-foreground">© 2026 Coach Flow</span>
         </div>
       </main>
     </div>

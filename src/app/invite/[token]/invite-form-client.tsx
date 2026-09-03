@@ -78,7 +78,7 @@ export function InviteFormClient({ result, token }: InviteFormClientProps) {
         <LanguageSwitcher />
       </div>
       <div className="flex w-full max-w-lg flex-col items-center gap-4">
-        <BrandLogo height={48} width={82} priority className="mb-4" alt="NANOUSH" />
+        <BrandLogo height={48} width={82} priority className="mb-4" alt="Coach Flow" />
         <Card className="w-full">
           <CardHeader>
             <CardTitle>{t.invite.title}</CardTitle>

@@ -35,8 +35,9 @@ export function AdminBrandingForm({ coachId, initial }: { coachId: string; initi
   const [logoUrl, setLogoUrl] = useState(initial?.logoUrl ?? "")
   const [primaryColor, setPrimaryColor] = useState(initial?.primaryColor ?? "#E85D04")
   const [previewLogo, setPreviewLogo] = useState<string | null>(initial?.logoUrl ?? null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
-  const effectiveName = brandName.trim() || "CoachFlow"
+  const effectiveName = brandName.trim() || "Coach Flow"
   const effectiveColor = /^#([0-9A-Fa-f]{6})$/.test(primaryColor) ? primaryColor : "#E85D04"
   const warning = getContrastWarning(effectiveColor)
   const fg = foregroundForPrimary(effectiveColor)
@@ -46,10 +47,10 @@ export function AdminBrandingForm({ coachId, initial }: { coachId: string; initi
     if (!f) return
     if (!["image/png","image/jpeg","image/webp","image/svg+xml"].includes(f.type)) { toast.error("Invalid type"); return }
     if (f.size > 2*1024*1024) { toast.error("Too large (max 2MB)"); return }
+    setSelectedFile(f)
     const reader = new FileReader()
     reader.onload = () => setPreviewLogo(reader.result as string)
     reader.readAsDataURL(f)
-    // also prepare to upload on save via formData
   }
 
   return (
@@ -73,8 +74,8 @@ export function AdminBrandingForm({ coachId, initial }: { coachId: string; initi
                 </div>
                 <Input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={onFile} className="max-w-[220px]" />
               </div>
-              <Input value={logoUrl} onChange={e=> {setLogoUrl(e.target.value); setPreviewLogo(e.target.value || null)}} placeholder="https://... or leave empty for default" className="mt-2" />
-              <p className="text-xs text-muted-foreground">If empty, default CoachFlow logo is shown. Upload stores as safe data URL (reuse storage later).</p>
+              <Input value={logoUrl} onChange={e=> {setLogoUrl(e.target.value); setSelectedFile(null); setPreviewLogo(e.target.value || null)}} placeholder="https://... or leave empty for default" className="mt-2" />
+              <p className="text-xs text-muted-foreground">If empty, default Coach Flow logo is shown. File upload takes precedence over URL.</p>
             </div>
             <div className="space-y-1">
               <Label>Primary Color</Label>
@@ -106,34 +107,27 @@ export function AdminBrandingForm({ coachId, initial }: { coachId: string; initi
 
         <div className="flex gap-2">
           <Button disabled={pending} onClick={()=> startTransition(async()=>{
-            // If a file was selected via preview data URL and logoUrl is not that data URL, upload file
-            // For simplicity: if previewLogo is data URL and differs from initial, treat as upload
-            let finalLogo = logoUrl.trim() || null
-            // If preview is data URL and logoUrl not data URL, we need to upload file input — easiest: use data URL
-            if (previewLogo && previewLogo.startsWith("data:") && finalLogo !== previewLogo) {
-              // find file input
-              const input = document.querySelector('input[type="file"]') as HTMLInputElement | null
-              if (input?.files?.[0]) {
-                const fd = new FormData()
-                fd.set("file", input.files[0])
-                const up = await adminUploadLogoAction(coachId, fd)
-                if (!up.ok) { toast.error(up.error); return }
-                finalLogo = up.logoUrl ?? previewLogo
-              } else {
-                finalLogo = previewLogo
-              }
+            let finalLogo: string | null = logoUrl.trim() || null
+            if (selectedFile) {
+              const fd = new FormData()
+              fd.set("file", selectedFile)
+              const up = await adminUploadLogoAction(coachId, fd)
+              if (!up.ok) { toast.error(up.error); return }
+              finalLogo = up.logoUrl ?? finalLogo
+            } else if (previewLogo && previewLogo.startsWith("data:") && !finalLogo) {
+              finalLogo = previewLogo
             }
             const res = await adminUpsertBrandingAction(coachId, { brandName: brandName.trim() || null, logoUrl: finalLogo, primaryColor: effectiveColor })
-            if (res.ok) toast.success("Branding saved")
+            if (res.ok) { toast.success("Branding saved"); setSelectedFile(null) }
             else toast.error(res.error)
           })}>Save Branding</Button>
 
           <Button variant="outline" disabled={pending} onClick={()=> startTransition(async()=>{
-            if (!confirm("Reset to CoachFlow defaults? This clears brand name, logo, color.")) return
+            if (!confirm("Reset to Coach Flow defaults? This clears brand name, logo, color.")) return
             const res = await adminResetBrandingAction(coachId)
-            if (res.ok) { toast.success("Reset to default"); setBrandName(""); setLogoUrl(""); setPreviewLogo(null); setPrimaryColor("#E85D04") }
+            if (res.ok) { toast.success("Reset to default"); setBrandName(""); setLogoUrl(""); setPreviewLogo(null); setSelectedFile(null); setPrimaryColor("#E85D04") }
             else toast.error(res.error)
-          })}>Reset to CoachFlow Branding</Button>
+          })}>Reset to Coach Flow Branding</Button>
         </div>
       </CardContent>
     </Card>

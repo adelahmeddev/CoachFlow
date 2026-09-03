@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { AuthCard, ClientAuthFooter } from "@/components/features/auth/auth-card";
 import { LoginForm } from "@/components/features/auth/login-form";
 import { BrandLogo } from "@/components/brand/brand-logo";
@@ -18,23 +18,23 @@ export default function ClientLoginPage() {
       <main className="relative z-10 w-full max-w-md px-2 sm:px-0 flex flex-col items-center gap-4 sm:gap-6">
         <div className="flex flex-col items-center gap-4 sm:gap-6">
           <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-[0_0_30px_rgba(242,106,27,0.35)] dark:shadow-[0_0_30px_rgba(242,106,27,0.25)] sm:h-24 sm:w-24">
-            <BrandLogo variant="mark" height={42} width={64} priority className="drop-shadow-[0_4px_12px_rgba(0,0,0,0.15)]" alt="NANOUSH" />
+            <BrandLogo variant="mark" height={42} width={64} priority className="drop-shadow-[0_4px_12px_rgba(0,0,0,0.15)]" alt="Coach Flow" />
           </div>
           <h1 className="text-2xl font-heading font-extrabold tracking-tight text-foreground sm:text-3xl">
-            NANOUSH
+            Coach Flow
           </h1>
         </div>
         <div>
           <AuthCard
-            title="مرحبًا بعودتك"
-            description="سجّل الدخول باسم المستخدم أو رقم الهاتف أو البريد الإلكتروني."
+            title="?????? ??????"
+            description="???? ?????? ???? ???????? ?? ??? ?????? ?? ?????? ??????????."
             footer={<ClientAuthFooter />}
           >
             <LoginForm callbackUrl="/client/home" />
           </AuthCard>
         </div>
         <p className="mt-4 text-center text-sm sm:text-base text-muted-foreground font-medium">
-          نظام إدارة المدرب الشخصي
+          ???? ????? ?????? ??????
         </p>
       </main>
     </div>

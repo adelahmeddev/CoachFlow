@@ -68,7 +68,7 @@ export function NoLongerSubscribedCard() {
             </Button>
           </div>
 
-          <p className="text-xs text-muted-foreground/60">NANOUSH • {new Date().getFullYear()}</p>
+          <p className="text-xs text-muted-foreground/60">Coach Flow • {new Date().getFullYear()}</p>
         </CardContent>
       </Card>
     </div>

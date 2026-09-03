@@ -16,7 +16,7 @@ interface BrandLogoProps {
   variant?: Variant
   priority?: boolean
   quality?: number
-  /** Render the gradient "NANOUSH" wordmark next to the image */
+  /** Render the gradient "Coach Flow" wordmark next to the image */
   showWordmark?: boolean
 }
 
@@ -38,10 +38,10 @@ const FILES = {
 /**
  * Gradient wordmark — used as graceful fallback when the image fails to load,
  * and alongside the mark when showWordmark is set.
- * If coach has custom branding, show brandName, else CoachFlow/NANOUSH default.
+ * If coach has custom branding, show brandName, else CoachFlow/Coach Flow default.
  */
 function Wordmark({ fontSize, className }: { fontSize: number; className?: string }) {
-  let brandName = "NANOUSH"
+  let brandName = "Coach Flow"
   try {
     const b = useBranding()
     if (b.brandName && b.brandName !== "CoachFlow") brandName = b.brandName
@@ -61,7 +61,7 @@ function Wordmark({ fontSize, className }: { fontSize: number; className?: strin
 }
 
 export function BrandLogo({
-  alt = "NANOUSH",
+  alt = "Coach Flow",
   height,
   width,
   className = "",

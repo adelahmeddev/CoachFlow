@@ -74,7 +74,7 @@ function SidebarNav({
         href={homeHref}
         onClick={onNavigate}
         className="mb-4 flex h-16 shrink-0 items-center gap-3.5 rounded-2xl px-4 py-3 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-        aria-label="NANOUSH"
+        aria-label="Coach Flow"
       >
         <BrandLogo variant="mark" height={36} width={56} alt="" priority quality={95} className="drop-shadow-sm" showWordmark />
       </Link>
@@ -256,7 +256,7 @@ function MobileTopBar({
           </SheetContent>
         </Sheet>
 
-        <Link href={homeHref} aria-label="NANOUSH home" className="flex shrink-0 items-center gap-2 rounded-lg px-1 py-1.5 transition-colors hover:bg-muted/50">
+        <Link href={homeHref} aria-label="Coach Flow home" className="flex shrink-0 items-center gap-2 rounded-lg px-1 py-1.5 transition-colors hover:bg-muted/50">
           <BrandLogo variant="mark" height={26} width={40} alt="" quality={95} />
         </Link>
 

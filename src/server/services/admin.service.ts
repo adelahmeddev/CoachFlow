@@ -543,3 +543,18 @@ export async function activateCoach(coachId: string): Promise<boolean> {
   )
   return (res.rowCount ?? 0) > 0
 }
+
+export async function deleteTrainer(coachId: string): Promise<boolean> {
+  return withTransaction(async (client) => {
+    const tp = await client.query(`SELECT "userId" FROM "TrainerProfile" WHERE "id" = $1 LIMIT 1`, [coachId])
+    const userId = (tp.rows[0] as { userId: string } | undefined)?.userId
+    if (!userId) return false
+    // Delete User → cascades to TrainerProfile → clients/subscriptions/branding via DB cascades
+    // Explicitly clean branding/subscription for safety if cascades missing
+    await client.query(`DELETE FROM "CoachBranding" WHERE "coachId" = $1`, [coachId])
+    await client.query(`DELETE FROM "PaymentRecord" WHERE "coachId" = $1`, [coachId])
+    await client.query(`DELETE FROM "CoachSubscription" WHERE "coachId" = $1`, [coachId])
+    await client.query(`DELETE FROM "User" WHERE "id" = $1`, [userId])
+    return true
+  })
+}

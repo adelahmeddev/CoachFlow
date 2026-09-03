@@ -12,6 +12,7 @@ import { getI18n } from "@/lib/i18n"
 import { adminSuspendCoachAction, adminActivateCoachAction } from "@/server/actions/admin"
 import { AdminCoachSubscriptionForm } from "@/components/features/admin/admin-coach-subscription-form"
 import { AdminBrandingForm } from "@/components/features/admin/admin-branding-form"
+import { DeleteTrainerButton } from "@/components/features/admin/delete-trainer-button"
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: "Coach Details" }
@@ -56,7 +57,7 @@ export default async function CoachDetailPage({
           <h1 className="text-2xl font-semibold tracking-tight">{coach.fullName}</h1>
           <p className="text-muted-foreground">{coach.username ?? coach.phone}</p>
         </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {isSuspended ? (
           <form action={activateAction}>
             <input type="hidden" name="coachId" value={coach.id} />
@@ -68,6 +69,7 @@ export default async function CoachDetailPage({
             <Button type="submit" variant="destructive">Suspend</Button>
           </form>
         )}
+        <DeleteTrainerButton coachId={coach.id} coachName={coach.fullName} />
       </div>
       </div>
 
