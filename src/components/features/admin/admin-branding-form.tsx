@@ -91,8 +91,8 @@ export function AdminBrandingForm({ coachId, initial }: { coachId: string; initi
           <div className="rounded-xl border bg-card p-4 space-y-3">
             <p className="text-xs font-medium text-muted-foreground">Preview</p>
             <div className="flex items-center gap-3">
-              <div className="size-10 rounded-lg flex items-center justify-center overflow-hidden border" style={{ background: effectiveColor, color: fg }}>
-                {previewLogo ? <img src={previewLogo} alt="preview" className="size-full object-contain bg-white" /> : <span className="text-sm font-bold">CF</span>}
+              <div className="size-10 rounded-lg flex items-center justify-center overflow-hidden border bg-white" style={{ color: fg }}>
+                <img src={previewLogo || "/brand/favicon.svg"} alt="preview" className="size-full object-contain" />
               </div>
               <span className="font-semibold">{effectiveName}</span>
             </div>

@@ -1,8 +1,6 @@
 "use client"
 
-import Image from "next/image"
 import { useEffect, useState } from "react"
-import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { useBranding } from "@/components/branding/branding-provider"
 
@@ -70,7 +68,6 @@ export function BrandLogo({
   quality = 95,
   showWordmark = false,
 }: BrandLogoProps) {
-  const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [error, setError] = useState(false)
   let brandingLogo: string | null = null
@@ -157,27 +154,20 @@ export function BrandLogo({
     )
   }
 
-  const src = resolvedTheme === "dark" ? FILES[variant].dark : FILES[variant].light
-
+  // Default Coach Flow — use favicon (loved barbell) instead of baked NANOUSH image
   return (
     <span
       className={cn("inline-flex shrink-0 items-center", className)}
       style={{ gap: 10 }}
       aria-hidden={alt ? undefined : true}
     >
-      <Image
-        src={src}
+      <img
+        src="/brand/favicon.svg"
         alt={alt}
-        height={h}
         width={w}
-        className="h-auto w-auto max-w-full object-contain transition-opacity duration-300"
-        priority={priority}
-        loading={priority ? "eager" : undefined}
-        fetchPriority={priority ? "high" : undefined}
-        decoding="async"
-        quality={quality}
-        sizes={sizesAttr}
-        style={{ height: h, width: w }}
+        height={h}
+        className="h-auto w-auto object-contain drop-shadow-sm"
+        style={{ width: w, height: h }}
         onError={() => setError(true)}
       />
       {showWordmark && <Wordmark fontSize={Math.max(14, h * 0.42)} />}
