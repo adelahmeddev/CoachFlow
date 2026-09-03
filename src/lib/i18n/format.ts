@@ -5,7 +5,8 @@ export function formatDate(
   locale: Locale
 ): string {
   if (!date) return "—"
-  const intl = locale === "ar" ? "ar-EG" : "en-GB"
+  // Always use Latin digits (u-nu-latn) even for Arabic locale — requirement: all numbers in English
+  const intl = locale === "ar" ? "ar-EG-u-nu-latn" : "en-GB"
   return new Intl.DateTimeFormat(intl, { dateStyle: "medium" }).format(
     new Date(date)
   )
@@ -13,11 +14,11 @@ export function formatDate(
 
 export function formatNumber(
   value: number | null | undefined,
-  locale: Locale
+  _locale: Locale
 ): string {
   if (value === null || value === undefined || Number.isNaN(value)) return "—"
-  const intl = locale === "ar" ? "ar-EG" : "en-GB"
-  return new Intl.NumberFormat(intl).format(value)
+  // All numbers in English (Latin digits) regardless of UI language
+  return new Intl.NumberFormat("en-GB", { useGrouping: true }).format(value)
 }
 
 export function interpolate(template: string, values: Record<string, string | number>): string {

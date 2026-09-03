@@ -264,7 +264,7 @@ export function ChatThread({
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
     if (iso === today) return t.client.messages.today
     if (iso === yesterday) return t.client.messages.yesterday
-    return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-GB", { day: "2-digit", month: "short" }).format(d)
+    return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG-u-nu-latn" : "en-GB", { day: "2-digit", month: "short" }).format(d)
   }
 
   return (
@@ -296,7 +296,7 @@ export function ChatThread({
               <div key={day} className="space-y-3">
                 <div className="flex justify-center">
                   <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-                    {(() => { const d = new Date(day); const today = new Date().toISOString().slice(0, 10); const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10); if (day === today) return t.client.messages.today; if (day === yesterday) return t.client.messages.yesterday; return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-GB", { day: "2-digit", month: "short" }).format(new Date(day)) })()}
+                    {(() => { const d = new Date(day); const today = new Date().toISOString().slice(0, 10); const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10); if (day === today) return t.client.messages.today; if (day === yesterday) return t.client.messages.yesterday; return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG-u-nu-latn" : "en-GB", { day: "2-digit", month: "short" }).format(new Date(day)) })()}
                   </span>
                 </div>
                 {msgs.map((m) => (

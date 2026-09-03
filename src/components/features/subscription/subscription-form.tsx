@@ -523,7 +523,7 @@ function interpolateDays(
 }
 
 function formatDateInput(value: string, locale: string): string {
-  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-GB", {
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG-u-nu-latn" : "en-GB", {
     dateStyle: "medium",
   }).format(new Date(`${value}T00:00:00`))
 }

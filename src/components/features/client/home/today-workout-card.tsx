@@ -153,7 +153,7 @@ export function TodayWorkoutCard({ workout }: { workout: TodayWorkoutResult }) {
                   {totalVolume > 0 && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-performance-500/10 px-2.5 py-1 font-medium text-performance-700 ring-1 ring-performance-500/15">
                       <Target className="size-3" />
-                      {totalVolume.toLocaleString()} {isAr ? "كجم" : "kg vol"}
+                      {totalVolume.toLocaleString("en-GB")} {isAr ? "كجم" : "kg vol"}
                     </span>
                   )}
                 </div>
