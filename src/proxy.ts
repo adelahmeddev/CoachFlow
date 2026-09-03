@@ -41,16 +41,64 @@ function getHomeForRole(role: Role | undefined) {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const token = await getToken({
-    req: request,
-    secret: process.env.NEXTAUTH_SECRET,
-    cookieName:
-      process.env.NODE_ENV === "production" ||
-      (process.env.VERCEL_URL ?? "") !== "" ||
-      (process.env.NEXTAUTH_URL ?? "").startsWith("https://")
-        ? "__Secure-next-auth.session-token"
-        : "next-auth.session-token",
-  });
+  let token: Record<string, unknown> | null = null
+  try {
+    token = (await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+      cookieName:
+        process.env.NODE_ENV === "production" ||
+        (process.env.VERCEL_URL ?? "") !== "" ||
+        (process.env.NEXTAUTH_URL ?? "").startsWith("https://")
+          ? "__Secure-next-auth.session-token"
+          : "next-auth.session-token",
+    })) as Record<string, unknown> | null
+    // Fallback: try the other cookie name (handles stale http vs https cookies)
+    if (!token) {
+      const fallbackName =
+        process.env.NODE_ENV === "production" ||
+        (process.env.VERCEL_URL ?? "") !== "" ||
+        (process.env.NEXTAUTH_URL ?? "").startsWith("https://")
+          ? "next-auth.session-token"
+          : "__Secure-next-auth.session-token"
+      token = (await getToken({
+        req: request,
+        secret: process.env.NEXTAUTH_SECRET,
+        cookieName: fallbackName,
+      })) as Record<string, unknown> | null
+    }
+  } catch {
+    token = null
+  }
+
+  // If a session cookie exists but token is null/invalid (e.g. old secret, decryption failed, missing role),
+  // clear both possible cookies to break redirect loops — browser will get clean session
+  const hasAnySessionCookie =
+    request.cookies.has("__Secure-next-auth.session-token") ||
+    request.cookies.has("next-auth.session-token")
+  const isTokenInvalid = !token || !((token as Record<string, unknown>).role as string | undefined)
+  if (hasAnySessionCookie && isTokenInvalid) {
+    // Allow login pages to render without redirect loop, but clear cookies
+    const res = NextResponse.next()
+    res.cookies.delete("__Secure-next-auth.session-token")
+    res.cookies.delete("next-auth.session-token")
+    // Also clear with proper path/domain handling
+    if (isPath(pathname, AUTH_PATHS) || pathname === "/") {
+      return res
+    }
+    // For protected pages, redirect to login after clearing
+    if (
+      isPath(pathname, TRAINER_PATHS) ||
+      isPath(pathname, CLIENT_PATHS) ||
+      pathname.startsWith("/admin")
+    ) {
+      const loginRes = NextResponse.redirect(new URL("/login", request.url))
+      loginRes.cookies.delete("__Secure-next-auth.session-token")
+      loginRes.cookies.delete("next-auth.session-token")
+      return loginRes
+    }
+    return res
+  }
 
   const isLoggedIn = !!token;
   const role = token?.role as Role | undefined;
