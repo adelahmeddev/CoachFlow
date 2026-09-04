@@ -277,14 +277,14 @@ function StatPill({
   trend?: string | null
 }) {
   return (
-    <div className="relative p-4 rounded-2xl bg-gradient-to-br from-white/5 to-transparent border border-white/10 backdrop-blur-sm group">
-      <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" aria-hidden="true" />
+    <div className="relative p-4 rounded-2xl bg-gradient-to-br from-card to-card/60 border border-border/60 backdrop-blur-sm group dark:from-white/5 dark:to-transparent dark:border-white/10">
+      <div className="absolute inset-0 bg-gradient-to-br from-card to-transparent dark:from-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" aria-hidden="true" />
       <div className="relative flex flex-col items-center text-center gap-1">
         <div className={`inline-flex items-center justify-center rounded-xl p-2 text-white bg-gradient-to-br ${color} group-hover:scale-105 transition-transform duration-300`}>
           <Icon className="size-5" aria-hidden="true" />
         </div>
-        <span className="text-2xl font-extrabold tabular-nums text-white group-hover:scale-105 transition-transform duration-300">{value}</span>
-        <span className="text-[11px] font-medium uppercase tracking-wider text-white/70">{label}</span>
+        <span className="text-2xl font-extrabold tabular-nums text-foreground dark:text-white group-hover:scale-105 transition-transform duration-300">{value}</span>
+        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground dark:text-white/70">{label}</span>
         {trend && (
           <span className="absolute -top-2 -right-2 px-1.5 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold animate-pulse">
             {trend}
@@ -309,16 +309,16 @@ function MetricCard({
   color: string
 }) {
   return (
-    <div className="relative p-4 rounded-2xl bg-gradient-to-br from-white/5 to-transparent border border-white/10 backdrop-blur-sm">
-      <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0" aria-hidden="true" />
+    <div className="relative p-4 rounded-2xl bg-gradient-to-br from-card to-card/60 border border-border/60 backdrop-blur-sm dark:from-white/5 dark:to-transparent dark:border-white/10">
+      <div className="absolute inset-0 bg-gradient-to-br from-card to-transparent dark:from-white/5 opacity-0" aria-hidden="true" />
       <div className="relative flex flex-col items-center text-center gap-2">
         <div className={`inline-flex items-center justify-center rounded-xl p-2 text-white bg-gradient-to-br ${color}`}>
           <Icon className="size-5" aria-hidden="true" />
         </div>
-        <span className="text-2xl font-extrabold tabular-nums text-white">{value}</span>
+        <span className="text-2xl font-extrabold tabular-nums text-foreground dark:text-white">{value}</span>
         <div className="flex flex-col items-center gap-0.5">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-white/70">{label}</span>
-          <span className="text-[10px] text-white/50">{subtitle}</span>
+          <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground dark:text-white/70">{label}</span>
+          <span className="text-[10px] text-muted-foreground dark:text-white/50">{subtitle}</span>
         </div>
       </div>
     </div>
@@ -340,8 +340,8 @@ function ActionCard({
 
   const baseStyles = cn(
     "relative p-4 rounded-2xl transition-all duration-300 group",
-    "bg-gradient-to-br from-white/5 to-transparent border border-white/10 backdrop-blur-sm",
-    "hover:border-white/20 hover:shadow-lg hover:shadow-brand-500/10",
+    "bg-gradient-to-br from-card to-card/60 border border-border/60 backdrop-blur-sm dark:from-white/5 dark:to-transparent dark:border-white/10",
+    "hover:border-border dark:hover:border-white/20 hover:shadow-lg hover:shadow-brand-500/10",
     "focus-within:ring-2 focus-within:ring-brand-500/50 focus-within:ring-offset-2 focus-within:ring-offset-background",
     isDisabled && "opacity-50 cursor-not-allowed"
   )
@@ -349,8 +349,8 @@ function ActionCard({
   const buttonStyles = cn(
     "w-full h-full flex flex-col items-start gap-3",
     isPrimary && "bg-gradient-to-br from-brand-500/10 to-energy-500/10 border-brand-500/20",
-    isSecondary && "bg-gradient-to-br from-white/5 to-transparent border-white/10",
-    isOutline && "bg-transparent border-white/10 hover:bg-white/5",
+    isSecondary && "bg-gradient-to-br from-card to-card/60 border-border/60 dark:from-white/5 dark:to-transparent dark:border-white/10",
+    isOutline && "bg-transparent border-border/60 hover:bg-muted/30 dark:border-white/10 dark:hover:bg-white/5",
     isDisabled && "opacity-50 cursor-not-allowed"
   )
 
@@ -365,12 +365,12 @@ return (
             </div>
             <div className="min-w-0 flex-1 space-y-1.5">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-white group-hover:text-brand-100 transition-colors">{action.label}</span>
+                <span className="text-sm font-semibold text-foreground group-hover:text-brand-600 dark:text-white dark:group-hover:text-brand-300 transition-colors">{action.label}</span>
                 {action.badge && (
                   <Badge 
                     variant="secondary" 
                     className={cn(
-                      "px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
+                      "px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white dark:text-white",
                       action.badgeColor
                     )}
                   >
@@ -378,8 +378,8 @@ return (
                   </Badge>
                 )}
               </div>
-              <p className="text-xs text-white/70 leading-relaxed line-clamp-2">{action.description}</p>
-              <div className="mt-2 flex items-center gap-1 text-white/50 group-hover:text-white/80 transition-colors">
+              <p className="text-xs text-muted-foreground dark:text-white/70 leading-relaxed line-clamp-2">{action.description}</p>
+              <div className="mt-2 flex items-center gap-1 text-muted-foreground/80 group-hover:text-foreground dark:text-white/50 dark:group-hover:text-white/80 transition-colors">
                 <ExternalLink className="size-3.5" aria-hidden="true" />
                 <span className="text-[11px] font-medium">{isAr ? "افتح" : "Open"}</span>
               </div>

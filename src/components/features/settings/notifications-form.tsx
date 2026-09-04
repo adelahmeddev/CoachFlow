@@ -93,7 +93,7 @@ export function NotificationsForm({ defaults }: NotificationsFormProps) {
           return (
             <div
               key={row.field}
-              className="flex items-start justify-between gap-4 rounded-xl border border-white/40 bg-white/40 px-4 py-3 shadow-soft dark:border-white/10 dark:bg-white/5"
+              className="flex items-start justify-between gap-4 rounded-xl border border-border/60 bg-card/80 px-4 py-3 shadow-soft dark:border-white/10 dark:bg-white/5"
             >
               <div className="space-y-0.5">
                 <Label htmlFor={row.field} className="font-medium">

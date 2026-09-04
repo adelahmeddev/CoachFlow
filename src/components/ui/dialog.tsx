@@ -63,11 +63,11 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed z-50 grid w-full gap-4 bg-white/85 p-4 text-sm text-popover-foreground shadow-glass backdrop-blur-xl duration-100 outline-none data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+          "fixed z-50 grid w-full gap-4 bg-popover p-4 text-sm text-popover-foreground shadow-glass backdrop-blur-xl duration-100 outline-none data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
           /* Mobile: bottom sheet */
-          "inset-x-0 bottom-0 max-h-[90dvh] overflow-y-auto rounded-t-2xl border-t border-white/50 data-open:slide-in-from-bottom-full data-closed:slide-out-to-bottom-full",
+          "inset-x-0 bottom-0 max-h-[90dvh] overflow-y-auto rounded-t-2xl border-t border-border/60 data-open:slide-in-from-bottom-full data-closed:slide-out-to-bottom-full",
           /* Desktop: centered dialog - widened from sm:max-w-sm to lg for forms */
-          "sm:fixed sm:top-1/2 sm:start-1/2 sm:-translate-y-1/2 sm:ltr:-translate-x-1/2 sm:rtl:translate-x-1/2 sm:rounded-[var(--radius-lg)] sm:border data-open:sm:zoom-in-95 data-closed:sm:zoom-out-95 sm:max-w-lg sm:data-open:slide-in-from-bottom-0 sm:data-closed:slide-out-to-bottom-0",
+          "sm:fixed sm:top-1/2 sm:start-1/2 sm:-translate-y-1/2 sm:ltr:-translate-x-1/2 sm:rtl:translate-x-1/2 sm:rounded-[var(--radius-lg)] sm:border border-border/60 data-open:sm:zoom-in-95 data-closed:sm:zoom-out-95 sm:max-w-lg sm:data-open:slide-in-from-bottom-0 sm:data-closed:slide-out-to-bottom-0",
           /* Dark mode glass */
           "dark:border-white/10 dark:bg-surface dark:backdrop-blur-xl",
           className
@@ -119,7 +119,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-2xl border-t border-white/30 bg-white/40 p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] sm:rounded-b-[var(--radius-lg)] sm:flex-row sm:justify-end dark:border-white/10 dark:bg-white/5",
+        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-2xl border-t border-border/60 bg-muted/30 p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] sm:rounded-b-[var(--radius-lg)] sm:flex-row sm:justify-end dark:border-white/10 dark:bg-white/5",
         className
       )}
       {...props}

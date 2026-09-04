@@ -25,11 +25,11 @@ function Tabs({
 }
 
 const tabsListVariants = cva(
-  "group/tabs-list inline-flex w-fit items-center justify-center rounded-full border border-white/40 bg-white/60 p-1 text-muted-foreground shadow-soft backdrop-blur-md group-data-horizontal/tabs:h-8 group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col data-[variant=line]:rounded-none data-[variant=line]:border-transparent data-[variant=line]:bg-transparent data-[variant=line]:shadow-none data-[variant=line]:backdrop-blur-none dark:border-white/10 dark:bg-white/5 dark:text-muted-foreground",
+  "group/tabs-list inline-flex w-fit items-center justify-center rounded-full border border-border/60 bg-card/80 p-1 text-muted-foreground shadow-soft backdrop-blur-md group-data-horizontal/tabs:h-8 group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col data-[variant=line]:rounded-none data-[variant=line]:border-transparent data-[variant=line]:bg-transparent data-[variant=line]:shadow-none data-[variant=line]:backdrop-blur-none dark:border-white/10 dark:bg-white/5 dark:text-muted-foreground",
   {
     variants: {
       variant: {
-        default: "bg-white/60",
+        default: "bg-card/80",
         line: "gap-1 bg-transparent",
       },
     },
