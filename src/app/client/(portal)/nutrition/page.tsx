@@ -65,6 +65,7 @@ export default async function ClientNutritionPage() {
         amount: item.amount,
         unit: item.unit,
         groupNumber: item.groupNumber,
+        calories: item.calories ?? null,
       })),
     })),
     supplementDefs: plan.supplementDefs.map((def) => ({
@@ -91,8 +92,8 @@ export default async function ClientNutritionPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-4 md:p-8">
-      <div className="relative overflow-hidden rounded-[20px] border bg-card shadow-soft">
+    <div className="mx-auto max-w-5xl space-y-6 p-4 pb-[env(safe-area-inset-bottom)] md:p-8">
+      <div className="glass-card relative overflow-hidden rounded-3xl">
         <div className="absolute inset-0 bg-gradient-to-br from-brand-500/[0.06] via-energy-500/[0.03] to-transparent" aria-hidden="true" />
         <div className="absolute -right-10 -top-10 size-24 rounded-full bg-gradient-to-br from-brand-500/15 to-energy-500/10 blur-xl" aria-hidden="true" />
         <div className="relative p-5">
