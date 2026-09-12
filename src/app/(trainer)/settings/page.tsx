@@ -6,6 +6,7 @@ import { getCurrentSession } from "@/server/auth"
 
 import { ProfileForm } from "@/components/features/settings/profile-form"
 import { BrandingSection } from "@/components/features/settings/branding-section"
+import { CoachPhotoSection } from "@/components/features/settings/coach-photo-section"
 import { SecurityForm } from "@/components/features/settings/security-form"
 import { PreferencesForm } from "@/components/features/settings/preferences-form"
 import { DataTab } from "@/components/features/settings/data-tab"
@@ -63,6 +64,13 @@ export default async function SettingsPage() {
         <h2 className="text-lg font-medium">{t.settings.branding.title}</h2>
         <p className="text-sm text-muted-foreground">{t.settings.branding.subtitle}</p>
         <BrandingSection />
+      </section>
+
+      {/* Coach photo — personal avatar, independent from the brand logo. */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-medium">{t.settings.branding.photoTitle}</h2>
+        <p className="text-sm text-muted-foreground">{t.settings.branding.photoHint}</p>
+        <CoachPhotoSection />
       </section>
 
       {/* Security Section */}

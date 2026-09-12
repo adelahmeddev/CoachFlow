@@ -27,6 +27,7 @@ export default async function InvitePage({
   const branding = {
     brandName: inviteBranding?.brandName ?? "Coach Flow",
     logoUrl: inviteBranding?.logoUrl ?? null,
+    avatarUrl: inviteBranding?.avatarUrl ?? null,
     primaryColor: inviteBranding?.primaryColor ?? "#961112",
     whatsappUrl: inviteBranding?.whatsappUrl ?? null,
     facebookUrl: inviteBranding?.facebookUrl ?? null,

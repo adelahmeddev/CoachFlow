@@ -2,7 +2,7 @@
 
 import { Flame, CalendarCheck, Scale, TrendingDown, TrendingUp } from "lucide-react"
 import { useI18n } from "@/lib/i18n/client"
-import { GreetingCard } from "@/components/features/client/home/greeting-card"
+import { CoachHeroShowcase } from "@/components/features/client/coach-hero-showcase"
 import { CoachHeroShowcase } from "@/components/features/client/coach-hero-showcase"
 import { TodayWorkoutCard } from "@/components/features/client/home/today-workout-card"
 import { WeeklySummaryCard } from "@/components/features/client/home/weekly-summary-card"
@@ -102,10 +102,8 @@ export function ClientHomeUI({ client, data, checkin, posts }: ClientHomeUIProps
       {/* COACH HERO — showcase card opening the portal home */}
       <CoachHeroShowcase />
 
-      {/* TODAY — hero */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}>
-        <GreetingCard client={client} streak={streak} />
-      </motion.div>
+      {/* HERO — unified greeting + coach + actions (replaces greeting card) */}
+      <CoachHeroShowcase clientName={client.fullName} streak={streak} latestPost={posts[0] ?? null} />
 
       {/* ACTION — today's workout is the hero CTA */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06, duration: 0.35 }}>
