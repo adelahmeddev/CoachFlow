@@ -38,6 +38,12 @@ interface LogoEditorDialogProps {
   initialImageUrl?: string | null
   /** Open the file picker to replace the image entirely */
   onReplaceImage: () => void
+  /** Override the cropped-upload target (default: coach logo). Must resolve
+   *  with the fresh branding payload so the platform syncs instantly. */
+  uploadAction?: (dataUrl: string) => Promise<{ ok: boolean; error?: string; branding?: Branding }>
+  /** Override dialog title / success toast (default: logo strings) */
+  editorTitle?: string
+  savedToast?: string
   onSaved: () => void
 }
 
@@ -50,7 +56,7 @@ interface LogoEditorDialogProps {
  * empty space). Save crops via canvas with the exact visible transform, so
  * the stored bytes match the preview pixel-for-pixel.
  */
-export function LogoEditorDialog({ open, onOpenChange, src, initialImageUrl, onReplaceImage, onSaved }: LogoEditorDialogProps) {
+export function LogoEditorDialog({ open, onOpenChange, src, initialImageUrl, onReplaceImage, uploadAction, editorTitle, savedToast, onSaved }: LogoEditorDialogProps) {
   const { t } = useI18n()
   const router = useRouter()
   const [zoom, setZoom] = useState(1)
@@ -327,15 +333,16 @@ export function LogoEditorDialog({ open, onOpenChange, src, initialImageUrl, onR
         r.onerror = () => reject(new Error("READ_FAILED"))
         r.readAsDataURL(blob)
       })
-      const res = await coachUploadCroppedLogoAction(dataUrl)
-      if (!res.ok) {
-        toast.error(t.settings.branding.errors[res.error as keyof typeof t.settings.branding.errors] ?? t.toasts.genericError)
+      const upload = uploadAction ?? coachUploadCroppedLogoAction
+      const res = await upload(dataUrl)
+      if (!res.ok || !res.branding) {
+        toast.error((res.error ? t.settings.branding.errors[res.error as keyof typeof t.settings.branding.errors] : undefined) ?? t.toasts.genericError)
         return
       }
       // Immediate global update (same tab) + server revalidation (reload/login)
-      notifyBrandingUpdated(res.branding as Branding)
+      notifyBrandingUpdated(res.branding)
       router.refresh()
-      toast.success(t.settings.branding.logoSavedToast)
+      toast.success(savedToast ?? t.settings.branding.logoSavedToast)
       onSaved()
       onOpenChange(false)
     } catch {
@@ -349,7 +356,7 @@ export function LogoEditorDialog({ open, onOpenChange, src, initialImageUrl, onR
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[440px]">
         <DialogHeader>
-          <DialogTitle>{s.editorTitle}</DialogTitle>
+          <DialogTitle>{editorTitle ?? s.editorTitle}</DialogTitle>
         </DialogHeader>
         {activeSrc && (
           <div className="space-y-4">

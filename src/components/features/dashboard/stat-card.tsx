@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { TrendingDown, TrendingUp, Minus, Users, Clock3, CheckCircle2, CalendarClock } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -134,7 +134,7 @@ export function StatCard({ label, value, iconName, delta, variant = "brand", sub
           <Icon className="size-5" aria-hidden="true" />
         </div>
         <div className="min-w-0 flex-1 space-y-1">
-          <p className="truncate text-[12px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <p className="line-clamp-2 break-words text-[12px] font-semibold uppercase tracking-widest text-muted-foreground">
             {label}
           </p>
           <div className="flex flex-wrap items-center gap-2">
@@ -144,7 +144,7 @@ export function StatCard({ label, value, iconName, delta, variant = "brand", sub
             {delta !== undefined && <DeltaBadge delta={delta} />}
           </div>
           {sublabel && (
-            <p className="truncate text-xs text-muted-foreground leading-none">{sublabel}</p>
+            <p className="line-clamp-2 text-xs text-muted-foreground leading-snug break-words">{sublabel}</p>
           )}
         </div>
       </CardContent>

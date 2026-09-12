@@ -38,9 +38,9 @@ export function MacroCards({
               key={item.label}
               className="flex flex-col items-center gap-1 rounded-lg border p-3 text-center"
             >
-              <item.icon className="size-5 text-brand-600 dark:text-brand-400" />
-              <span className="text-sm font-semibold">{item.value}</span>
-              <span className="text-xs text-muted-foreground">{item.label}</span>
+              <item.icon className="size-5 shrink-0 text-brand-600 dark:text-brand-400" />
+              <span className="text-sm font-semibold break-words">{item.value}</span>
+              <span className="text-xs break-words text-muted-foreground">{item.label}</span>
             </div>
           ))}
         </div>

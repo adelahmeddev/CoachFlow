@@ -264,7 +264,7 @@ export async function getDayDetail(
   const entry = boardData.board.find((item) => item.dayId === dayId) ?? null
   const status = entry?.status ?? "UPCOMING"
 
-  let logsRes = await pool.query(
+  const logsRes = await pool.query(
     `SELECT * FROM "ExerciseLog" WHERE "clientId" = $1 AND "splitDayExerciseId" = ANY($2::text[]) ORDER BY "date" DESC`,
     [clientId, exercises.map((ex) => ex.id)]
   )

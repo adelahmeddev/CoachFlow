@@ -103,7 +103,7 @@ export function WeekBoard({
         <div className="flex items-center gap-3 rounded-2xl border bg-gradient-to-r from-brand-500/10 to-brand-600/5 p-4 dark:from-brand-500/15 dark:to-brand-600/10">
           <MoonStar className="size-6 shrink-0 text-brand-600 dark:text-brand-400" />
           <div className="min-w-0">
-            <p className="font-semibold">{t.client.week.restDay} 💤</p>
+            <p className="font-semibold">{t.client.week.restDay}</p>
             <p className="truncate text-sm text-muted-foreground">
               {t.client.week.recoveryTip}
             </p>

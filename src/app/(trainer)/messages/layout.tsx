@@ -14,8 +14,11 @@ export default async function MessagesLayout({
   children: React.ReactNode
 }) {
   const session = await getCurrentSession()
-  if (!session?.user || session.user.role !== "COACH" || !session.user.trainerProfileId) {
+  if (!session?.user || session.user.role !== "COACH") {
     redirect("/login")
+  }
+  if (!session.user.trainerProfileId) {
+    redirect("/onboarding")
   }
   const { conversations } = await listConversationsForTrainer(session.user.trainerProfileId, {})
 

@@ -29,14 +29,14 @@ export function SetInputRow({
   return (
     <Card>
       <CardContent className="space-y-3 p-4">
-        <div className="flex items-center justify-between">
-          <p className="font-medium">
-            {exercise.exerciseName}
-            <span className="ms-2 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between gap-3">
+          <p className="font-medium min-w-0 flex-1">
+            <span className="line-clamp-2 break-words">{exercise.exerciseName}</span>
+            <span className="ms-2 text-xs text-muted-foreground block truncate">
               Set {setNumber + 1} / {exercise.sets}
             </span>
           </p>
-          {done ? <Check className="size-5 text-emerald-600" /> : null}
+          {done ? <Check className="size-5 shrink-0 text-emerald-600" /> : null}
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">

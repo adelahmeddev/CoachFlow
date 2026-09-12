@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { format } from "date-fns"
 import { ChevronRight, Flame, Target, Trophy } from "lucide-react"
+import { formatDate } from "@/lib/i18n/format"
 import type { getDashboardData } from "@/server/services/dashboard.service"
 import { ClientStatusBadge } from "@/components/features/clients/client-status-badge"
 import { Badge } from "@/components/ui/badge"
@@ -19,6 +19,7 @@ import {
 import { useI18n } from "@/lib/i18n/client"
 import { getGoalLabel } from "@/lib/i18n/labels"
 import type { Goal } from "@/lib/db/enums"
+import { haptics } from "@/lib/haptics"
 
 const AVATAR_COLORS = [
   "bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300",
@@ -80,7 +81,7 @@ export function RecentClients({ clients }: { clients: RecentClients }) {
                 <ClientStatusBadge status={client.status} />
               </TableCell>
               <TableCell className="py-3.5 text-muted-foreground tabular-nums">
-                {format(client.createdAt, "MMM d, yyyy")}
+                {formatDate(client.createdAt, locale)}
               </TableCell>
               <TableCell className="py-3.5 text-end">
                 <Button asChild variant="ghost" size="sm" className="h-8 gap-1.5">
@@ -108,16 +109,30 @@ export function RecentClientsVisual({ clients }: { clients: RecentClients }) {
         <Link
           key={client.id}
           href={`/clients/${client.id}`}
-          className="group relative flex flex-col overflow-hidden rounded-2xl border bg-card p-4 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover hover:border-brand-200 dark:hover:border-brand-800/50 animate-slide-soft opacity-0 card-lift"
+          onClick={() => haptics.selection()}
+          className="group relative flex flex-col overflow-hidden rounded-2xl border bg-card p-4 shadow-soft transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-1 hover:shadow-card-hover hover:border-brand-200 dark:hover:border-brand-800/50 animate-slide-soft opacity-0 card-lift"
           style={{ animationDelay: `${idx * 60}ms`, animationFillMode: "forwards" }}
         >
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-500/20 to-transparent opacity-60" aria-hidden="true" />
-          <div className="flex items-start gap-3">
-            <span className={`flex size-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold ring-1 ring-black/5 dark:ring-white/10 ${getAvatarColor(client.id)}`}>
-              {getInitials(client.fullName)}
-            </span>
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="relative shrink-0">
+              <span className={`flex size-11 items-center justify-center rounded-xl text-sm font-bold ring-1 ring-black/5 dark:ring-white/10 ${getAvatarColor(client.id)}`}>
+                {getInitials(client.fullName)}
+              </span>
+              {client.status === "ACTIVE" && (
+                <span className="absolute -top-0.5 -end-0.5 flex size-2.5">
+                  <span className="absolute inline-flex size-full animate-beacon rounded-full bg-performance-500 opacity-75" />
+                  <span className="relative inline-flex size-2.5 rounded-full bg-performance-500 ring-2 ring-card" />
+                </span>
+              )}
+              {client.status === "PENDING_ASSESSMENT" && (
+                <span className="absolute -top-0.5 -end-0.5 flex size-2.5">
+                  <span className="relative inline-flex size-2.5 rounded-full bg-muscle-500 ring-2 ring-card animate-pulse" />
+                </span>
+              )}
+            </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-bold leading-tight group-hover:text-brand-700 dark:group-hover:text-brand-300 transition-colors">
+              <p className="line-clamp-2 text-sm font-bold leading-tight group-hover:text-brand-700 dark:group-hover:text-brand-300 transition-colors">
                 {client.fullName ?? t.admin.clients.invitedClient}
               </p>
               <p className="truncate text-xs text-muted-foreground tabular-nums" dir="ltr">
@@ -126,7 +141,7 @@ export function RecentClientsVisual({ clients }: { clients: RecentClients }) {
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 {client.goal ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-brand-500/10 px-2 py-0.5 text-[11px] font-medium text-brand-700 ring-1 ring-brand-500/15 dark:bg-brand-500/15 dark:text-brand-300">
-                    <Target className="size-3" />
+                    <Target className="size-3" aria-hidden="true" />
                     {getGoalLabel(client.goal as Goal, locale)}
                   </span>
                 ) : (
@@ -135,16 +150,16 @@ export function RecentClientsVisual({ clients }: { clients: RecentClients }) {
                 <ClientStatusBadge status={client.status} />
               </div>
             </div>
-            <ChevronRight className="size-4 shrink-0 text-muted-foreground/60 group-hover:text-brand-500 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 transition-all rtl:-scale-x-100 mt-1" />
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground/60 group-hover:text-brand-500 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 transition-[color,transform] duration-200 rtl:-scale-x-100 mt-1" aria-hidden="true" />
           </div>
           <div className="mt-3 flex items-center justify-between border-t border-border/60 pt-3">
             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-              <Trophy className="size-3 text-energy-500" />
-              {format(client.createdAt, "MMM d")}
+              <Trophy className="size-3 text-energy-500" aria-hidden="true" />
+              {formatDate(client.createdAt, locale)}
             </span>
             <span className="text-xs font-medium text-brand-600 dark:text-brand-400 group-hover:gap-1.5 inline-flex items-center gap-1">
               {isAr ? "شوف البروفايل" : "View profile"}
-              <ChevronRight className="size-3 rtl:-scale-x-100" />
+              <ChevronRight className="size-3 rtl:-scale-x-100" aria-hidden="true" />
             </span>
           </div>
         </Link>

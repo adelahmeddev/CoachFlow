@@ -2,7 +2,7 @@
 
 import { useI18n } from "@/lib/i18n/client"
 import { lookup } from "@/lib/i18n/lookup"
-import { Flame, Sparkles, Calendar } from "lucide-react"
+import { Flame, Sparkles, Calendar, Hand, Dumbbell } from "lucide-react"
 
 export function GreetingCard({
   client,
@@ -37,12 +37,14 @@ export function GreetingCard({
               <span className="size-1 rounded-full bg-brand-500/40" aria-hidden="true" />
               <span className="font-medium text-muted-foreground hidden sm:inline">{date}</span>
             </div>
-            <h1 className="text-balance text-xl sm:text-2xl font-extrabold tracking-tight leading-tight">
+            <h1 className="text-balance break-words text-xl sm:text-2xl font-extrabold tracking-tight leading-snug">
               {lookup(t, "client.home.greeting")},{" "}
               <span className="bg-gradient-to-r from-brand-600 to-energy-600 bg-clip-text text-transparent">
                 {client.fullName}
-              </span>{" "}
-              <span aria-hidden="true">{streak >= 7 ? "🔥" : streak >= 3 ? "💪" : "👋"}</span>
+              </span>
+              <span className="ml-2 inline-flex items-center" aria-hidden="true">
+                {streak >= 7 ? <Flame className="size-5 text-energy-600" /> : streak >= 3 ? <Dumbbell className="size-5 text-brand-600" /> : <Hand className="size-5 text-muted-foreground" />}
+              </span>
             </h1>
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground sm:hidden">
               <Calendar className="size-3" />
@@ -66,14 +68,14 @@ export function GreetingCard({
                   {isAr ? "أيام متتالية" : "Streak"}
                 </span>
                 <span className="text-2xl font-extrabold tabular-nums leading-none">{streak}</span>
-                <span className="text-[11px] opacity-80">{isAr ? "يوم 🔥" : "days"}</span>
+                <span className="text-[11px] opacity-80 flex items-center gap-1">{isAr ? "يوم" : "days"} <Flame className="size-3" /></span>
               </div>
             ) : (
-              <div className="inline-flex flex-col items-center gap-1 rounded-2xl border bg-muted/40 px-4 py-3">
-                <span className="text-xs font-medium text-muted-foreground">{isAr ? "ابدأ السلسلة" : "Start streak"}</span>
-                <span className="text-lg">🔥</span>
-                <span className="text-[11px] text-muted-foreground">{isAr ? "أول يوم" : "day 1"}</span>
-              </div>
+            <div className="inline-flex flex-col items-center gap-1 rounded-2xl border bg-muted/40 px-4 py-3">
+              <span className="text-xs font-medium text-muted-foreground">{isAr ? "ابدأ السلسلة" : "Start streak"}</span>
+              <Flame className="size-5 text-muted-foreground/60" />
+              <span className="text-[11px] text-muted-foreground">{isAr ? "أول يوم" : "day 1"}</span>
+            </div>
             )}
           </div>
         </div>

@@ -176,8 +176,8 @@ export function DayCard({
             ),
           })
         : null}
-      <span className="min-w-0 truncate text-sm md:text-xs">
-        {entry.dayId ? focusLabel(t, entry.focus, entry.customFocus) : `${t.client.week.rest} 💤`}
+      <span className="min-w-0 flex-1 line-clamp-2 break-words text-sm md:text-xs">
+        {entry.dayId ? focusLabel(t, entry.focus, entry.customFocus) : t.client.week.rest}
       </span>
     </p>
   )
@@ -271,7 +271,7 @@ export function DayCard({
         {bubble}
 
         <div className="min-w-0 flex-1 space-y-0.5 md:min-h-[2.6rem] md:space-y-1">
-          <span className="block truncate text-sm font-semibold md:text-xs">
+          <span className="block line-clamp-2 text-sm font-semibold break-words md:text-xs">
             {title}
           </span>
           {focusLine}

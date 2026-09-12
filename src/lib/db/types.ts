@@ -8,6 +8,12 @@ import type {
   SubscriptionStatus,
   PlanType,
   PaymentStatus,
+  PaymentProofStatus,
+  NotificationType,
+  ProgressMediaType,
+  ProgressMediaStatus,
+  GoalType,
+  GoalStatus,
   Units,
   WeekStartDay,
   Weekday,
@@ -37,6 +43,7 @@ export type TrainerProfile = {
   userId: string
   fullName: string
   phone: string
+  avatarUrl: string | null
   createdAt: Date
   updatedAt: Date
   email: string | null
@@ -438,12 +445,117 @@ export type PaymentRecord = {
   createdAt: Date
 }
 
+export type PaymentProof = {
+  id: string
+  clientId: string
+  trainerId: string
+  subscriptionId: string | null
+  amount: number | null
+  proofUrl: string
+  status: PaymentProofStatus
+  note: string | null
+  reviewedBy: string | null
+  reviewedAt: Date | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export type Notification = {
+  id: string
+  userId: string
+  type: NotificationType
+  titleKey: string
+  bodyKey: string
+  params: Record<string, string | number>
+  link: string | null
+  dedupeKey: string | null
+  readAt: Date | null
+  createdAt: Date
+}
+
+export type ProgressMedia = {
+  id: string
+  clientId: string
+  trainerId: string
+  type: ProgressMediaType
+  storageUrl: string
+  title: string | null
+  note: string | null
+  status: ProgressMediaStatus
+  feedback: string | null
+  reviewedBy: string | null
+  reviewedAt: Date | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export type ClientGoal = {
+  id: string
+  clientId: string
+  trainerId: string
+  type: GoalType
+  title: string
+  startValue: number | null
+  currentValue: number | null
+  targetValue: number
+  unit: string | null
+  deadline: Date | null
+  status: GoalStatus
+  createdAt: Date
+  updatedAt: Date
+}
+
 export type CoachBranding = {
   id: string
   coachId: string
   brandName: string | null
   logoUrl: string | null
   primaryColor: string | null
+  whatsappUrl: string | null
+  facebookUrl: string | null
+  instagramUrl: string | null
   createdAt: Date
   updatedAt: Date
+}
+
+export type CoachLogoFile = {
+  coachId: string
+  bytes: Buffer
+  contentType: string
+  byteSize: number
+  updatedAt: Date
+}
+
+export type CoachAvatarFile = {
+  coachId: string
+  bytes: Buffer
+  contentType: string
+  byteSize: number
+  updatedAt: Date
+}
+
+export type CoachPost = {
+  id: string
+  coachId: string
+  category: string
+  title: string
+  excerpt: string | null
+  content: string
+  coverImageUrl: string | null
+  beforeImageUrl: string | null
+  afterImageUrl: string | null
+  clientDisplayName: string | null
+  published: boolean
+  publishedAt: Date | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export type PostImageFile = {
+  id: string
+  coachId: string
+  bytes: Buffer
+  contentType: string
+  byteSize: number
+  createdAt: Date
 }

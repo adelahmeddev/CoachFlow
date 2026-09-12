@@ -11,6 +11,8 @@ import { BodyCompositionTab } from "@/components/features/clients/tabs/body-comp
 import { NutritionTab } from "@/components/features/clients/tabs/nutrition-tab"
 import { TrainingSplitTab } from "@/components/features/clients/tabs/training-split-tab"
 import { ProgressTab } from "@/components/features/clients/tabs/progress-tab"
+import { GoalsTab } from "@/components/features/goals/goals-tab"
+import { MediaTab } from "@/components/features/media/media-tab"
 import { SubscriptionTab } from "@/components/features/clients/tabs/subscription-tab"
 
 interface ClientProfilePageProps {
@@ -67,6 +69,8 @@ export default async function ClientProfilePage({
     nutrition: <NutritionTab clientId={id} />,
     "training-split": <TrainingSplitTab clientId={id} />,
     progress: <ProgressTab clientId={id} />,
+    goals: <GoalsTab clientId={id} />,
+    media: <MediaTab clientId={id} />,
     subscription: <SubscriptionTab clientId={id} />,
   }
 

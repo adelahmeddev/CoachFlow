@@ -115,9 +115,11 @@ export function ExerciseStrengthChart({ series }: ExerciseStrengthChartProps) {
                 type="monotone"
                 dataKey="value"
                 name={selected?.name ?? ""}
-                stroke="#10b981"
-                strokeWidth={2}
-                dot={{ r: 3 }}
+                stroke="var(--chart-1)"
+                strokeWidth={2.5}
+                dot={{ r: 3, fill: "var(--chart-1)", strokeWidth: 0 }}
+                activeDot={{ r: 5 }}
+                animationDuration={400}
               />
             </LineChart>
           </ResponsiveContainer>

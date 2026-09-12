@@ -6,10 +6,13 @@ import { getCurrentSession } from "@/server/auth"
 import { pool, generateId } from "@/lib/db"
 import {
   createClientInvite,
+  createLoginForClient,
+  extendClientInvite,
   submitClientBasicInfo,
   submitClientAccountInfo,
   getOrCreateInviteSlug,
   regenerateInviteSlug,
+  resendClientInvite,
   submitJoinClient,
 } from "@/server/services/invite.service"
 import { getInviteUrl } from "@/lib/app-url"
@@ -136,4 +139,56 @@ export async function regenerateJoinLinkAction() {
 
 export async function submitJoinClientAction(slug: string, input: unknown) {
   return submitJoinClient(slug, input)
+}
+
+async function requireTrainerProfileId() {
+  const session = await getCurrentSession()
+  if (!session?.user || session.user.role !== "COACH" || !session.user.trainerProfileId) {
+    return { ok: false as const, error: "UNAUTHORIZED" as const }
+  }
+  return { ok: true as const, trainerProfileId: session.user.trainerProfileId }
+}
+
+export async function resendInviteAction(clientId: string) {
+  const auth = await requireTrainerProfileId()
+  if (!auth.ok) return auth
+  const result = await resendClientInvite(clientId, auth.trainerProfileId)
+  if (!result.ok) return result
+  revalidatePath("/onboarding")
+  revalidatePath("/clients")
+  revalidatePath(`/clients/${clientId}`)
+  return {
+    ok: true as const,
+    invitePath: `/invite/${result.inviteToken}`,
+    inviteUrl: getInviteUrl(result.inviteToken),
+    inviteExpiresAt: result.inviteExpiresAt.toISOString(),
+  }
+}
+
+export async function extendInviteAction(clientId: string, days?: number) {
+  const auth = await requireTrainerProfileId()
+  if (!auth.ok) return auth
+  const safeDays = days !== undefined && Number.isInteger(days) && days >= 1 && days <= 30 ? days : 7
+  const result = await extendClientInvite(clientId, auth.trainerProfileId, safeDays)
+  if (!result.ok) return result
+  revalidatePath("/onboarding")
+  revalidatePath("/clients")
+  revalidatePath(`/clients/${clientId}`)
+  return {
+    ok: true as const,
+    invitePath: `/invite/${result.inviteToken}`,
+    inviteUrl: getInviteUrl(result.inviteToken),
+    inviteExpiresAt: result.inviteExpiresAt.toISOString(),
+  }
+}
+
+export async function createLoginForClientAction(clientId: string) {
+  const auth = await requireTrainerProfileId()
+  if (!auth.ok) return auth
+  const result = await createLoginForClient(clientId, auth.trainerProfileId)
+  if (!result.ok) return result
+  revalidatePath("/clients")
+  revalidatePath(`/clients/${clientId}`)
+  revalidatePath("/dashboard")
+  return result
 }

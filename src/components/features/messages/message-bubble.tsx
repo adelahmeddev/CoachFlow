@@ -1,4 +1,4 @@
-import { format } from "date-fns"
+
 import { cn } from "@/lib/utils"
 import type { Role } from "@/lib/db/enums"
 
@@ -20,7 +20,7 @@ export function MessageBubble({
   isOwn: boolean
 }) {
   const createdAt = typeof message.createdAt === "string" ? new Date(message.createdAt) : message.createdAt
-  const time = format(createdAt, "HH:mm")
+  const time = new Intl.DateTimeFormat("en", { timeStyle: "short", hour12: false }).format(createdAt)
   const ageMs = Date.now() - createdAt.getTime()
   const showSending = isOwn && message.pending === true && ageMs >= 90000
   const showFailed = isOwn && message.failed === true
@@ -36,7 +36,7 @@ export function MessageBubble({
               : "bg-card border text-foreground rounded-bl-md"
           )}
         >
-          <p className="whitespace-pre-wrap break-words">{message.body}</p>
+          <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{message.body}</p>
           <div className={cn("mt-1 flex items-center gap-1 text-[10px]", isOwn ? "justify-end text-white/80" : "justify-start text-muted-foreground")}>
             <time className="tabular-nums">{time}</time>
             {isOwn && !showSending && !showFailed && (

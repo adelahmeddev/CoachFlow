@@ -12,8 +12,18 @@ export const metadata: Metadata = {
 export default async function RegisterPage() {
   const session = await getCurrentSession();
 
-  if (session?.user) {
+  // Authenticated users must go to their own role home — never blanket /dashboard.
+  if (session?.user.role === "SUPER_ADMIN") {
+    redirect("/admin");
+  }
+  if (session?.user.role === "COACH") {
     redirect("/dashboard");
+  }
+  if (session?.user.role === "CLIENT") {
+    redirect("/client/home");
+  }
+  if (session?.user) {
+    redirect("/login");
   }
 
   return (

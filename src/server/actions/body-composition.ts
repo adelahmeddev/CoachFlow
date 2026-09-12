@@ -10,6 +10,7 @@ import {
   updateBodyComposition,
   deleteBodyComposition,
 } from "@/server/services/body-composition.service"
+import { getRecipientPair, notifySafe } from "@/server/services/notification.service"
 import { z } from "zod"
 
 const createSchema = bodyCompositionSchema
@@ -66,6 +67,17 @@ export async function createBodyCompositionAction(
   revalidatePath(`/clients/${clientId}?tab=body-composition`)
   revalidatePath(`/client/profile`)
   revalidatePath(`/client/home`)
+  const pair = await getRecipientPair(clientId)
+  if (pair?.trainerUserId) {
+    await notifySafe({
+      userId: pair.trainerUserId,
+      type: "PROGRESS_UPDATE",
+      titleKey: "progressUpdateTitle",
+      bodyKey: "progressUpdateBody",
+      params: { name: pair.clientName ?? "" },
+      link: `/clients/${clientId}?tab=body-composition`,
+    })
+  }
   return { ok: true as const, data: created }
 }
 

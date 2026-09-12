@@ -18,6 +18,15 @@ function createPool(): Pool {
     return new Pool()
   }
 
+  if (
+    /sslmode=(require|prefer|verify-ca)/i.test(connectionString) &&
+    !/uselibpqcompat=/i.test(connectionString) &&
+    !/sslmode=verify-full/i.test(connectionString)
+  ) {
+    const separator = connectionString.includes("?") ? "&" : "?"
+    connectionString = `${connectionString}${separator}uselibpqcompat=true`
+  }
+
   const isServerless = process.env.VERCEL === "1" || process.env.AWS_LAMBDA_FUNCTION_NAME
 
   return new Pool({
@@ -62,15 +71,24 @@ function isTransientDbError(err: unknown): boolean {
   if (!err || typeof err !== "object") return false
   const msg = ((err as { message?: string }).message ?? "").toLowerCase()
   const code = (err as { code?: string }).code ?? ""
-  return (
+  if (
     msg.includes("timeout exceeded") ||
     msg.includes("connection terminated") ||
     msg.includes("connection timeout") ||
     msg.includes("terminated unexpectedly") ||
+    msg.includes("econnrefused") ||
+    msg.includes("is not iterable") ||
     code === "ETIMEDOUT" ||
     code === "ECONNRESET" ||
+    code === "ECONNREFUSED" ||
     code === "57P01"
-  )
+  ) return true
+  // AggregateError from pg-pool / Node net: inspect inner errors
+  const agg = err as { errors?: unknown[] }
+  if (Array.isArray(agg.errors)) {
+    return agg.errors.some((inner) => isTransientDbError(inner))
+  }
+  return false
 }
 
 async function withDbRetry<T>(fn: () => Promise<T>): Promise<T> {

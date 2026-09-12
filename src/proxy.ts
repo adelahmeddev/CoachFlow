@@ -6,10 +6,13 @@ const TRAINER_PATHS = [
   "/dashboard",
   "/clients",
   "/messages",
+  "/notifications",
   "/onboarding",
   "/nutrition-templates",
   "/training-split-templates",
   "/subscription-plans",
+  "/subscription",
+  "/blog",
   "/settings",
 ];
 
@@ -19,6 +22,9 @@ const CLIENT_PATHS = [
   "/client/nutrition",
   "/client/profile",
   "/client/messages",
+  "/client/media",
+  "/client/notifications",
+  "/client/blog",
 ];
 
 const AUTH_PATHS = ["/login", "/register", "/client/login"];

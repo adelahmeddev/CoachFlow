@@ -27,10 +27,24 @@ export async function TrainingSplitTab({ clientId }: TrainingSplitTabProps) {
     )
   }
 
-  const data = await getClientTrainingSplitData(
-    clientId,
-    session.user.trainerProfileId
-  )
+  let data: Awaited<ReturnType<typeof getClientTrainingSplitData>> | null = null
+  try {
+    data = await getClientTrainingSplitData(
+      clientId,
+      session.user.trainerProfileId
+    )
+  } catch (err) {
+    console.error("[TrainingSplitTab] failed to load", err)
+    return (
+      <div className="space-y-6">
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-center">
+          <p className="text-sm font-semibold text-destructive">فشل تحميل البرنامج التدريبي — انتهت مهلة الاتصال</p>
+          <p className="mt-1 text-xs text-muted-foreground">قد تكون قاعدة البيانات في وضع الاستيقاظ (Neon cold start). حاول تحديث الصفحة بعد ثوان.</p>
+          <p className="mt-2 text-xs text-muted-foreground">TrainingSplit timeout — DB pooled connection. Retry in a few seconds.</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!data) {
     return (

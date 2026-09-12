@@ -47,6 +47,9 @@ next-env.d.ts
 # local portable postgres
 /.pg/
 
+# local database snapshots (never commit dumps)
+/backups/
+
 # debug artifacts
 cookies.txt
 query.sql

@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { differenceInYears } from "date-fns"
+
 import { ChevronRight, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { useI18n } from "@/lib/i18n/client"
@@ -18,6 +18,7 @@ import {
 } from "@/components/features/clients/subscription-badge"
 import { BasicInfoBadge } from "@/components/features/clients/basic-info-badge"
 import { Button } from "@/components/ui/button"
+import { haptics } from "@/lib/haptics"
 import {
   Table,
   TableBody,
@@ -97,17 +98,31 @@ export function ClientsTable({ clients }: ClientsTableProps) {
     <>
       {/* Mobile card list */}
       <div className="space-y-3 md:hidden p-3">
-        {clients.map((client) => (
+        {clients.map((client, idx) => (
           <div
             key={client.id}
-            className="rounded-xl border bg-card p-4 shadow-soft transition-shadow hover:shadow-medium"
+            className="rounded-xl border bg-card p-4 shadow-soft transition-shadow hover:shadow-medium animate-slide-soft opacity-0"
+            style={{ animationDelay: `${idx * 40}ms`, animationFillMode: "forwards" }}
           >
             <div className="mb-3 flex items-center gap-3">
-              <span className={`flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold ring-1 ring-black/5 dark:ring-white/10 ${getAvatarColor(client.id)}`} aria-hidden="true">
-                {getInitials(client.fullName)}
-              </span>
+              <div className="relative shrink-0">
+                <span className={`flex size-10 items-center justify-center rounded-full text-sm font-semibold ring-1 ring-black/5 dark:ring-white/10 ${getAvatarColor(client.id)}`} aria-hidden="true">
+                  {getInitials(client.fullName)}
+                </span>
+                {client.status === "ACTIVE" && (
+                  <span className="absolute -top-0.5 -end-0.5 flex size-2">
+                    <span className="absolute inline-flex size-full animate-beacon rounded-full bg-performance-500 opacity-75" />
+                    <span className="relative inline-flex size-2 rounded-full bg-performance-500 ring-2 ring-card" />
+                  </span>
+                )}
+                {client.status === "PENDING_ASSESSMENT" && (
+                  <span className="absolute -top-0.5 -end-0.5 flex size-2">
+                    <span className="relative inline-flex size-2 rounded-full bg-muscle-500 ring-2 ring-card animate-pulse" />
+                  </span>
+                )}
+              </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold leading-none">
+                <p className="line-clamp-2 break-words text-sm font-semibold leading-snug">
                   {client.fullName ?? t.admin.clients.invitedClient}
                 </p>
                 {client.phone && (
@@ -118,7 +133,7 @@ export function ClientsTable({ clients }: ClientsTableProps) {
               </div>
               <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-xs font-medium tabular-nums text-muted-foreground">
                 {client.birthDate
-                  ? differenceInYears(new Date(), client.birthDate)
+                  ? Math.floor((Date.now() - new Date(client.birthDate).getTime()) / 31557600000)
                   : "—"}
               </span>
             </div>
@@ -143,7 +158,7 @@ export function ClientsTable({ clients }: ClientsTableProps) {
 
             <div className="mt-3 flex gap-2 border-t border-border/60 pt-3">
               <Button asChild variant="outline" size="sm" className="flex-1 shadow-soft">
-                <Link href={`/clients/${client.id}`}>
+                <Link href={`/clients/${client.id}`} onClick={() => haptics.selection()}>
                   {t.clients.viewProfile}
                   <ChevronRight className="size-4 rtl:-scale-x-100" aria-hidden="true" />
                 </Link>
@@ -177,15 +192,32 @@ export function ClientsTable({ clients }: ClientsTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {clients.map((client) => (
-              <TableRow key={client.id} className="group">
+            {clients.map((client, idx) => (
+              <TableRow
+                key={client.id}
+                className="group animate-slide-soft opacity-0"
+                style={{ animationDelay: `${idx * 30}ms`, animationFillMode: "forwards" }}
+              >
                 <TableCell className="py-3.5">
                   <div className="flex items-center gap-2.5">
-                    <span className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ring-1 ring-black/5 dark:ring-white/10 ${getAvatarColor(client.id)}`} aria-hidden="true">
-                      {getInitials(client.fullName)}
-                    </span>
+                    <div className="relative shrink-0">
+                      <span className={`flex size-8 items-center justify-center rounded-full text-xs font-semibold ring-1 ring-black/5 dark:ring-white/10 ${getAvatarColor(client.id)}`} aria-hidden="true">
+                        {getInitials(client.fullName)}
+                      </span>
+                      {client.status === "ACTIVE" && (
+                        <span className="absolute -top-0.5 -end-0.5 flex size-2">
+                          <span className="absolute inline-flex size-full animate-beacon rounded-full bg-performance-500 opacity-75" />
+                          <span className="relative inline-flex size-2 rounded-full bg-performance-500 ring-2 ring-card" />
+                        </span>
+                      )}
+                      {client.status === "PENDING_ASSESSMENT" && (
+                        <span className="absolute -top-0.5 -end-0.5 flex size-2">
+                          <span className="relative inline-flex size-2 rounded-full bg-muscle-500 ring-2 ring-card animate-pulse" />
+                        </span>
+                      )}
+                    </div>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium leading-none">
+                      <p className="truncate text-sm font-medium leading-snug">
                         {client.fullName ?? t.admin.clients.invitedClient}
                       </p>
                       {client.phone && (
@@ -198,7 +230,7 @@ export function ClientsTable({ clients }: ClientsTableProps) {
                 </TableCell>
                 <TableCell className="py-3.5 text-muted-foreground tabular-nums">
                   {client.birthDate
-                    ? differenceInYears(new Date(), client.birthDate)
+                    ? Math.floor((Date.now() - new Date(client.birthDate).getTime()) / 31557600000)
                     : "—"}
                 </TableCell>
                 <TableCell className="py-3.5">
@@ -223,7 +255,7 @@ export function ClientsTable({ clients }: ClientsTableProps) {
                 <TableCell className="py-3.5 text-end">
                   <div className="flex items-center justify-end gap-1">
                     <Button asChild variant="outline" size="sm" className="h-8 shadow-soft">
-                      <Link href={`/clients/${client.id}`}>
+                      <Link href={`/clients/${client.id}`} onClick={() => haptics.selection()}>
                         {t.clients.viewProfile}
                         <ChevronRight className="size-4 rtl:-scale-x-100 transition-transform group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5" aria-hidden="true" />
                       </Link>

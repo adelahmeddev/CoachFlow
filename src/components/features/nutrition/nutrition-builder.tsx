@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
+import { cn } from "@/lib/utils"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Card,
   CardContent,
@@ -69,9 +71,12 @@ export interface BuilderMealItem {
 }
 
 export interface BuilderMeal {
+  id: string
   kind: MealKind
   name: string
   nameAr: string | null
+  isSpare?: boolean
+  replacesMealId?: string | null
   items: BuilderMealItem[]
 }
 
@@ -116,6 +121,43 @@ function move<T>(arr: T[], index: number, dir: -1 | 1): T[] {
   if (target < 0 || target >= next.length) return next
   ;[next[index], next[target]] = [next[target], next[index]]
   return next
+}
+
+function moveMainMeal(meals: any[], mainGlobalIndex: number, dir: -1 | 1) {
+  const mainMeals = meals.map((m, i) => ({ ...m, globalIndex: i })).filter(m => !m.isSpare);
+  const targetIndex = mainMeals.findIndex(m => m.globalIndex === mainGlobalIndex);
+  if (targetIndex === -1) return meals;
+  const newIndex = targetIndex + dir;
+  if (newIndex < 0 || newIndex >= mainMeals.length) return meals;
+  
+  const newMainMeals = [...mainMeals];
+  const temp = newMainMeals[targetIndex];
+  newMainMeals[targetIndex] = newMainMeals[newIndex];
+  newMainMeals[newIndex] = temp;
+  
+  const newFlat: any[] = [];
+  for (const mm of newMainMeals) {
+    const originalMm = meals[mm.globalIndex];
+    newFlat.push(originalMm);
+    const alts = meals.filter(m => m.isSpare && m.replacesMealId === originalMm.id);
+    newFlat.push(...alts);
+  }
+  return newFlat;
+}
+
+function moveAltMeal(meals: any[], altGlobalIndex: number, dir: -1 | 1) {
+  const altMeal = meals[altGlobalIndex];
+  if (!altMeal) return meals;
+  const siblings = meals.map((m, i) => ({ ...m, globalIndex: i })).filter(m => m.isSpare && m.replacesMealId === altMeal.replacesMealId);
+  const sIndex = siblings.findIndex(m => m.globalIndex === altGlobalIndex);
+  if (sIndex === -1 || sIndex + dir < 0 || sIndex + dir >= siblings.length) return meals;
+  
+  const targetSiblingGlobalIndex = siblings[sIndex + dir].globalIndex;
+  const newMeals = [...meals];
+  const temp = newMeals[altGlobalIndex];
+  newMeals[altGlobalIndex] = newMeals[targetSiblingGlobalIndex];
+  newMeals[targetSiblingGlobalIndex] = temp;
+  return newMeals;
 }
 
 const UNIT_OPTIONS: QuantityUnit[] = ["G", "ML", "PCS"]
@@ -175,7 +217,13 @@ export function NutritionBuilder({
         }))
   )
   const [meals, setMeals] = useState<BuilderMeal[]>(
-    initial.meals.map((m) => ({ ...m, items: m.items.map((i) => ({ ...i })) }))
+    initial.meals.map((m) => ({
+      ...m,
+      id: (m as any).id || crypto.randomUUID(),
+      isSpare: m.isSpare ?? false,
+      replacesMealId: (m as any).replacesMealId || null,
+      items: m.items.map((i) => ({ ...i })),
+    }))
   )
 
   const [saving, setSaving] = useState(false)
@@ -233,9 +281,12 @@ export function NutritionBuilder({
         meals: meals
           .filter((m) => m.name.trim() || m.nameAr?.trim())
           .map((m) => ({
+            id: m.id,
             kind: m.kind,
             name: m.name || m.nameAr || "",
             nameAr: m.nameAr || null,
+            isSpare: m.isSpare ?? false,
+            replacesMealId: m.replacesMealId || null,
             items: m.items
               .filter((i) => i.foodName.trim() || i.foodNameAr?.trim())
               .map((i) => ({
@@ -291,9 +342,12 @@ export function NutritionBuilder({
     setMeals([
       ...meals,
       {
+        id: crypto.randomUUID(),
         kind,
         name: kind === MealKind.MEAL ? `${n.meal} ${meals.length + 1}` : `${n.snack} ${meals.length + 1}`,
         nameAr: "",
+        isSpare: false,
+        replacesMealId: null,
         items: [],
       },
     ])
@@ -301,6 +355,36 @@ export function NutritionBuilder({
 
   function updateMeal(index: number, patch: Partial<BuilderMeal>) {
     setMeals(meals.map((m, i) => (i === index ? { ...m, ...patch } : m)))
+  }
+
+  function addAlternativeMeal(parentId: string) {
+    const parent = meals.find((m) => m.id === parentId)
+    const baseName = parent?.name || ""
+    const altCount = meals.filter((m) => m.isSpare && m.replacesMealId === parentId).length + 1
+    const newName = `${n.spareMeal ?? "Alternative"} ${altCount}` + (baseName ? ` (${baseName})` : "")
+
+    setMeals([
+      ...meals,
+      {
+        id: crypto.randomUUID(),
+        kind: MealKind.MEAL,
+        name: newName,
+        nameAr: null,
+        isSpare: true,
+        replacesMealId: parentId,
+        items: [],
+      },
+    ])
+  }
+
+  function removeMeal(index: number) {
+    const mealToRemove = meals[index]
+    if (!mealToRemove) return
+    if (!mealToRemove.isSpare) {
+      setMeals(meals.filter((m, i) => i !== index && m.replacesMealId !== mealToRemove.id))
+    } else {
+      setMeals(meals.filter((_, i) => i !== index))
+    }
   }
 
   function addItem(mealIndex: number, groupNumber: number) {
@@ -538,83 +622,102 @@ export function NutritionBuilder({
         </CardHeader>
         <CardContent className="space-y-4">
           {meals.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">{n.meals}: 0</p>}
-          {meals.map((meal, mealIndex) => {
-            const counts = groupCounts(meal)
-            return (
-              <div key={mealIndex} className="rounded-xl border p-3 space-y-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={meal.kind === MealKind.SNACK ? "secondary" : "default"}>
-                    {meal.kind === MealKind.SNACK ? n.snack : n.meal}
-                  </Badge>
-                  <Input value={isAr ? (meal.nameAr ?? "") : meal.name} onChange={(e) => updateMeal(mealIndex, isAr ? { nameAr: e.target.value } : { name: e.target.value })} placeholder={n.foodName} className="h-10 min-w-[160px] flex-1" />
-                  <div className="flex gap-1">
-                    <Button type="button" variant="ghost" size="icon-sm" className="size-10" aria-label={n.moveUp} disabled={mealIndex === 0} onClick={() => setMeals(move(meals, mealIndex, -1))}>
-                      <ArrowUp className="size-4" />
-                    </Button>
-                    <Button type="button" variant="ghost" size="icon-sm" className="size-10" aria-label={n.moveDown} disabled={mealIndex === meals.length - 1} onClick={() => setMeals(move(meals, mealIndex, 1))}>
-                      <ArrowDown className="size-4" />
-                    </Button>
-                    <Button type="button" variant="ghost" size="icon-sm" className="size-10 text-destructive" aria-label={n.remove} onClick={() => setMeals(meals.filter((_, i) => i !== mealIndex))}>
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  {meal.items.map((item, itemIndex) => {
-                    const count = counts.get(item.groupNumber) ?? 0
-                    return (
-                      <div key={itemIndex} className="flex flex-wrap items-center gap-2 rounded-lg bg-muted/40 p-2">
-                        {count > 1 && <Badge variant="secondary" className="shrink-0">{n.chooseOne}</Badge>}
-                        <Input value={isAr ? (item.foodNameAr ?? "") : item.foodName} onChange={(e) => updateMeal(mealIndex, { items: meal.items.map((it, j) => (j === itemIndex ? { ...it, ...(isAr ? { foodNameAr: e.target.value } : { foodName: e.target.value }) } : it)) })} placeholder={n.foodName} className="min-w-[130px] flex-1 min-h-[40px]" />
-                        <Input type="number" inputMode="decimal" value={item.amount ?? ""} onChange={(e) => updateMeal(mealIndex, { items: meal.items.map((it, j) => (j === itemIndex ? { ...it, amount: numOrNull(e.target.value) } : it)) })} placeholder={n.quantity} className="w-20 min-h-[40px]" />
-                        <Select value={item.unit} onValueChange={(v) => updateMeal(mealIndex, { items: meal.items.map((it, j) => (j === itemIndex ? { ...it, unit: v as QuantityUnit } : it)) })}>
-                          <SelectTrigger className="h-10 w-auto min-w-[100px]"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {UNIT_OPTIONS.map((u) => (<SelectItem key={u} value={u}>{unitLabel(u)}</SelectItem>))}
-                          </SelectContent>
-                        </Select>
-                        <Input type="number" inputMode="numeric" value={item.calories ?? ""} onChange={(e) => updateMeal(mealIndex, { items: meal.items.map((it, j) => (j === itemIndex ? { ...it, calories: numOrNull(e.target.value) === null ? null : Math.trunc(numOrNull(e.target.value)!) } : it)) })} placeholder={n.caloriesOpt} className="w-24 min-h-[40px]" />
-                        <Select
-                          value={String(item.groupNumber)}
-                          onValueChange={(v) => updateMeal(mealIndex, { items: meal.items.map((it, j) => (j === itemIndex ? { ...it, groupNumber: Number(v) } : it)) })}
-                        >
-                          <SelectTrigger className="h-10 w-auto min-w-[92px]" aria-label={n.makeAlternative}><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {[...counts.keys()].sort((a, b) => a - b).map((gNum) => (
-                              <SelectItem key={gNum} value={String(gNum)}>
-                                {gNum === 1 && count === 1 ? "—" : `G${gNum}`}
-                              </SelectItem>
-                            ))}
-                            <SelectItem value={String(nextGroup(meal))}>+ G</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <div className="flex gap-0.5">
-                          <Button type="button" variant="ghost" size="icon-sm" className="size-9" aria-label={n.moveUp} disabled={itemIndex === 0} onClick={() => updateMeal(mealIndex, { items: move(meal.items, itemIndex, -1) })}>
-                            <ArrowUp className="size-3.5" />
-                          </Button>
-                          <Button type="button" variant="ghost" size="icon-sm" className="size-9" aria-label={n.moveDown} disabled={itemIndex === meal.items.length - 1} onClick={() => updateMeal(mealIndex, { items: move(meal.items, itemIndex, 1) })}>
-                            <ArrowDown className="size-3.5" />
-                          </Button>
-                          <Button type="button" variant="ghost" size="icon-sm" className="size-9 text-destructive" aria-label={n.remove} onClick={() => updateMeal(mealIndex, { items: meal.items.filter((_, j) => j !== itemIndex) })}>
-                            <Trash2 className="size-3.5" />
-                          </Button>
-                        </div>
+          {meals.map((m, i) => ({ ...m, globalIndex: i })).filter(m => !m.isSpare).map((mainMeal) => {
+             const alternatives = meals.map((m, i) => ({ ...m, globalIndex: i })).filter(m => m.isSpare && m.replacesMealId === mainMeal.id)
+             
+             const renderMealBlock = (meal: any, mealIndex: number, isAlt: boolean) => {
+               const counts = groupCounts(meal)
+               return (
+                 <div key={mealIndex} className={cn("rounded-xl border p-3 space-y-3", isAlt ? "bg-amber-50/10 border-amber-500/30 dark:bg-amber-950/10 dark:border-amber-900/30" : "bg-card")}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={meal.kind === MealKind.SNACK ? "secondary" : (isAlt ? "outline" : "default")} className={isAlt ? "border-amber-500 text-amber-600 dark:text-amber-500" : ""}>
+                        {isAlt ? (n.spareMeal ?? "Alternative") : (meal.kind === MealKind.SNACK ? n.snack : n.meal)}
+                      </Badge>
+                      <div className="flex-1 flex flex-col gap-2 min-w-[200px]">
+                        <Input
+                          value={isAr ? (meal.nameAr ?? "") : meal.name}
+                          onChange={(e) => updateMeal(mealIndex, isAr ? { nameAr: e.target.value } : { name: e.target.value })}
+                          placeholder={n.foodName}
+                          className="h-10 flex-1"
+                        />
                       </div>
-                    )
-                  })}
-                </div>
+                      <div className="flex gap-1">
+                        <Button type="button" variant="ghost" size="icon-sm" className="size-10" aria-label={n.moveUp} 
+                          onClick={() => isAlt ? setMeals(moveAltMeal(meals, mealIndex, -1)) : setMeals(moveMainMeal(meals, mealIndex, -1))}
+                        >
+                          <ArrowUp className="size-4" />
+                        </Button>
+                        <Button type="button" variant="ghost" size="icon-sm" className="size-10" aria-label={n.moveDown} 
+                          onClick={() => isAlt ? setMeals(moveAltMeal(meals, mealIndex, 1)) : setMeals(moveMainMeal(meals, mealIndex, 1))}
+                        >
+                          <ArrowDown className="size-4" />
+                        </Button>
+                        <Button type="button" variant="ghost" size="icon-sm" className="size-10 text-destructive" aria-label={n.remove} onClick={() => removeMeal(mealIndex)}>
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={() => addItem(mealIndex, nextGroup(meal))}>
-                    <Plus className="size-4" />{n.addItem}
-                  </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={() => updateMeal(mealIndex, { items: [...meal.items, { foodName: "", foodNameAr: null, amount: null, unit: "G", calories: null, groupNumber: nextGroup(meal) }] })}>
-                    <Plus className="size-4" />{n.newOptionGroup}
-                  </Button>
-                </div>
-              </div>
-            )
+                    <div className="space-y-2">
+                      {meal.items.map((item: any, itemIndex: number) => {
+                        const count = counts.get(item.groupNumber) ?? 0
+                        return (
+                          <div key={itemIndex} className="flex flex-wrap items-center gap-2 rounded-lg bg-muted/40 p-2">
+                            {/* Group logic removed */}
+                            <Input value={isAr ? (item.foodNameAr ?? "") : item.foodName} onChange={(e) => updateMeal(mealIndex, { items: meal.items.map((it: any, j: number) => (j === itemIndex ? { ...it, ...(isAr ? { foodNameAr: e.target.value } : { foodName: e.target.value }) } : it)) })} placeholder={n.foodName} className="min-w-[130px] flex-1 min-h-[40px]" />
+                            <Input type="number" inputMode="decimal" value={item.amount ?? ""} onChange={(e) => updateMeal(mealIndex, { items: meal.items.map((it: any, j: number) => (j === itemIndex ? { ...it, amount: numOrNull(e.target.value) } : it)) })} placeholder={n.quantity} className="w-20 min-h-[40px]" />
+                            <Select value={item.unit} onValueChange={(v) => updateMeal(mealIndex, { items: meal.items.map((it: any, j: number) => (j === itemIndex ? { ...it, unit: v as QuantityUnit } : it)) })}>
+                              <SelectTrigger className="h-10 w-auto min-w-[100px]"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {UNIT_OPTIONS.map((u) => (<SelectItem key={u} value={u}>{unitLabel(u)}</SelectItem>))}
+                              </SelectContent>
+                            </Select>
+                            <Input type="number" inputMode="numeric" value={item.calories ?? ""} onChange={(e) => updateMeal(mealIndex, { items: meal.items.map((it: any, j: number) => (j === itemIndex ? { ...it, calories: numOrNull(e.target.value) === null ? null : Math.trunc(numOrNull(e.target.value)!) } : it)) })} placeholder={n.caloriesOpt} className="w-24 min-h-[40px]" />
+                            {/* Option groups removed as per alternative meals feature */}
+                            <div className="flex gap-0.5">
+                              <Button type="button" variant="ghost" size="icon-sm" className="size-9" aria-label={n.moveUp} disabled={itemIndex === 0} onClick={() => updateMeal(mealIndex, { items: move(meal.items, itemIndex, -1) })}>
+                                <ArrowUp className="size-3.5" />
+                              </Button>
+                              <Button type="button" variant="ghost" size="icon-sm" className="size-9" aria-label={n.moveDown} disabled={itemIndex === meal.items.length - 1} onClick={() => updateMeal(mealIndex, { items: move(meal.items, itemIndex, 1) })}>
+                                <ArrowDown className="size-3.5" />
+                              </Button>
+                              <Button type="button" variant="ghost" size="icon-sm" className="size-9 text-destructive" aria-label={n.remove} onClick={() => updateMeal(mealIndex, { items: meal.items.filter((_it: any, j: number) => j !== itemIndex) })}>
+                                <Trash2 className="size-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={() => addItem(mealIndex, 1)}>
+                        <Plus className="size-4" />{n.addItem}
+                      </Button>
+                      {/* Add option group button removed */}
+                    </div>
+                 </div>
+               )
+             }
+
+             return (
+               <div key={mainMeal.id || mainMeal.globalIndex} className="space-y-4 border p-4 rounded-xl bg-card/50">
+                  {renderMealBlock(mainMeal, mainMeal.globalIndex, false)}
+
+                  {alternatives.length > 0 && (
+                     <div className="ml-4 md:ml-8 space-y-4 border-l-2 border-amber-500/50 pl-4 relative">
+                        <div className="absolute -left-2 top-0 bottom-0 w-4 bg-gradient-to-b from-transparent via-background to-transparent pointer-events-none opacity-50" />
+                        {alternatives.map((alt) => renderMealBlock(alt, alt.globalIndex, true))}
+                     </div>
+                  )}
+
+                  <div className="flex justify-start ml-4 md:ml-8 mt-4">
+                     <Button type="button" variant="outline" size="sm" onClick={() => addAlternativeMeal(mainMeal.id)}>
+                        <Plus className="size-4 mr-2" /> {(n as any).addAlternativeMeal ?? "Add Alternative Meal"}
+                     </Button>
+                  </div>
+               </div>
+             )
           })}
         </CardContent>
       </Card>

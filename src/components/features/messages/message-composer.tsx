@@ -2,10 +2,8 @@
 
 import { useState, useRef, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { Send, Loader2 } from "lucide-react"
+import { Paperclip } from "lucide-react"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import { useI18n } from "@/lib/i18n/client"
 import { sendMessageAction } from "@/server/actions/messages"
 
@@ -79,7 +77,7 @@ export function MessageComposer({
           aria-label="Attachment"
           title="Attachment"
         >
-          <span aria-hidden="true" className="text-lg leading-none">📎</span>
+          <Paperclip aria-hidden="true" className="size-4" />
         </button>
         <div className="relative flex-1">
           <textarea
@@ -108,7 +106,7 @@ export function MessageComposer({
         </button>
       </div>
       <div className="mt-2 hidden sm:flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-        {["تمام يا كوتش 💪", "تم ✅", "محتاج تعديل؟", "برافو!"].map((q) => (
+        {["تمام يا كوتش", "تم", "محتاج تعديل؟", "برافو!"].map((q) => (
           <button
             key={q}
             type="button"

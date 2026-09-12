@@ -1,10 +1,9 @@
-﻿import { redirect } from "next/navigation"
+import { redirect } from "next/navigation"
 import { getCurrentSession } from "@/server/auth"
 import { checkSubscriptionStatus } from "@/server/services/subscription-guard.service"
-import { getCoachBranding, DEFAULT_BRANDING } from "@/server/services/branding.service"
+import { getCoachBranding, toBranding } from "@/server/services/branding.service"
 import { BrandingProvider } from "@/components/branding/branding-provider"
-import { AppSidebar } from "@/components/layout/app-sidebar"
-import { TRAINER_NAV_ITEMS } from "@/components/layout/nav-items"
+import { AppTopNav } from "@/components/layout/app-top-nav"
 import { SubscriptionExpiredView } from "@/components/features/subscription/subscription-expired-view"
 
 export default async function TrainerLayout({
@@ -22,9 +21,7 @@ export default async function TrainerLayout({
   const brandingRaw = session.user.trainerProfileId
     ? await getCoachBranding(session.user.trainerProfileId)
     : null
-  const branding = brandingRaw
-    ? { brandName: brandingRaw.effective.brandName, logoUrl: brandingRaw.effective.logoUrl, primaryColor: brandingRaw.effective.primaryColor, coachId: session.user.trainerProfileId ?? null }
-    : { brandName: DEFAULT_BRANDING.brandName, logoUrl: DEFAULT_BRANDING.logoUrl, primaryColor: DEFAULT_BRANDING.primaryColor, coachId: null }
+  const branding = toBranding(brandingRaw, session.user.trainerProfileId)
 
   // Centralized guard — blocked coaches see expired screen but data stays intact
   if (session.user.trainerProfileId) {
@@ -50,13 +47,12 @@ export default async function TrainerLayout({
   return (
     <BrandingProvider branding={branding}>
       <div className="min-h-dvh bg-background">
-        <AppSidebar
+        <AppTopNav
           name={session.user.name ?? "Trainer"}
           role={session.user.role}
-          items={TRAINER_NAV_ITEMS}
           homeHref="/dashboard"
         />
-        <main id="main-content" tabIndex={-1} className="scroll-mt-16 md:ms-[272px] outline-none">
+        <main id="main-content" tabIndex={-1} className="scroll-mt-16 outline-none">
           <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8 md:py-8">
             {children}
           </div>

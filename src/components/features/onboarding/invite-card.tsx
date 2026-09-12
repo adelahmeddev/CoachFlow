@@ -73,8 +73,8 @@ export function InviteCard() {
         <GenerateInviteButton onGenerated={setInvite} />
 
         {invite && (
-          <div className="flex flex-col gap-2 rounded-lg border bg-muted/40 p-3 sm:flex-row sm:items-center">
-            <code className="flex-1 truncate text-sm">{invite.inviteUrl}</code>
+          <div className="flex min-w-0 flex-col gap-2 rounded-lg border bg-muted/40 p-3 sm:flex-row sm:items-center">
+            <code className="min-w-0 flex-1 break-all text-sm">{invite.inviteUrl}</code>
             <Button
               type="button"
               variant="outline"

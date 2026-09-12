@@ -19,6 +19,7 @@ import {
   toggleMealChoice,
   getOwnedClientTrainerId,
 } from "@/server/services/nutrition.service"
+import { notifyClientsPlanUpdated } from "@/server/services/notification.service"
 
 type Session = Awaited<ReturnType<typeof getCurrentSession>>
 
@@ -147,6 +148,7 @@ export async function assignTemplateAction(
       revalidatePath("/client/nutrition")
     }
     revalidatePath("/clients")
+    await notifyClientsPlanUpdated(parsed.data.clientIds, "nutrition", session?.user?.name ?? null)
     return { ok: true as const, count }
   } catch (error) {
     if (
@@ -178,6 +180,7 @@ export async function refreshPlanFromTemplateAction(planId: string, clientId: st
   ])
   revalidatePath(`/clients/${clientId}?tab=nutrition`)
   revalidatePath("/client/nutrition")
+  await notifyClientsPlanUpdated([clientId], "nutrition", (await getCurrentSession())?.user.name ?? null)
   return { ok: true as const }
 }
 
@@ -207,6 +210,7 @@ export async function savePlanContentAction(
   ])
   revalidatePath(`/clients/${clientId}?tab=nutrition`)
   revalidatePath("/client/nutrition")
+  await notifyClientsPlanUpdated([clientId], "nutrition", (await getCurrentSession())?.user.name ?? null)
   return { ok: true as const }
 }
 

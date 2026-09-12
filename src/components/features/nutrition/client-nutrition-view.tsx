@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react"
 import { toast } from "sonner"
-import { Check, ChevronDown, Info, Pill, Sparkles } from "lucide-react"
+import { Check, ChevronDown, Info, Pill, Sparkles, Utensils, Cookie, TriangleAlert, CheckCircle2, ArrowUp } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -21,6 +21,8 @@ export interface ClientMealView {
   kind: "MEAL" | "SNACK"
   name: string
   nameAr: string | null
+  isSpare?: boolean
+  replacesMealId?: string | null
   items: {
     id: string
     foodName: string
@@ -92,29 +94,54 @@ export function ClientNutritionView({
   function toggle(itemId: string) {
     if (pending) return
     startTransition(async () => {
+      // Find the meal this item belongs to
+      let foundMeal: ClientMealView | undefined
+      for (const m of plan.meals) {
+        if (m.items.some(i => i.id === itemId)) {
+          foundMeal = m
+          break
+        }
+      }
+
+      // If we are checking the item
+      const willBeChosen = !chosen.has(itemId)
+      let itemsToUnselect: string[] = []
+      
+      if (willBeChosen && foundMeal) {
+        const mainMealId = foundMeal.isSpare ? foundMeal.replacesMealId : foundMeal.id
+        const groupMeals = plan.meals.filter(m => 
+          m.id === mainMealId || (m.isSpare && m.replacesMealId === mainMealId)
+        )
+        
+        for (const m of groupMeals) {
+          if (m.id !== foundMeal.id) {
+            for (const i of m.items) {
+              itemsToUnselect.push(i.id)
+            }
+          }
+        }
+      }
+
+      setChosen((prev) => {
+        const next = new Set(prev)
+        if (willBeChosen) {
+           next.add(itemId)
+           itemsToUnselect.forEach(id => next.delete(id))
+        } else {
+           next.delete(itemId)
+        }
+        return next
+      })
+
       const result = await toggleMealChoiceAction(itemId)
       if (!result.ok) {
         toast.error(t.toasts.unauthorized)
-        return
+        // Note: Ideally revert state here on error
       }
-      setChosen((prev) => {
-        const next = new Set(prev)
-        if (result.chosen) next.add(itemId)
-        else next.delete(itemId)
-        return next
-      })
     })
   }
 
-  const groupsByMeal = useMemo(() => {
-    return plan.meals.map((meal) => {
-      const counts = new Map<number, number>()
-      for (const item of meal.items) {
-        counts.set(item.groupNumber, (counts.get(item.groupNumber) ?? 0) + 1)
-      }
-      return counts
-    })
-  }, [plan.meals])
+
 
   return (
     <div className="space-y-6">
@@ -146,7 +173,7 @@ export function ClientNutritionView({
             <CardTitle className="text-base">{n.supplementsDefinitions}</CardTitle>
           </div>
           {plan.supplementDefs.length > 0 ? (
-            <Badge variant="secondary" className="tabular-nums rounded-full">
+            <Badge variant="secondary" className="tabular-nums rounded-full shrink-0">
               {plan.supplementDefs.length}
             </Badge>
           ) : null}
@@ -169,17 +196,17 @@ export function ClientNutritionView({
                     "border-brand-500/40 bg-brand-500/[0.03] md:col-span-full dark:border-brand-400/30"
                 )}
               >
-                <button
-                  type="button"
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() =>
                     hasDetails &&
                     setOpenSupplementId((prev) => (prev === def.id ? null : def.id))
                   }
                   aria-expanded={isOpen}
-                  disabled={!hasDetails}
                   className={cn(
                     "flex w-full items-center gap-3 p-3.5 text-start",
-                    hasDetails && "cursor-pointer hover:bg-accent/50"
+                    hasDetails ? "cursor-pointer hover:bg-accent/50" : "opacity-90"
                   )}
                 >
                   <span
@@ -192,10 +219,10 @@ export function ClientNutritionView({
                   >
                     {index + 1}
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{name}</span>
+                  <span className="min-w-0 flex-1 py-1">
+                    <span className="block font-medium">{name}</span>
                     {!isOpen && definition ? (
-                      <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                      <span className="mt-0.5 block text-xs text-muted-foreground line-clamp-2">
                         {definition}
                       </span>
                     ) : null}
@@ -210,7 +237,7 @@ export function ClientNutritionView({
                   ) : (
                     <Pill className="size-4 shrink-0 text-muted-foreground/50" />
                   )}
-                </button>
+                </div>
 
                 {isOpen ? (
                   <div className="space-y-2.5 border-t px-3.5 pb-3.5 pt-3">
@@ -245,68 +272,125 @@ export function ClientNutritionView({
       </Card>
 
       {/* 2 Meals */}
-      {plan.meals.map((meal, mealIndex) => {
-        const counts = groupsByMeal[mealIndex]
-        const mealName = isAr && meal.nameAr ? meal.nameAr : meal.name
-        const isSnack = meal.kind === "SNACK"
-        return (
-          <Card key={meal.id} className="overflow-hidden rounded-2xl shadow-soft border">
-            <CardHeader className="flex-row items-center gap-2 space-y-0 border-b bg-gradient-to-r from-brand-500/[0.04] to-transparent">
-              <span className={`flex size-8 items-center justify-center rounded-xl text-white shadow-soft ${isSnack ? "bg-gradient-to-br from-energy-500 to-energy-600" : "bg-gradient-to-br from-brand-500 to-brand-600"}`}>
-                {isSnack ? "🥜" : "🍽️"}
-              </span>
-              <Badge variant={isSnack ? "secondary" : "default"} className="rounded-full">
-                {isSnack ? n.snack : n.meal}
-              </Badge>
-              <CardTitle className="text-base">{mealName}</CardTitle>
-              <span className="ms-auto text-xs text-muted-foreground tabular-nums">{meal.items.length} {isAr ? "أصناف" : "items"}</span>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-1.5">
-                {meal.items.map((item) => {
-                  const count = counts.get(item.groupNumber) ?? 0
-                  const isChosen = chosen.has(item.id)
-                  const label =
-                    isAr && item.foodNameAr ? item.foodNameAr : item.foodName
-                  return (
-                    <li key={item.id}>
-                      <button
-                        type="button"
-                        onClick={() => toggle(item.id)}
-                        disabled={pending}
-                        className={`flex min-h-[48px] w-full items-center gap-2 rounded-xl border p-3 text-start transition-colors ${
-                          isChosen
-                            ? "border-emerald-500/50 bg-emerald-500/10"
-                            : "hover:bg-accent"
-                        }`}
-                      >
-                        <span
-                          className={`flex size-5 shrink-0 items-center justify-center rounded-full border ${
-                            isChosen ? "border-emerald-600 bg-emerald-600 text-white" : "border-muted-foreground/40"
-                          }`}
-                        >
-                          {isChosen && <Check className="size-3.5" />}
-                        </span>
-                        <span className="min-w-0 flex-1 break-words text-sm">
-                          {label}
-                          {item.amount !== null && (
-                            <span className="ms-1 text-muted-foreground">
-                              ({formatAmount(item.amount, item.unit)})
-                            </span>
-                          )}
-                        </span>
-                        {count > 1 && (
-                          <Badge variant="outline" className="shrink-0">{n.chooseOne}</Badge>
-                        )}
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
-            </CardContent>
-          </Card>
-        )
-      })}
+      {plan.meals
+        .filter((meal) => !meal.isSpare)
+        .map((mainMeal, groupIndex) => {
+          const alternatives = plan.meals.filter(
+            (m) => m.isSpare && m.replacesMealId === mainMeal.id
+          )
+          
+          return (
+            <Card key={mainMeal.id} className="overflow-hidden rounded-2xl shadow-soft border">
+              <CardHeader className="flex-row items-center gap-2 space-y-0 border-b bg-gradient-to-r from-brand-500/[0.04] to-transparent">
+                <span className={`flex size-8 shrink-0 items-center justify-center rounded-xl text-white shadow-soft ${mainMeal.kind === "SNACK" ? "bg-gradient-to-br from-energy-500 to-energy-600" : "bg-gradient-to-br from-brand-500 to-brand-600"}`}>
+                  {mainMeal.kind === "SNACK" ? <Cookie className="size-4" /> : <Utensils className="size-4" />}
+                </span>
+                <Badge variant={mainMeal.kind === "SNACK" ? "secondary" : "default"} className="rounded-full shrink-0">
+                  {mainMeal.kind === "SNACK" ? n.snack : n.meal}
+                </Badge>
+                <CardTitle className="text-base min-w-0 flex-1">{isAr && mainMeal.nameAr ? mainMeal.nameAr : mainMeal.name}</CardTitle>
+              </CardHeader>
+              
+              <CardContent className="p-0">
+                <div className="flex flex-col divide-y">
+                  {/* Main Meal */}
+                  <div className="p-4 bg-background">
+                    <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-brand-700 dark:text-brand-400">
+                      <CheckCircle2 className="size-4" />
+                      {n.mainMeal ?? "Main Meal"}
+                    </div>
+                    <ul className="space-y-1.5">
+                      {mainMeal.items.map((item) => {
+                        const isChosen = chosen.has(item.id)
+                        const label = isAr && item.foodNameAr ? item.foodNameAr : item.foodName
+                        return (
+                          <li key={item.id}>
+                            <div
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => !pending && toggle(item.id)}
+                              className={`flex min-h-[48px] w-full cursor-pointer items-center gap-2 rounded-xl border p-3 text-start transition-colors ${
+                                pending ? "opacity-50 pointer-events-none" : ""
+                              } ${
+                                isChosen
+                                  ? "border-emerald-500/50 bg-emerald-500/10"
+                                  : "hover:bg-accent"
+                              }`}
+                            >
+                              <span
+                                className={`flex size-5 shrink-0 items-center justify-center rounded-full border ${
+                                  isChosen ? "border-emerald-600 bg-emerald-600 text-white" : "border-muted-foreground/40"
+                                }`}
+                              >
+                                {isChosen && <Check className="size-3.5" />}
+                              </span>
+                              <span className="min-w-0 flex-1 break-words text-sm">
+                                {label}
+                                {item.amount !== null && (
+                                  <span className="ms-1 text-muted-foreground">
+                                    ({formatAmount(item.amount, item.unit)})
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
+
+                  {/* Alternative Meals */}
+                  {alternatives.map((altMeal) => (
+                    <div key={altMeal.id} className="p-4 bg-muted/20">
+                      <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-amber-600 dark:text-amber-500">
+                        <TriangleAlert className="size-4" />
+                        {n.spareMeal ?? "Alternative"} - {isAr && altMeal.nameAr ? altMeal.nameAr : altMeal.name}
+                      </div>
+                      <ul className="space-y-1.5">
+                        {altMeal.items.map((item) => {
+                          const isChosen = chosen.has(item.id)
+                          const label = isAr && item.foodNameAr ? item.foodNameAr : item.foodName
+                          return (
+                            <li key={item.id}>
+                              <div
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => !pending && toggle(item.id)}
+                                className={`flex min-h-[48px] w-full cursor-pointer items-center gap-2 rounded-xl border p-3 text-start transition-colors ${
+                                  pending ? "opacity-50 pointer-events-none" : ""
+                                } ${
+                                  isChosen
+                                    ? "border-emerald-500/50 bg-emerald-500/10"
+                                    : "hover:bg-accent border-amber-200/40 dark:border-amber-900/40"
+                                }`}
+                              >
+                                <span
+                                  className={`flex size-5 shrink-0 items-center justify-center rounded-full border ${
+                                    isChosen ? "border-emerald-600 bg-emerald-600 text-white" : "border-muted-foreground/40"
+                                  }`}
+                                >
+                                  {isChosen && <Check className="size-3.5" />}
+                                </span>
+                                <span className="min-w-0 flex-1 break-words text-sm">
+                                  {label}
+                                  {item.amount !== null && (
+                                    <span className="ms-1 text-muted-foreground">
+                                      ({formatAmount(item.amount, item.unit)})
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
 
       {/* 3 Macros: Calories — Protein — Carbs — Fat — Water */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -343,9 +427,9 @@ export function ClientNutritionView({
             .map((group) => (
               <details key={group.id} className="rounded-xl border">
                 <summary className="flex min-h-[48px] cursor-pointer items-center gap-2 p-3 text-sm font-medium">
-                  <ChevronDown className="size-4" />
-                  <Badge variant="outline">{group.category}</Badge>
-                  <span className="text-muted-foreground">{group.caloriesLabel}</span>
+                  <ChevronDown className="size-4 shrink-0" />
+                  <Badge variant="outline" className="shrink-0">{group.category}</Badge>
+                  <span className="text-muted-foreground min-w-0 flex-1">{group.caloriesLabel}</span>
                 </summary>
                 <ul className="grid grid-cols-1 gap-x-4 border-t px-3 py-2 sm:grid-cols-2">
                   {group.items.map((item) => (
@@ -375,7 +459,7 @@ export function ClientNutritionView({
               {plan.guidelines.map((line, index) => (
                 <li key={index} className="flex min-h-[36px] items-start gap-2 rounded-lg bg-muted/40 p-2 text-sm">
                   <Check className="mt-0.5 size-4 shrink-0 text-emerald-600" />
-                  <span className="break-words">{line}</span>
+                  <span className="break-words min-w-0 flex-1">{line}</span>
                 </li>
               ))}
             </ul>
@@ -389,7 +473,7 @@ export function ClientNutritionView({
           {plan.avoidFoods.length > 0 && (
             <Card className="border-destructive/40 bg-destructive/5">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base text-destructive">⚠ {n.avoidFoods}</CardTitle>
+                <CardTitle className="text-base text-destructive flex items-center gap-2"><TriangleAlert className="size-4 shrink-0" /> {n.avoidFoods}</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-wrap gap-1.5">
                 {plan.avoidFoods.map((food, i) => (
@@ -401,8 +485,8 @@ export function ClientNutritionView({
           {plan.recommendedFoods.length > 0 && (
             <Card className="border-emerald-500/40 bg-emerald-500/5">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base text-emerald-600 dark:text-emerald-400">
-                  ✓ {n.recommendedFoods}
+                <CardTitle className="text-base text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                  <CheckCircle2 className="size-4 shrink-0" /> {n.recommendedFoods}
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-wrap gap-1.5">
@@ -416,7 +500,7 @@ export function ClientNutritionView({
       )}
 
       <Button variant="outline" className="w-full min-h-[44px] md:hidden" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-        ↑
+        <ArrowUp className="size-4" />
       </Button>
     </div>
   )

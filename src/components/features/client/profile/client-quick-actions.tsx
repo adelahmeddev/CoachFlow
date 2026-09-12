@@ -28,8 +28,8 @@ function normalizePhone(phone: string): string {
 function buildWhatsAppUrl(phone: string, clientName: string, portalUrl: string, locale: string): string | null {
   const normalized = normalizePhone(phone)
   if (!normalized) return null
-  const arMessage = `أهلاً ${clientName} 👋\nتفضل رابط بوابتك عشان تتابع خطتك التدريبية:\n${portalUrl}`
-  const enMessage = `Hey ${clientName} 👋\nHere's your portal link to follow your training plan:\n${portalUrl}`
+  const arMessage = `أهلاً ${clientName}\nتفضل رابط بوابتك عشان تتابع خطتك التدريبية:\n${portalUrl}`
+  const enMessage = `Hey ${clientName}\nHere's your portal link to follow your training plan:\n${portalUrl}`
   const message = locale === "ar" ? arMessage : enMessage
   const encoded = encodeURIComponent(message)
   return `https://wa.me/${normalized}?text=${encoded}`

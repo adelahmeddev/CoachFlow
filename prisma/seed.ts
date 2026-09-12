@@ -99,7 +99,7 @@ async function main() {
 async function seedDemoData() {
   // Create demo trainer — SELECT then INSERT (upsert)
   const trainerPassword = await bcrypt.hash("demo123", 10)
-  let trainerUserRow = await pool.query(`SELECT * FROM "User" WHERE "username" = $1 LIMIT 1`, ["trainer1"])
+  const trainerUserRow = await pool.query(`SELECT * FROM "User" WHERE "username" = $1 LIMIT 1`, ["trainer1"])
   let trainerUser: any
   if (trainerUserRow.rowCount === 0) {
     const userId = generateId()

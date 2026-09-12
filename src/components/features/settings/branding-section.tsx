@@ -12,6 +12,7 @@ import { useBranding, notifyBrandingUpdated, type Branding } from "@/components/
 import { LogoEditorDialog } from "@/components/features/settings/logo-editor"
 import { coachRemoveLogoAction, coachUpdateBrandingAction, coachUploadLogoAction } from "@/server/actions/branding"
 import { normalizeFacebookUrl, normalizeInstagramUrl, normalizeWhatsappUrl } from "@/lib/validations/branding"
+import { normalizePickedImage } from "@/components/features/settings/normalize-picked-image"
 
 const ACCEPT = "image/png,image/jpeg,image/webp,image/svg+xml"
 const MAX_BYTES = 2 * 1024 * 1024
@@ -77,34 +78,11 @@ export function BrandingSection() {
       void uploadSvgDirect(f)
       return
     }
-    void openEditorWithNormalizedImage(f)
+    void openEditorWithImage(f)
   }
 
-  /**
-   * Phone photos are stored unrotated with an EXIF orientation flag: <img>
-   * honors it but canvas crops raw pixels, so without normalization the
-   * saved logo comes out rotated vs. the editor preview. Decoding with
-   * imageOrientation 'from-image' bakes the orientation into the pixels the
-   * editor works on. Falls back to the raw file on any failure.
-   */
-  async function openEditorWithNormalizedImage(f: File) {
-    let url: string | null = null
-    try {
-      const bmp = await createImageBitmap(f, { imageOrientation: "from-image" })
-      try {
-        const c = document.createElement("canvas")
-        c.width = bmp.width
-        c.height = bmp.height
-        c.getContext("2d")?.drawImage(bmp, 0, 0)
-        const blob = await new Promise<Blob | null>((resolve) => c.toBlob(resolve, "image/png"))
-        if (blob) url = URL.createObjectURL(blob)
-      } finally {
-        bmp.close()
-      }
-    } catch {
-      url = null
-    }
-    const finalUrl = url ?? URL.createObjectURL(f)
+  async function openEditorWithImage(f: File) {
+    const finalUrl = await normalizePickedImage(f)
     setExistingSrc(null)
     setPickedSrc((prev) => {
       if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev)

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -27,18 +28,22 @@ function foregroundForPrimary(hex: string): string {
   return lum > 0.55 ? "#1C1917" : "#FFFFFF"
 }
 
-type BrandingRow = { brandName: string | null; logoUrl: string | null; primaryColor: string | null } | null
+type BrandingRow = { brandName: string | null; logoUrl: string | null; primaryColor: string | null; whatsappUrl: string | null; facebookUrl: string | null; instagramUrl: string | null } | null
 
 export function AdminBrandingForm({ coachId, initial }: { coachId: string; initial: BrandingRow }) {
+  const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [brandName, setBrandName] = useState(initial?.brandName ?? "")
   const [logoUrl, setLogoUrl] = useState(initial?.logoUrl ?? "")
-  const [primaryColor, setPrimaryColor] = useState(initial?.primaryColor ?? "#E85D04")
+  const [primaryColor, setPrimaryColor] = useState(initial?.primaryColor ?? "#961112")
+  const [whatsappUrl, setWhatsappUrl] = useState(initial?.whatsappUrl ?? "")
+  const [facebookUrl, setFacebookUrl] = useState(initial?.facebookUrl ?? "")
+  const [instagramUrl, setInstagramUrl] = useState(initial?.instagramUrl ?? "")
   const [previewLogo, setPreviewLogo] = useState<string | null>(initial?.logoUrl ?? null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
   const effectiveName = brandName.trim() || "Coach Flow"
-  const effectiveColor = /^#([0-9A-Fa-f]{6})$/.test(primaryColor) ? primaryColor : "#E85D04"
+  const effectiveColor = /^#([0-9A-Fa-f]{6})$/.test(primaryColor) ? primaryColor : "#961112"
   const warning = getContrastWarning(effectiveColor)
   const fg = foregroundForPrimary(effectiveColor)
 
@@ -85,10 +90,22 @@ export function AdminBrandingForm({ coachId, initial }: { coachId: string; initi
               </div>
               {warning && <Alert variant="default"><AlertDescription>{warning}</AlertDescription></Alert>}
             </div>
+            <div className="space-y-1">
+              <Label>WhatsApp URL</Label>
+              <Input value={whatsappUrl} onChange={e=> setWhatsappUrl(e.target.value)} placeholder="https://wa.me/..." />
+            </div>
+            <div className="space-y-1">
+              <Label>Facebook URL</Label>
+              <Input value={facebookUrl} onChange={e=> setFacebookUrl(e.target.value)} placeholder="https://facebook.com/..." />
+            </div>
+            <div className="space-y-1">
+              <Label>Instagram URL</Label>
+              <Input value={instagramUrl} onChange={e=> setInstagramUrl(e.target.value)} placeholder="https://instagram.com/..." />
+            </div>
           </div>
 
           {/* Live Preview — does not persist until Save */}
-          <div className="rounded-xl border bg-card p-4 space-y-3">
+          <div className="rounded-xl border bg-card p-4 space-y-3 h-fit">
             <p className="text-xs font-medium text-muted-foreground">Preview</p>
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-lg flex items-center justify-center overflow-hidden border bg-white" style={{ color: fg }}>
@@ -113,19 +130,27 @@ export function AdminBrandingForm({ coachId, initial }: { coachId: string; initi
               fd.set("file", selectedFile)
               const up = await adminUploadLogoAction(coachId, fd)
               if (!up.ok) { toast.error(up.error); return }
+              // Server stores a compressed WebP file and returns its short
+              // URL — data URLs are never written for new uploads.
               finalLogo = up.logoUrl ?? finalLogo
-            } else if (previewLogo && previewLogo.startsWith("data:") && !finalLogo) {
-              finalLogo = previewLogo
             }
-            const res = await adminUpsertBrandingAction(coachId, { brandName: brandName.trim() || null, logoUrl: finalLogo, primaryColor: effectiveColor })
-            if (res.ok) { toast.success("Branding saved"); setSelectedFile(null) }
+            const res = await adminUpsertBrandingAction(coachId, { brandName: brandName.trim() || null, logoUrl: finalLogo, primaryColor: effectiveColor, whatsappUrl: whatsappUrl.trim() || null, facebookUrl: facebookUrl.trim() || null, instagramUrl: instagramUrl.trim() || null })
+            if (res.ok) {
+              toast.success("Branding saved")
+              setSelectedFile(null)
+              // Sync local state with what was actually persisted, then
+              // reload server data so refresh shows the saved branding
+              setLogoUrl(finalLogo ?? "")
+              setPreviewLogo(finalLogo)
+              router.refresh()
+            }
             else toast.error(res.error)
           })}>Save Branding</Button>
 
           <Button variant="outline" disabled={pending} onClick={()=> startTransition(async()=>{
-            if (!confirm("Reset to Coach Flow defaults? This clears brand name, logo, color.")) return
+            if (!confirm("Reset to Coach Flow defaults? This clears brand name, logo, color, and social links.")) return
             const res = await adminResetBrandingAction(coachId)
-            if (res.ok) { toast.success("Reset to default"); setBrandName(""); setLogoUrl(""); setPreviewLogo(null); setSelectedFile(null); setPrimaryColor("#E85D04") }
+            if (res.ok) { toast.success("Reset to default"); setBrandName(""); setLogoUrl(""); setPreviewLogo(null); setSelectedFile(null); setPrimaryColor("#961112"); setWhatsappUrl(""); setFacebookUrl(""); setInstagramUrl(""); router.refresh() }
             else toast.error(res.error)
           })}>Reset to Coach Flow Branding</Button>
         </div>

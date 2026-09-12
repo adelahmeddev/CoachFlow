@@ -12,6 +12,7 @@ import {
   updateTrainingSplit,
   updateTrainingSplitStatus,
 } from "@/server/services/training-split.service"
+import { notifyClientsPlanUpdated } from "@/server/services/notification.service"
 import { PlanStatus } from "@/lib/db/enums"
 
 export async function createTrainingSplitAction(
@@ -51,6 +52,7 @@ export async function createTrainingSplitAction(
     `client:${clientId}:workout`,
     `client:${clientId}:profile`,
   ])
+  await notifyClientsPlanUpdated([clientId], "training", session.user.name ?? null)
   return { ok: true as const, splitId: split.id }
 }
 
@@ -93,7 +95,10 @@ export async function updateTrainingSplitAction(
     `client:${clientId}:workout`,
     `client:${clientId}:profile`,
   ])
-  return { ok: true as const }
+  // When the split had workout history, the edit created a new version
+  // (history preserved) instead of mutating in place — return the live id.
+  await notifyClientsPlanUpdated([clientId], "training", session.user.name ?? null)
+  return { ok: true as const, splitId: split.id, versioned: split.versioned ?? false }
 }
 
 export async function updateTrainingSplitStatusAction(

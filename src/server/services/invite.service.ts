@@ -1,4 +1,5 @@
 import { nanoid } from "nanoid"
+import { randomBytes } from "crypto"
 import { pool, generateId, withTransaction, isUniqueViolation, isForeignKeyViolation } from "@/lib/db"
 import { ClientStatus, Goal } from "@/lib/db/enums"
 import {
@@ -78,7 +79,7 @@ export async function createClientInvite(
 
 export async function getTrainerInvites(trainerProfileId: string) {
   const res = await pool.query(
-    `SELECT "id", "fullName", "status", "inviteToken", "inviteExpiresAt", "basicInfoCompletedAt", "createdAt"
+    `SELECT "id", "fullName", "status", "inviteToken", "inviteExpiresAt", "basicInfoCompletedAt", "createdAt", "userId", "phone"
      FROM "Client" WHERE "trainerId" = $1 ORDER BY "createdAt" DESC`,
     [trainerProfileId]
   )
@@ -90,6 +91,8 @@ export async function getTrainerInvites(trainerProfileId: string) {
     inviteExpiresAt: Date | null
     basicInfoCompletedAt: Date | null
     createdAt: Date
+    userId: string | null
+    phone: string | null
   }>
 }
 
@@ -321,4 +324,161 @@ export async function submitClientAccountInfo(
     }
     throw error
   }
+}
+
+export type InviteManageResult =
+  | { ok: true; inviteToken: string; inviteExpiresAt: Date }
+  | { ok: false; error: "NOT_FOUND" | "ALREADY_ACCEPTED" }
+
+async function getOwnedInvite(clientId: string, trainerProfileId: string) {
+  const res = await pool.query(
+    `SELECT "id", "userId", "inviteToken", "inviteExpiresAt" FROM "Client"
+     WHERE "id" = $1 AND "trainerId" = $2 LIMIT 1`,
+    [clientId, trainerProfileId]
+  )
+  return (res.rows[0] as {
+    id: string
+    userId: string | null
+    inviteToken: string | null
+    inviteExpiresAt: Date | null
+  } | undefined) ?? null
+}
+
+/**
+ * Resend: issue a fresh token + fresh expiry for a pending invite.
+ * The old token is invalidated (replaced), so at most one active token
+ * exists per client — no unlimited parallel invitations.
+ */
+export async function resendClientInvite(
+  clientId: string,
+  trainerProfileId: string,
+  expiresInDays: number = DEFAULT_INVITE_EXPIRY_DAYS
+): Promise<InviteManageResult> {
+  const client = await getOwnedInvite(clientId, trainerProfileId)
+  if (!client) return { ok: false, error: "NOT_FOUND" }
+  if (client.userId) return { ok: false, error: "ALREADY_ACCEPTED" }
+
+  const inviteToken = nanoid(24)
+  const inviteExpiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000)
+  await pool.query(
+    `UPDATE "Client" SET "inviteToken" = $1, "inviteExpiresAt" = $2, "updatedAt" = NOW() WHERE "id" = $3`,
+    [inviteToken, inviteExpiresAt, client.id]
+  )
+  invalidateDashboard(trainerProfileId)
+  return { ok: true, inviteToken, inviteExpiresAt }
+}
+
+/**
+ * Extend: push the expiry of the existing token into the future
+ * (default +7 days from the later of now and the current expiry).
+ * The token itself is preserved so already-shared links keep working.
+ */
+export async function extendClientInvite(
+  clientId: string,
+  trainerProfileId: string,
+  expiresInDays: number = DEFAULT_INVITE_EXPIRY_DAYS
+): Promise<InviteManageResult> {
+  const client = await getOwnedInvite(clientId, trainerProfileId)
+  if (!client) return { ok: false, error: "NOT_FOUND" }
+  if (client.userId) return { ok: false, error: "ALREADY_ACCEPTED" }
+  if (!client.inviteToken) {
+    // No token to extend — fall back to a resend.
+    return resendClientInvite(clientId, trainerProfileId, expiresInDays)
+  }
+
+  const base = Math.max(Date.now(), client.inviteExpiresAt ? new Date(client.inviteExpiresAt).getTime() : 0)
+  const inviteExpiresAt = new Date(base + expiresInDays * 24 * 60 * 60 * 1000)
+  await pool.query(
+    `UPDATE "Client" SET "inviteExpiresAt" = $1, "updatedAt" = NOW() WHERE "id" = $2`,
+    [inviteExpiresAt, client.id]
+  )
+  invalidateDashboard(trainerProfileId)
+  return { ok: true, inviteToken: client.inviteToken, inviteExpiresAt }
+}
+
+export type CreateLoginResult =
+  | { ok: true; tempPassword: string; username: string }
+  | { ok: false; error: "NOT_FOUND" | "ALREADY_HAS_LOGIN" | "PHONE_TAKEN" }
+
+/**
+ * Give a manually-created client (no User/userId) a login without breaking
+ * the invite architecture:
+ * - If the client already has a User → no-op (never duplicate).
+ * - If an *unlinked* CLIENT User with the same phone exists → link it.
+ * - Otherwise create a User (username = phone, or a stable client_* fallback
+ *   when the client has no phone) with a one-time temp password and force a
+ *   password change on first login.
+ * The temp password is returned once for the coach to share; only the hash
+ * is stored.
+ */
+export async function createLoginForClient(
+  clientId: string,
+  trainerProfileId: string
+): Promise<CreateLoginResult> {
+  const res = await pool.query(
+    `SELECT "id", "phone", "userId" FROM "Client"
+     WHERE "id" = $1 AND "trainerId" = $2 LIMIT 1`,
+    [clientId, trainerProfileId]
+  )
+  const client = (res.rows[0] as { id: string; phone: string | null; userId: string | null } | undefined) ?? null
+  if (!client) return { ok: false, error: "NOT_FOUND" }
+  if (client.userId) return { ok: false, error: "ALREADY_HAS_LOGIN" }
+
+  // Reuse an unlinked account with the same phone (same person re-added).
+  // Never steal a User that already belongs to another client.
+  if (client.phone) {
+    const userRes = await pool.query(
+      `SELECT u."id" FROM "User" u
+       LEFT JOIN "Client" c ON c."userId" = u."id"
+       WHERE u."phone" = $1 AND u."role" = 'CLIENT'::"Role" AND c."id" IS NULL
+       LIMIT 1`,
+      [client.phone]
+    )
+    const orphan = (userRes.rows[0] as { id: string } | undefined) ?? null
+    if (orphan) {
+      await pool.query(
+        `UPDATE "Client" SET "userId" = $1, "updatedAt" = NOW() WHERE "id" = $2`,
+        [orphan.id, client.id]
+      )
+      const linked = await pool.query(`SELECT "username" FROM "User" WHERE "id" = $1 LIMIT 1`, [orphan.id])
+      const username = ((linked.rows[0] as { username: string | null } | undefined)?.username) ?? client.phone
+      // Force a password reset so the coach shares a fresh credential.
+      const tempPassword = randomBytes(9).toString("base64url")
+      await pool.query(
+        `UPDATE "User" SET "passwordHash" = $1, "mustChangePassword" = true, "updatedAt" = NOW() WHERE "id" = $2`,
+        [await hashPassword(tempPassword), orphan.id]
+      )
+      invalidateDashboard(trainerProfileId)
+      return { ok: true, tempPassword, username }
+    }
+    const takenRes = await pool.query(`SELECT "id" FROM "User" WHERE "phone" = $1 LIMIT 1`, [client.phone])
+    if ((takenRes.rows[0] as { id: string } | undefined)) {
+      // A different (already linked) account owns this phone — refuse to
+      // create a duplicate instead of silently hijacking it.
+      return { ok: false, error: "PHONE_TAKEN" }
+    }
+  }
+
+  const tempPassword = randomBytes(9).toString("base64url")
+  const passwordHash = await hashPassword(tempPassword)
+  const username = client.phone ?? `client_${client.id}`
+
+  try {
+    await withTransaction(async (tx) => {
+      const userId = generateId()
+      const now = new Date()
+      await tx.query(
+        `INSERT INTO "User" ("id", "username", "phone", "passwordHash", "role", "mustChangePassword", "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, $4, 'CLIENT'::"Role", true, $5, $5)`,
+        [userId, username, client.phone, passwordHash, now]
+      )
+      await tx.query(`UPDATE "Client" SET "userId" = $1, "updatedAt" = NOW() WHERE "id" = $2`, [userId, client.id])
+    })
+  } catch (error) {
+    if (isUniqueViolation(error)) return { ok: false, error: "PHONE_TAKEN" }
+    throw error
+  }
+
+  invalidateDashboard(trainerProfileId)
+  return { ok: true, tempPassword, username }
 }

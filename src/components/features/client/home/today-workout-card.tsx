@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Dumbbell, MoonStar, Flame, ArrowLeft, Clock, Target, Zap, Play, Trophy } from "lucide-react"
+import { Dumbbell, MoonStar, Flame, ArrowLeft, Clock, Target, Zap, Play, Trophy, Heart, Footprints } from "lucide-react"
 import { useI18n } from "@/lib/i18n/client"
 import { lookup } from "@/lib/i18n/lookup"
 import type { TodayWorkoutResult } from "@/server/services/client-portal.service"
@@ -21,18 +21,18 @@ const FOCUS_LABEL_KEYS: Record<string, string> = {
   MOBILITY: "mobility",
 }
 
-const focusMeta: Record<string, { emoji: string; color: string }> = {
-  CHEST: { emoji: "💪", color: "from-muscle-500 to-brand-500" },
-  BACK: { emoji: "🦾", color: "from-brand-600 to-brand-500" },
-  PUSH: { emoji: "🔥", color: "from-energy-500 to-brand-500" },
-  PULL: { emoji: "🦍", color: "from-muscle-500 to-performance-600" },
-  LEGS: { emoji: "🦵", color: "from-performance-600 to-performance-500" },
-  UPPER: { emoji: "💥", color: "from-brand-500 to-energy-500" },
-  LOWER: { emoji: "🏋️", color: "from-performance-500 to-brand-500" },
-  FULL_BODY: { emoji: "⚡", color: "from-brand-600 via-energy-500 to-performance-500" },
-  SHOULDERS_ARMS: { emoji: "💪", color: "from-energy-500 to-muscle-400" },
-  CARDIO: { emoji: "❤️", color: "from-sky-500 to-performance-500" },
-  REST: { emoji: "😴", color: "from-muted to-muted" },
+const focusMeta: Record<string, { icon: typeof Dumbbell; color: string }> = {
+  CHEST: { icon: Dumbbell, color: "from-muscle-500 to-brand-500" },
+  BACK: { icon: Dumbbell, color: "from-brand-600 to-brand-500" },
+  PUSH: { icon: Flame, color: "from-energy-500 to-brand-500" },
+  PULL: { icon: Target, color: "from-muscle-500 to-performance-600" },
+  LEGS: { icon: Footprints, color: "from-performance-600 to-performance-500" },
+  UPPER: { icon: Zap, color: "from-brand-500 to-energy-500" },
+  LOWER: { icon: Dumbbell, color: "from-performance-500 to-brand-500" },
+  FULL_BODY: { icon: Zap, color: "from-brand-600 via-energy-500 to-performance-500" },
+  SHOULDERS_ARMS: { icon: Dumbbell, color: "from-energy-500 to-muscle-400" },
+  CARDIO: { icon: Heart, color: "from-sky-500 to-performance-500" },
+  REST: { icon: MoonStar, color: "from-muted to-muted" },
 }
 
 export function TodayWorkoutCard({ workout }: { workout: TodayWorkoutResult }) {
@@ -60,7 +60,7 @@ export function TodayWorkoutCard({ workout }: { workout: TodayWorkoutResult }) {
               <MoonStar className="size-6" />
             </span>
             <div className="min-w-0 flex-1 space-y-1">
-              <h3 className="text-lg font-extrabold tracking-tight">{t.client.week.restDay} 💤</h3>
+              <h3 className="text-lg font-extrabold tracking-tight">{t.client.week.restDay}</h3>
               {nextLabel ? (
                 <p className="text-sm text-muted-foreground">
                   {t.client.week.nextTrainingDay}: <span className="font-semibold text-foreground">{nextLabel}</span>
@@ -69,7 +69,7 @@ export function TodayWorkoutCard({ workout }: { workout: TodayWorkoutResult }) {
                 <p className="text-sm text-muted-foreground">{t.client.week.noWorkoutPlanned}</p>
               )}
               <p className="text-xs leading-relaxed text-muted-foreground">
-                {isAr ? "يوم راحة مهم للاستشفاء — نام كويس واشرب مياه 💧" : "Recovery day — sleep well, hydrate 💧"}
+                {isAr ? "يوم راحة مهم للاستشفاء — نام كويس واشرب مياه" : "Recovery day — sleep well, hydrate"}
               </p>
             </div>
           </div>
@@ -126,15 +126,15 @@ export function TodayWorkoutCard({ workout }: { workout: TodayWorkoutResult }) {
         <div className="p-5 sm:p-6 pb-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex gap-4 min-w-0 flex-1">
-              <span className={`flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${meta.color} text-white text-xl shadow-soft ring-1 ring-white/20`}>
-                {meta.emoji}
+              <span className={`flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${meta.color} text-white shadow-soft ring-1 ring-white/20`}>
+                <meta.icon className="size-7" />
               </span>
               <div className="min-w-0 flex-1 space-y-1.5">
                 <div className="inline-flex items-center gap-2 rounded-full bg-brand-500/10 px-2.5 py-1 text-xs font-bold text-brand-700 ring-1 ring-brand-500/15 dark:bg-brand-500/15 dark:text-brand-300">
                   <Flame className="size-3" />
                   {isAr ? "تمرين النهاردة" : "Today's Session"}
                 </div>
-                <h3 className="text-xl font-extrabold tracking-tight leading-none">
+                <h3 className="text-xl font-extrabold tracking-tight leading-snug break-words">
                   {workout.day.dayName}
                   <span className="mx-2 text-muted-foreground/30">•</span>
                   <span className="bg-gradient-to-r from-brand-600 to-energy-600 bg-clip-text text-transparent">
@@ -187,7 +187,7 @@ export function TodayWorkoutCard({ workout }: { workout: TodayWorkoutResult }) {
                     {i + 1}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold leading-none">{ex.exerciseName}</p>
+                    <p className="line-clamp-2 break-words text-sm font-semibold leading-snug">{ex.exerciseName}</p>
                     <p className="mt-1 text-xs tabular-nums text-muted-foreground">
                       <span dir="ltr">
                         {ex.sets} × {ex.reps}

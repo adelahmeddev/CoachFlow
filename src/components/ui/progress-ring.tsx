@@ -17,25 +17,31 @@ const variantColors = {
     track: "stroke-brand-100 dark:stroke-white/10",
     progress: "stroke-brand-500 dark:stroke-brand-400",
     text: "text-brand-700 dark:text-brand-300",
-    gradient: ["#E85D04", "#FB8A3C"],
+    // CSS vars (not literals) so the ring follows the coach brand color.
+    // Applied via style (SVG presentation attributes can't use var()).
+    gradient: ["var(--color-brand-500)", "var(--color-brand-400)"],
+    glow: "color-mix(in srgb, var(--color-brand-500) 30%, transparent)",
   },
   energy: {
     track: "stroke-energy-100 dark:stroke-white/10",
     progress: "stroke-energy-500 dark:stroke-energy-400",
     text: "text-energy-700 dark:text-energy-300",
     gradient: ["#F59E0B", "#FDBB7A"],
+    glow: "rgba(245,158,11,0.3)",
   },
   muscle: {
     track: "stroke-muscle-100 dark:stroke-white/10",
     progress: "stroke-muscle-500 dark:stroke-muscle-400",
     text: "text-muscle-700 dark:text-muscle-300",
-    gradient: ["#EF4444", "#FB8A3C"],
+    gradient: ["#EF4444", "#F87171"],
+    glow: "rgba(239,68,68,0.3)",
   },
   performance: {
     track: "stroke-performance-100 dark:stroke-white/10",
     progress: "stroke-performance-500 dark:stroke-performance-400",
     text: "text-performance-700 dark:text-performance-300",
     gradient: ["#22C55E", "#4ADE80"],
+    glow: "rgba(34,197,94,0.3)",
   },
 }
 
@@ -67,8 +73,8 @@ export function ProgressRing({
       <svg width={size} height={size} className="-rotate-90">
         <defs>
           <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={colors.gradient[0]} />
-            <stop offset="100%" stopColor={colors.gradient[1]} />
+            <stop offset="0%" style={{ stopColor: colors.gradient[0] }} />
+            <stop offset="100%" style={{ stopColor: colors.gradient[1] }} />
           </linearGradient>
         </defs>
         {/* Track */}
@@ -93,7 +99,7 @@ export function ProgressRing({
           stroke={`url(#${gradientId})`}
           className="transition-all duration-700 ease-out"
           style={{
-            filter: normalizedValue > 0 ? "drop-shadow(0 1px 3px rgba(232,93,4,0.3))" : undefined,
+            filter: normalizedValue > 0 ? `drop-shadow(0 1px 3px ${colors.glow})` : undefined,
           }}
         />
       </svg>

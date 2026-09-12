@@ -4,8 +4,9 @@ import { getClientProfile } from "@/server/services/client-portal.service"
 import { pool } from "@/lib/db"
 import type { BodyComposition } from "@/lib/db/types"
 import { MyInfoSection } from "@/components/features/client/profile/client-info-section"
-import { MyGoalsSection } from "@/components/features/client/profile/client-goals-section"
+import { ClientGoalsSection } from "@/components/features/goals/client-goals-section"
 import { MySubscriptionSection } from "@/components/features/client/profile/client-subscription-section"
+import { ClientPaymentSection } from "@/components/features/subscription/client-payment-section"
 import { MySettingsSection } from "@/components/features/client/profile/client-settings-section"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PainFlagsForm } from "@/components/features/body-composition/pain-flags-form"
@@ -78,16 +79,12 @@ export default async function ClientProfilePage() {
           {bodyCompositions.length >= 2 && <BodyCompositionComparison entries={bodyCompositions as never} />}
           <BodyCompositionHistory clientId={client.id} entries={bodyCompositions as never} canEdit={false} canDelete={false} />
         </TabsContent>
-        <TabsContent value="goals">
-          <MyGoalsSection
-            client={{
-              targetWeightKg: null,
-              targetDate: null,
-            }}
-          />
+        <TabsContent value="goals" className="space-y-6">
+          <ClientGoalsSection />
         </TabsContent>
-        <TabsContent value="subscription">
+        <TabsContent value="subscription" className="space-y-6">
           <MySubscriptionSection client={client} />
+          <ClientPaymentSection />
         </TabsContent>
         <TabsContent value="settings">
           <MySettingsSection />

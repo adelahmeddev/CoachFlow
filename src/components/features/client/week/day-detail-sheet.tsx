@@ -157,8 +157,8 @@ function DayDetailContent({
       <ul className="space-y-2">
         {detail.exercises.map((ex) => (
           <li key={ex.id} className="rounded-xl border bg-white/40 p-3 dark:bg-white/5">
-            <div className="flex items-start justify-between gap-2">
-              <p className="min-w-0 truncate text-sm font-medium">
+            <div className="flex items-start justify-between gap-3">
+              <p className="min-w-0 flex-1 line-clamp-2 text-sm font-medium">
                 {ex.exerciseName}
               </p>
               {ex.done ? (

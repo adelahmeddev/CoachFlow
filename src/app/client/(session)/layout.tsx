@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation"
 import { getCurrentSession } from "@/server/auth"
 import { pool } from "@/lib/db"
+import { getCoachBranding, toBranding } from "@/server/services/branding.service"
+import { BrandingProvider } from "@/components/branding/branding-provider"
 
 import { NoLongerSubscribedCard } from "@/components/features/client/no-longer-subscribed"
 
@@ -29,18 +31,23 @@ export default async function ClientSessionLayout({
     redirect("/client/change-password")
   }
 
-  const clientRes = await pool.query(`SELECT "id" FROM "Client" WHERE "userId" = $1 LIMIT 1`, [session.user.id])
-  const client = clientRes.rows[0] as { id: string } | undefined
+  const clientRes = await pool.query(`SELECT "id", "trainerId" FROM "Client" WHERE "userId" = $1 LIMIT 1`, [session.user.id])
+  const client = clientRes.rows[0] as { id: string; trainerId: string } | undefined
 
   if (!client) {
     return <NoLongerSubscribedCard />
   }
 
+  // Same coach branding as the portal — resolved via the client's trainerId
+  const branding = toBranding(await getCoachBranding(client.trainerId), client.trainerId)
+
   return (
-    <div className="min-h-dvh bg-background">
-      <main id="main-content" tabIndex={-1} className="outline-none">
-        {children}
-      </main>
-    </div>
+    <BrandingProvider branding={branding}>
+      <div className="min-h-dvh bg-background">
+        <main id="main-content" tabIndex={-1} className="outline-none">
+          {children}
+        </main>
+      </div>
+    </BrandingProvider>
   )
 }

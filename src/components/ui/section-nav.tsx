@@ -3,9 +3,11 @@
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, ClipboardCheck, Dumbbell, Apple, TrendingUp, Package, type LucideIcon } from "lucide-react"
+import { LayoutDashboard, ClipboardCheck, Dumbbell, Apple, TrendingUp, Package, Target, Camera, type LucideIcon } from "lucide-react"
+import { motion } from "@/components/motion"
+import { haptics } from "@/lib/haptics"
 
-export type SectionKey = "overview" | "body-composition" | "training-split" | "nutrition" | "progress" | "subscription"
+export type SectionKey = "overview" | "body-composition" | "training-split" | "nutrition" | "progress" | "goals" | "media" | "subscription"
 
 export const SECTION_META: Record<SectionKey, { label: string; labelEn: string; icon: LucideIcon; accent: string }> = {
   overview: { label: "ملخص", labelEn: "Overview", icon: LayoutDashboard, accent: "brand" },
@@ -13,6 +15,8 @@ export const SECTION_META: Record<SectionKey, { label: string; labelEn: string; 
   "training-split": { label: "التمرين", labelEn: "Training", icon: Dumbbell, accent: "muscle" },
   nutrition: { label: "التغذية", labelEn: "Nutrition", icon: Apple, accent: "energy" },
   progress: { label: "التقدم", labelEn: "Progress", icon: TrendingUp, accent: "performance" },
+  goals: { label: "الأهداف", labelEn: "Goals", icon: Target, accent: "energy" },
+  media: { label: "الصور", labelEn: "Media", icon: Camera, accent: "brand" },
   subscription: { label: "الباقة", labelEn: "Package", icon: Package, accent: "brand" },
 }
 
@@ -35,7 +39,7 @@ export function SectionNav({ clientId, active, onChange, badges }: SectionNavPro
   }
 
   return (
-    <div className="sticky top-0 sm:top-[1px] z-30 -mx-4 sm:mx-0 px-4 sm:px-0 py-3 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 border-b sm:border sm:rounded-2xl sm:bg-card/60 sm:shadow-soft">
+    <div className="sticky top-0 sm:top-[1px] z-30 -mx-4 sm:mx-0 px-4 sm:px-0 py-3 glass-nav border-b sm:border sm:rounded-[1.25rem]">
       <div
         className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory"
         role="tablist"
@@ -54,7 +58,7 @@ export function SectionNav({ clientId, active, onChange, badges }: SectionNavPro
           const accent = accentMap[meta.accent] ?? accentMap.brand
 
           const content = (
-            <>
+            <span className="relative z-10 flex items-center gap-2">
               <span
                 className={cn(
                   "flex size-7 shrink-0 items-center justify-center rounded-lg transition-colors",
@@ -76,13 +80,13 @@ export function SectionNav({ clientId, active, onChange, badges }: SectionNavPro
                   {typeof badge === "number" && badge > 99 ? "99+" : badge}
                 </span>
               ) : null}
-            </>
+            </span>
           )
 
           const className = cn(
-            "group relative inline-flex snap-start shrink-0 items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium whitespace-nowrap transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+            "group relative inline-flex snap-start shrink-0 items-center rounded-xl px-3.5 py-2.5 text-sm font-medium whitespace-nowrap transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
             isActive
-              ? `bg-gradient-to-r ${accent} text-white shadow-soft`
+              ? "text-white"
               : "bg-card border text-muted-foreground hover:text-foreground hover:border-brand-200 hover:shadow-soft dark:hover:border-brand-900/30"
           )
 
@@ -92,9 +96,20 @@ export function SectionNav({ clientId, active, onChange, badges }: SectionNavPro
                 key={key}
                 role="tab"
                 aria-selected={isActive}
-                onClick={() => onChange(key)}
+                onClick={() => {
+                  haptics.selection()
+                  onChange(key)
+                }}
                 className={className}
               >
+                {isActive && (
+                  <motion.span
+                    layoutId="sectionNavActivePill"
+                    className={cn("absolute inset-0 rounded-xl bg-gradient-to-r shadow-glass border border-white/25 dark:border-white/15", accent)}
+                    transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                    aria-hidden="true"
+                  />
+                )}
                 {content}
               </button>
             )
@@ -104,10 +119,19 @@ export function SectionNav({ clientId, active, onChange, badges }: SectionNavPro
             <Link
               key={key}
               href={makeHref(key)}
+              onClick={() => haptics.selection()}
               aria-current={isActive ? "page" : undefined}
               className={className}
               scroll={false}
             >
+              {isActive && (
+                <motion.span
+                  layoutId="sectionNavActivePill"
+                  className={cn("absolute inset-0 rounded-xl bg-gradient-to-r shadow-glass border border-white/25 dark:border-white/15", accent)}
+                  transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                  aria-hidden="true"
+                />
+              )}
               {content}
             </Link>
           )

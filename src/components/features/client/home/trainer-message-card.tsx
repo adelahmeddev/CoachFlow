@@ -13,7 +13,7 @@ export function TrainerMessageCard({ notes }: { notes: string }) {
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-muted-foreground">{notes}</p>
+        <p className="text-sm break-words leading-relaxed text-muted-foreground">{notes}</p>
       </CardContent>
     </Card>
   )

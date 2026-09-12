@@ -80,17 +80,21 @@ export function MeasurementsProgressChart({
             type="monotone"
             dataKey="bodyFat"
             name="Body Fat (kg)"
-            stroke="#0ea5e9"
-            strokeWidth={2}
-            dot={{ r: 3 }}
+            stroke="var(--chart-1)"
+            strokeWidth={2.5}
+            dot={{ r: 3, fill: "var(--chart-1)", strokeWidth: 0 }}
+            activeDot={{ r: 5 }}
+            animationDuration={400}
           />
           <Line
             type="monotone"
             dataKey="waistHipRatio"
             name="Waist-Hip Ratio"
-            stroke="#f59e0b"
-            strokeWidth={2}
-            dot={{ r: 3 }}
+            stroke="var(--chart-2, var(--energy-500))"
+            strokeWidth={2.5}
+            dot={{ r: 3, fill: "var(--chart-2, var(--energy-500))", strokeWidth: 0 }}
+            activeDot={{ r: 5 }}
+            animationDuration={400}
           />
         </LineChart>
       </ResponsiveContainer>

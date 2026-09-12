@@ -7,6 +7,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { CircleX } from "lucide-react"
 import { BrandLogo } from "@/components/brand/brand-logo"
 import { LanguageSwitcher } from "@/components/layout/language-switcher"
+import { getCoachBranding, toBranding } from "@/server/services/branding.service"
+import { BrandingProvider } from "@/components/branding/branding-provider"
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n()
@@ -27,13 +29,18 @@ export default async function JoinPage({ params }: { params: Promise<{ slug: str
     )
   }
 
+  // Public page — brand it with the owning coach's identity
+  const branding = toBranding(await getCoachBranding(trainer.trainerProfileId), trainer.trainerProfileId)
+
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-muted/30 p-4">
-      <div className="absolute top-4 end-4"><LanguageSwitcher /></div>
-      <div className="flex w-full max-w-lg flex-col items-center gap-4">
-        <BrandLogo height={48} width={82} priority className="mb-4" alt="Coach Flow" />
-        <JoinForm slug={slug} trainerName={trainer.trainerName} />
+    <BrandingProvider branding={branding}>
+      <div className="relative flex min-h-screen items-center justify-center bg-muted/30 p-4">
+        <div className="absolute top-4 end-4"><LanguageSwitcher /></div>
+        <div className="flex w-full max-w-lg flex-col items-center gap-4">
+          <BrandLogo height={76} width={76} priority className="mb-2 shadow-soft ring-1 ring-black/5" alt="Coach Flow" />
+          <JoinForm slug={slug} trainerName={trainer.trainerName} />
+        </div>
       </div>
-    </div>
+    </BrandingProvider>
   )
 }

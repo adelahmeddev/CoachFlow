@@ -66,14 +66,14 @@ export async function AdminStatsCards({ stats }: { stats: Stats }) {
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
       {items.map((item) => (
         <Card key={item.label} className="glass">
-          <CardContent className="flex items-center justify-between p-4">
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">{item.label}</p>
-              <p className="text-2xl font-semibold tracking-tight">
+          <CardContent className="flex min-w-0 items-center justify-between gap-3 p-4">
+            <div className="min-w-0 flex-1 space-y-1">
+              <p className="text-sm break-words leading-snug text-muted-foreground">{item.label}</p>
+              <p className="text-2xl font-semibold tracking-tight break-words">
                 {typeof item.value === "number" ? formatNumber(item.value, locale) : item.value}
               </p>
             </div>
-            <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-r from-brand-500/15 to-brand-600/15 text-brand-600 dark:text-brand-400">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-brand-500/15 to-brand-600/15 text-brand-600 dark:text-brand-400">
               <item.icon className="size-5" />
             </div>
           </CardContent>

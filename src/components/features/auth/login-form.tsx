@@ -100,8 +100,9 @@ export function LoginForm({
               <FormLabel>اسم المستخدم أو رقم الهاتف أو البريد الإلكتروني</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="coach.karim أو 01000000000 أو you@example.com"
+                  placeholder="coach.karim أو 01000000000 أو you@example.com…"
                   autoComplete="username"
+                  spellCheck={false}
                   disabled={isPending}
                   {...field}
                 />
@@ -130,10 +131,9 @@ export function LoginForm({
                     type="button"
                     variant="ghost"
                     size="icon-sm"
-                    className="absolute end-1 top-1/2 size-7 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute end-1 top-1/2 size-7 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                     onClick={() => setShowPassword((v) => !v)}
                     aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
-                    tabIndex={-1}
                   >
                     {showPassword ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
                   </Button>
@@ -147,7 +147,7 @@ export function LoginForm({
           {isPending ? (
             <>
               <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-              جارٍ تسجيل الدخول...
+              جارٍ تسجيل الدخول…
             </>
           ) : (
             "تسجيل الدخول"

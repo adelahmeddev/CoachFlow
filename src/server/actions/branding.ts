@@ -231,3 +231,65 @@ export async function coachRemoveLogoAction() {
   revalidateCoachBranding()
   return { ok: true as const, branding: await currentCoachBranding(coachId) }
 }
+
+// --- Coach personal photo (avatar) -------------------------------------------
+// Distinct from the brand logo: a photo of the coach shown on the client
+// home hero. Same pipeline (WebP bytes + versioned URL), stored in
+// CoachAvatarFile with the URL on TrainerProfile.avatarUrl.
+
+async function storeCoachAvatarFile(coachId: string, buf: Buffer) {
+  if (buf.length > LOGO_MAX_INPUT_BYTES) return { ok: false as const, error: "TOO_LARGE" }
+  if (!sniffLogo(buf)) return { ok: false as const, error: "INVALID_TYPE" }
+  let webp: Buffer
+  try {
+    webp = await convertLogoToWebp(buf)
+  } catch {
+    return { ok: false as const, error: "INVALID_IMAGE" }
+  }
+  await pool.query(
+    `INSERT INTO "CoachAvatarFile" ("coachId","bytes","contentType","byteSize","updatedAt")
+     VALUES ($1,$2,'image/webp',$3,NOW())
+     ON CONFLICT ("coachId") DO UPDATE SET "bytes"=EXCLUDED."bytes", "contentType"=EXCLUDED."contentType", "byteSize"=EXCLUDED."byteSize", "updatedAt"=NOW()`,
+    [coachId, webp, webp.length]
+  )
+  const avatarUrl = `/api/coach-avatar/${coachId}?v=${Date.now()}`
+  await pool.query(`UPDATE "TrainerProfile" SET "avatarUrl"=$1, "updatedAt"=NOW() WHERE "id"=$2`, [avatarUrl, coachId])
+  revalidateCoachBranding()
+  const branding = await currentCoachBranding(coachId)
+  return { ok: true as const, avatarUrl, branding }
+}
+
+export async function coachUploadAvatarAction(formData: FormData) {
+  const session = await getCurrentSession()
+  const coachId = coachIdOf(session)
+  if (!coachId) return { ok: false as const, error: "UNAUTHORIZED" }
+
+  const file = formData.get("file") as File | null
+  if (!file || typeof file === "string" || file.size === 0) return { ok: false as const, error: "NO_FILE" }
+  if (file.size > LOGO_MAX_INPUT_BYTES) return { ok: false as const, error: "TOO_LARGE" }
+
+  return storeCoachAvatarFile(coachId, Buffer.from(await file.arrayBuffer()))
+}
+
+/** Save the client-cropped result (square WebP data URL from the editor). */
+export async function coachUploadAvatarCroppedAction(dataUrl: string) {
+  const session = await getCurrentSession()
+  const coachId = coachIdOf(session)
+  if (!coachId) return { ok: false as const, error: "UNAUTHORIZED" }
+
+  const m = /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=\s]+)$/.exec(dataUrl.trim())
+  if (!m) return { ok: false as const, error: "INVALID_LOGO" }
+  return storeCoachAvatarFile(coachId, Buffer.from(m[2].replace(/\s/g, ""), "base64"))
+}
+
+export async function coachRemoveAvatarAction() {
+  const session = await getCurrentSession()
+  const coachId = coachIdOf(session)
+  if (!coachId) return { ok: false as const, error: "UNAUTHORIZED" }
+
+  await pool.query(`DELETE FROM "CoachAvatarFile" WHERE "coachId"=$1`, [coachId])
+  await pool.query(`UPDATE "TrainerProfile" SET "avatarUrl"=NULL, "updatedAt"=NOW() WHERE "id"=$1`, [coachId])
+
+  revalidateCoachBranding()
+  return { ok: true as const, branding: await currentCoachBranding(coachId) }
+}

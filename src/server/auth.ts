@@ -1,4 +1,4 @@
-import type { NextAuthOptions } from "next-auth";
+import type { NextAuthOptions, User } from "next-auth";
 import { getServerSession } from "next-auth";
 import { cache } from "react";
 import { updateTag } from "next/cache";
@@ -186,7 +186,7 @@ export const authOptions: NextAuthOptions = {
         let displayName: string | undefined;
 
         if (user.role === "COACH") {
-          let profileRes = await pool.query(
+          const profileRes = await pool.query(
             `SELECT * FROM "TrainerProfile" WHERE "userId"=$1 LIMIT 1`,
             [user.id]
           );
@@ -241,19 +241,20 @@ export const authOptions: NextAuthOptions = {
           mustChangePassword: user.mustChangePassword,
           trainerProfileId,
           clientProfileId,
-        } as any;
+        } as User & { role: Role; mustChangePassword?: boolean; trainerProfileId?: string; clientProfileId?: string };
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
-        token.name = (user as any).name;
-        token.role = user.role;
-        token.mustChangePassword = (user as any).mustChangePassword ?? false;
-         token.trainerProfileId = (user as any).trainerProfileId;
-        token.clientProfileId = (user as any).clientProfileId;
+        const u = user as User & { role?: Role; mustChangePassword?: boolean; trainerProfileId?: string; clientProfileId?: string };
+        token.id = u.id;
+        token.name = u.name;
+        token.role = u.role;
+        token.mustChangePassword = u.mustChangePassword ?? false;
+        token.trainerProfileId = u.trainerProfileId;
+        token.clientProfileId = u.clientProfileId;
       }
       // Refresh display name from profile (cached 60s) so renames are picked up
       const userId = token.id as string | undefined;
@@ -295,6 +296,7 @@ export const authOptions: NextAuthOptions = {
           if (cached && cached.expires > Date.now()) {
             token.trainerProfileId = cached.value;
           } else {
+            let querySucceeded = false;
             try {
               if (trainerProfileId) {
                 const existsRes = await pool.query(
@@ -340,10 +342,14 @@ export const authOptions: NextAuthOptions = {
                         );
                         const retry = retryRes.rows[0] as { id: string } | undefined;
                         if (retry) token.trainerProfileId = retry.id;
-                        else token.trainerProfileId = undefined;
+                        else {
+                          token.trainerProfileId = undefined;
+                          token.role = undefined; // Invalidate ghost session
+                        }
                       }
                     } else {
                       token.trainerProfileId = undefined;
+                      token.role = undefined; // User deleted from DB -> Invalidate ghost session
                     }
                   }
                 }
@@ -355,15 +361,65 @@ export const authOptions: NextAuthOptions = {
                 const byUser = byUserRes.rows[0] as { id: string } | undefined;
                 if (byUser) {
                   token.trainerProfileId = byUser.id;
+                } else {
+                  // Self-healing: auto-create a missing TrainerProfile (mirrors
+                  // authorize() and the stale-id branch above). Without this, a
+                  // COACH whose profile row was lost (manual DB edit, branch
+                  // switch/restore, reseed) keeps a profile-less session and sees
+                  // only empty states until their next full re-login.
+                  const userRes = await pool.query(
+                    `SELECT "username", "phone" FROM "User" WHERE "id"=$1 LIMIT 1`,
+                    [userId]
+                  );
+                  const user = userRes.rows[0] as
+                    | { username: string | null; phone: string | null }
+                    | undefined;
+                  if (user) {
+                    const id = generateId();
+                    const fullName =
+                      (user as unknown as { username?: string }).username ??
+                      user.phone ??
+                      "Trainer";
+                    const phone = user.phone ?? "";
+                    try {
+                      const createdRes = await pool.query(
+                        `INSERT INTO "TrainerProfile" ("id","userId","fullName","phone","createdAt","updatedAt") VALUES ($1,$2,$3,$4,NOW(),NOW()) RETURNING "id"`,
+                        [id, userId, fullName, phone]
+                      );
+                      const created = createdRes.rows[0] as { id: string } | undefined;
+                      if (created) {
+                        token.trainerProfileId = created.id;
+                        try { updateTag(`trainer:${created.id}:dashboard`); } catch {}
+                      }
+                    } catch {
+                      // Concurrent request may have created it first — adopt it.
+                      const retryRes = await pool.query(
+                        `SELECT "id" FROM "TrainerProfile" WHERE "userId"=$1 LIMIT 1`,
+                        [userId]
+                      );
+                      const retry = retryRes.rows[0] as { id: string } | undefined;
+                      if (retry) token.trainerProfileId = retry.id;
+                    }
+                  } else {
+                    // No User row: ghost session (account wiped/reseeded while
+                    // the 30-day JWT survived). Invalidate so the proxy clears
+                    // the cookie and routes to /login instead of stranding the
+                    // coach in an empty app shell with no profile.
+                    token.trainerProfileId = undefined;
+                    token.role = undefined; // Invalidate ghost session
+                  }
                 }
               }
+              querySucceeded = true;
             } catch {
               // Do not block auth on DB errors; leave token as-is
             }
-            trainerValidationCache.set(cacheKey, {
-              value: token.trainerProfileId as string | undefined,
-              expires: Date.now() + CACHE_TTL_MS,
-            });
+            if (querySucceeded) {
+              trainerValidationCache.set(cacheKey, {
+                value: token.trainerProfileId as string | undefined,
+                expires: Date.now() + CACHE_TTL_MS,
+              });
+            }
           }
         }
       }
@@ -377,6 +433,7 @@ export const authOptions: NextAuthOptions = {
           if (cached && cached.expires > Date.now()) {
             token.clientProfileId = cached.value;
           } else {
+            let querySucceeded = false;
             try {
               if (clientProfileId) {
                 const existsRes = await pool.query(
@@ -390,7 +447,13 @@ export const authOptions: NextAuthOptions = {
                     [userId]
                   );
                   const byUser = byUserRes.rows[0] as { id: string } | undefined;
-                  token.clientProfileId = byUser?.id;
+                  if (byUser) {
+                    token.clientProfileId = byUser.id;
+                  } else {
+                    const userRes = await pool.query(`SELECT "id" FROM "User" WHERE "id"=$1 LIMIT 1`, [userId]);
+                    if (!userRes.rows[0]) token.role = undefined;
+                    token.clientProfileId = undefined;
+                  }
                 }
               } else {
                 const byUserRes = await pool.query(
@@ -400,15 +463,22 @@ export const authOptions: NextAuthOptions = {
                 const byUser = byUserRes.rows[0] as { id: string } | undefined;
                 if (byUser) {
                   token.clientProfileId = byUser.id;
+                } else {
+                  const userRes = await pool.query(`SELECT "id" FROM "User" WHERE "id"=$1 LIMIT 1`, [userId]);
+                  if (!userRes.rows[0]) token.role = undefined;
+                  token.clientProfileId = undefined;
                 }
               }
+              querySucceeded = true;
             } catch {
               // Do not block auth on DB errors
             }
-            clientValidationCache.set(cacheKey, {
-              value: token.clientProfileId as string | undefined,
-              expires: Date.now() + CACHE_TTL_MS,
-            });
+            if (querySucceeded) {
+              clientValidationCache.set(cacheKey, {
+                value: token.clientProfileId as string | undefined,
+                expires: Date.now() + CACHE_TTL_MS,
+              });
+            }
           }
         }
       }

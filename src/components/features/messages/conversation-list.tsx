@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { Search, MessageSquare } from "lucide-react"
-import { formatDistanceToNow } from "date-fns"
+
 import { useI18n } from "@/lib/i18n/client"
 import { ConversationItem } from "./conversation-item"
 

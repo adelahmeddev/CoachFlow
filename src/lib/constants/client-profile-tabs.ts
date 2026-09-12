@@ -4,6 +4,8 @@ export const CLIENT_PROFILE_TABS = [
   { value: "nutrition" },
   { value: "training-split" },
   { value: "progress" },
+  { value: "goals" },
+  { value: "media" },
   { value: "subscription" },
 ] as const
 

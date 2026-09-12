@@ -2,6 +2,7 @@
 
 import { Dumbbell, Loader2, Play, Check, Clock, Weight, Repeat, SkipForward, Trophy } from "lucide-react"
 import { useState } from "react"
+import { motion } from "motion/react"
 import { useI18n } from "@/lib/i18n/client"
 import { lookup } from "@/lib/i18n/lookup"
 import { Button } from "@/components/ui/button"
@@ -30,6 +31,7 @@ interface ExerciseLogCardProps {
   logging?: boolean
   done?: boolean
   skipped?: boolean
+  isActive?: boolean
   values?: ExerciseLogValues
   saving?: boolean
   onFieldChange?: (field: keyof ExerciseLogValues, value: string) => void
@@ -42,6 +44,7 @@ export function ExerciseLogCard({
   logging = false,
   done = false,
   skipped = false,
+  isActive = false,
   values,
   saving = false,
   onFieldChange,
@@ -56,16 +59,17 @@ export function ExerciseLogCard({
   return (
     <div
       className={cn(
-        "group relative overflow-hidden rounded-2xl border bg-card shadow-soft transition-all duration-300 card-lift animate-slide-soft",
-        done && "border-performance-200 bg-performance-50/50 dark:border-performance-800/30 dark:bg-performance-500/10 shadow-[0_0_20px_-8px_#22C55E40] animate-breathe",
+        "group relative rounded-2xl border bg-card shadow-soft transition-all duration-300",
+        done && "border-performance-200 bg-performance-50/50 dark:border-performance-800/30 dark:bg-performance-500/10",
         skipped && "opacity-60 grayscale-[0.3]",
-        !done && !skipped && "hover:shadow-card-hover hover:-translate-y-0.5 hover:border-brand-200 dark:hover:border-brand-900/30"
+        isActive && !done && "border-brand-300 bg-brand-500/[0.02] shadow-glow ring-1 ring-brand-500/10",
+        !done && !skipped && !isActive && "hover:shadow-card-hover hover:-translate-y-0.5 hover:border-brand-200 dark:hover:border-brand-900/30"
       )}
     >
       {/* top accent */}
       <div
         className={cn(
-          "pointer-events-none absolute inset-x-0 top-0 h-px opacity-60",
+          "pointer-events-none absolute inset-x-0 top-0 h-px opacity-60 rounded-t-2xl overflow-hidden",
           done ? "bg-gradient-to-r from-transparent via-performance-500 to-transparent" : "bg-gradient-to-r from-transparent via-brand-500/20 to-transparent"
         )}
         aria-hidden="true"
@@ -78,16 +82,19 @@ export function ExerciseLogCard({
       <div className="p-4 space-y-3">
         {/* HEADER */}
         <div className="flex items-start gap-3 min-w-0">
-          <span
+          <motion.span
+            layout
             className={cn(
-              "flex size-10 shrink-0 items-center justify-center rounded-xl text-white shadow-soft ring-1 transition-transform group-hover:scale-105",
-              done ? "bg-gradient-to-br from-performance-500 to-performance-600 ring-performance-500/20" : "bg-gradient-to-br from-brand-500 to-brand-600 ring-brand-500/20"
+              "flex size-10 shrink-0 items-center justify-center rounded-xl text-white shadow-soft ring-1",
+              done ? "bg-gradient-to-br from-performance-500 to-performance-600 ring-performance-500/20" : isActive ? "bg-gradient-to-br from-brand-600 to-energy-500 ring-brand-500/20" : "bg-gradient-to-br from-brand-500 to-brand-600 ring-brand-500/20"
             )}
+            animate={done ? { scale: [0.9, 1.05, 1] } : {}}
+            transition={done ? { duration: 0.4, ease: [0.22, 1, 0.36, 1] } : undefined}
           >
             {done ? <Check className="size-5 stroke-[3]" /> : <Dumbbell className="size-5" />}
-          </span>
+          </motion.span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold leading-tight tracking-tight">{exercise.exerciseName}</p>
+            <p className="line-clamp-2 break-words text-sm font-bold leading-snug tracking-tight">{exercise.exerciseName}</p>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
               <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium">
                 <Repeat className="size-3 text-muted-foreground" />
@@ -144,7 +151,7 @@ export function ExerciseLogCard({
         </div>
 
         {exercise.notes && !logging ? (
-          <p className="rounded-xl border bg-muted/20 p-2.5 text-xs leading-relaxed text-muted-foreground">
+          <p className="rounded-xl border bg-muted/20 p-2.5 text-xs leading-relaxed break-words text-muted-foreground">
             <span className="font-semibold text-foreground">{isAr ? "ملاحظة:" : "Note:"}</span> {exercise.notes}
           </p>
         ) : null}

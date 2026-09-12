@@ -80,6 +80,62 @@ export const PaymentStatus = {
 } as const
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus]
 
+export const PaymentProofStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+} as const
+export type PaymentProofStatus = (typeof PaymentProofStatus)[keyof typeof PaymentProofStatus]
+
+export const NotificationType = {
+  WORKOUT_REMINDER: 'WORKOUT_REMINDER',
+  CHECKIN_REMINDER: 'CHECKIN_REMINDER',
+  NEW_MESSAGE: 'NEW_MESSAGE',
+  PLAN_UPDATED: 'PLAN_UPDATED',
+  SUBSCRIPTION_STATUS: 'SUBSCRIPTION_STATUS',
+  COACH_FEEDBACK: 'COACH_FEEDBACK',
+  PROGRESS_REMINDER: 'PROGRESS_REMINDER',
+  CLIENT_INACTIVE: 'CLIENT_INACTIVE',
+  SUBSCRIPTION_EXPIRING: 'SUBSCRIPTION_EXPIRING',
+  PAYMENT_PROOF_PENDING: 'PAYMENT_PROOF_PENDING',
+  CLIENT_ACTIVITY: 'CLIENT_ACTIVITY',
+  PROGRESS_UPDATE: 'PROGRESS_UPDATE',
+  MEDIA_SUBMITTED: 'MEDIA_SUBMITTED',
+  CHECKIN_ACTIVITY: 'CHECKIN_ACTIVITY',
+} as const
+export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
+
+export const ProgressMediaType = {
+  PROGRESS_PHOTO: 'PROGRESS_PHOTO',
+  FORM_VIDEO: 'FORM_VIDEO',
+  OTHER: 'OTHER',
+} as const
+export type ProgressMediaType = (typeof ProgressMediaType)[keyof typeof ProgressMediaType]
+
+export const ProgressMediaStatus = {
+  PENDING: 'PENDING',
+  REVIEWED: 'REVIEWED',
+} as const
+export type ProgressMediaStatus = (typeof ProgressMediaStatus)[keyof typeof ProgressMediaStatus]
+
+export const GoalType = {
+  WEIGHT: 'WEIGHT',
+  BODY_FAT: 'BODY_FAT',
+  MUSCLE: 'MUSCLE',
+  MEASUREMENT: 'MEASUREMENT',
+  STRENGTH: 'STRENGTH',
+  CUSTOM: 'CUSTOM',
+} as const
+export type GoalType = (typeof GoalType)[keyof typeof GoalType]
+
+export const GoalStatus = {
+  ACTIVE: 'ACTIVE',
+  ACHIEVED: 'ACHIEVED',
+  PAUSED: 'PAUSED',
+  CANCELLED: 'CANCELLED',
+} as const
+export type GoalStatus = (typeof GoalStatus)[keyof typeof GoalStatus]
+
 export const Units = {
   METRIC: 'METRIC',
   IMPERIAL: 'IMPERIAL',
@@ -136,6 +192,16 @@ export const MealKind = {
   SNACK: 'SNACK',
 } as const
 export type MealKind = (typeof MealKind)[keyof typeof MealKind]
+
+export const PostCategory = {
+  TRANSFORMATION: 'TRANSFORMATION',
+  TRAINING: 'TRAINING',
+  NUTRITION: 'NUTRITION',
+  TIPS: 'TIPS',
+  EDUCATION: 'EDUCATION',
+  GENERAL: 'GENERAL',
+} as const
+export type PostCategory = (typeof PostCategory)[keyof typeof PostCategory]
 
 export const CoachingMode = {
   ONLINE: 'ONLINE',

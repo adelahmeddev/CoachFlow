@@ -55,9 +55,12 @@ export const mealItemSchema = z.object({
 })
 
 export const mealSchema = z.object({
+  id: z.string().optional(),
   kind: z.nativeEnum(MealKind),
   name: z.string().trim().min(1).max(120),
   nameAr: z.string().trim().max(120).nullable().optional(),
+  isSpare: z.boolean().optional(),
+  replacesMealId: z.string().nullable().optional(),
   items: z.array(mealItemSchema).max(30),
 })
 

@@ -1,4 +1,5 @@
-﻿import { redirect } from "next/navigation"
+import { redirect } from "next/navigation"
+import { Utensils } from "lucide-react"
 import { getCurrentSession } from "@/server/auth"
 import {
   getCachedActivePlanFull,
@@ -50,12 +51,14 @@ export default async function ClientNutritionPage() {
     guidelines: [...plan.guidelines],
     avoidFoods: [...plan.avoidFoods],
     recommendedFoods: [...plan.recommendedFoods],
-    meals: plan.meals.map((meal) => ({
+    meals: plan.meals.map((meal: any) => ({
       id: meal.id,
       kind: meal.kind,
       name: meal.name,
       nameAr: meal.nameAr,
-      items: meal.items.map((item) => ({
+      isSpare: meal.isSpare,
+      replacesMealId: meal.replacesMealId,
+      items: meal.items.map((item: any) => ({
         id: item.id,
         foodName: item.foodName,
         foodNameAr: item.foodNameAr,
@@ -94,7 +97,7 @@ export default async function ClientNutritionPage() {
         <div className="absolute -right-10 -top-10 size-24 rounded-full bg-gradient-to-br from-brand-500/15 to-energy-500/10 blur-xl" aria-hidden="true" />
         <div className="relative p-5">
           <div className="inline-flex items-center gap-2 rounded-full bg-brand-500/10 px-2.5 py-1 text-xs font-bold text-brand-700 ring-1 ring-brand-500/15">
-            <span aria-hidden="true">🍽️</span>
+            <Utensils className="size-3.5" aria-hidden="true" />
             {t.nutrition.dailyPlan}
           </div>
           <h1 className="mt-2 text-xl font-extrabold tracking-tight sm:text-2xl">

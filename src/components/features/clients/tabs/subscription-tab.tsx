@@ -27,13 +27,15 @@ import {
   PLAN_TYPE_BADGE_VARIANTS,
 } from "@/lib/constants"
 import { CurrentSubscriptionCard } from "@/components/features/subscription/current-subscription-card"
+import { PaymentProofReview } from "@/components/features/subscription/payment-proof-review"
+import { listProofsForClientOfTrainer } from "@/server/services/payment-proof.service"
 
 interface SubscriptionTabProps {
   clientId: string
 }
 
 export async function SubscriptionTab({ clientId }: SubscriptionTabProps) {
-  const { t } = await getI18n()
+  const { t, locale } = await getI18n()
 
   const session = await getCurrentSession()
   if (
@@ -62,6 +64,7 @@ export async function SubscriptionTab({ clientId }: SubscriptionTabProps) {
   }
 
   const { subscriptions, currentSubscription } = data
+  const proofs = (await listProofsForClientOfTrainer(clientId, session.user.trainerProfileId, 20)) ?? []
 
   return (
     <div className="space-y-6">
@@ -101,6 +104,8 @@ export async function SubscriptionTab({ clientId }: SubscriptionTabProps) {
               clientId={clientId}
             />
           ) : null}
+
+          <PaymentProofReview proofs={proofs} locale={locale} />
 
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">{t.subscription.history}</h3>

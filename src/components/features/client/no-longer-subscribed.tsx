@@ -31,7 +31,7 @@ export function NoLongerSubscribedCard() {
           <div className="mb-2 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-zinc-900 to-zinc-700 text-white shadow-soft ring-1 ring-black/10 dark:from-zinc-800 dark:to-zinc-900 dark:ring-white/10">
             <ShieldX className="size-8" aria-hidden="true" />
           </div>
-          <BrandLogo variant="mark" height={24} width={24} className="opacity-60" />
+          <BrandLogo variant="mark" height={30} width={30} className="opacity-70 mb-1" />
           <CardTitle className="text-balance text-xl font-bold tracking-tight sm:text-2xl">
             {content.title}
           </CardTitle>

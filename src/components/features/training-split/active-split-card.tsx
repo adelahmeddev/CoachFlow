@@ -1,10 +1,9 @@
 import Link from "next/link"
-import { Pencil } from "lucide-react"
+import { Pencil, Dumbbell, Flame, Moon, Zap, Heart } from "lucide-react"
 import type { TrainingSplit, TrainingSplitDay } from "@/lib/db/types"
 import { ScheduleMode } from "@/lib/db/enums"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getI18n } from "@/lib/i18n"
 import { lookup } from "@/lib/i18n/lookup"
 import { getPlanStatusBadgeVariant, getPlanStatusLabel, SPLIT_TYPE_LABELS, DAY_FOCUS_LABELS } from "@/lib/constants"
@@ -20,10 +19,11 @@ export async function ActiveSplitCard({ split, clientId }: ActiveSplitCardProps)
   const isAr = locale === "ar"
   const isFixed = split.scheduleMode !== ScheduleMode.SEQUENTIAL
 
-  const focusEmoji: Record<string, string> = {
-    CHEST: "💪", BACK: "🦾", SHOULDERS: "🏋️", ARMS: "💪", LEGS: "🦵", GLUTES: "🍑", CORE: "🔥", CARDIO: "❤️",
-    PUSH: "🔥", PULL: "🦍", UPPER: "💥", LOWER: "🏋️", FULL_BODY: "⚡", REST: "😴", SHOULDERS_ARMS: "💪", CUSTOM: "✨", MOBILITY: "🧘",
+  const focusIcon: Record<string, typeof Dumbbell> = {
+    CHEST: Dumbbell, BACK: Dumbbell, SHOULDERS: Dumbbell, ARMS: Dumbbell, LEGS: Dumbbell, GLUTES: Zap, CORE: Flame, CARDIO: Heart,
+    PUSH: Flame, PULL: Dumbbell, UPPER: Zap, LOWER: Dumbbell, FULL_BODY: Zap, REST: Moon, SHOULDERS_ARMS: Dumbbell, CUSTOM: Zap, MOBILITY: Heart,
   }
+  const SplitIcon = focusIcon[split.splitType] ?? Dumbbell
 
   return (
     <div className="relative overflow-hidden rounded-[20px] border bg-card shadow-soft">
@@ -33,8 +33,8 @@ export async function ActiveSplitCard({ split, clientId }: ActiveSplitCardProps)
         <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-start sm:justify-between border-b bg-muted/20">
           <div className="space-y-2 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-muscle-500 to-brand-500 text-white text-sm shadow-soft">
-                {focusEmoji[split.splitType] ?? "🏋️"}
+              <span className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-muscle-500 to-brand-500 text-white shadow-soft">
+                <SplitIcon className="size-4" />
               </span>
               <h3 className="text-base font-extrabold tracking-tight">{SPLIT_TYPE_LABELS[split.splitType]}</h3>
               <Badge variant={getPlanStatusBadgeVariant(split.status)} className="rounded-full">
@@ -97,17 +97,20 @@ export async function ActiveSplitCard({ split, clientId }: ActiveSplitCardProps)
                     ) : null}
                   </div>
                   <div className="mt-3 flex items-start gap-2">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-muscle-500 text-white text-sm shadow-soft">
-                      {focusEmoji[day.focus] ?? "💪"}
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-muscle-500 text-white shadow-soft">
+                      {(() => {
+                        const DayIcon = focusIcon[day.focus] ?? Dumbbell
+                        return <DayIcon className="size-4" />
+                      })()}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold leading-tight">
+                      <p className="text-sm font-bold leading-snug break-words">
                         {day.focus === "CUSTOM"
                           ? day.customFocus || "Custom"
                           : DAY_FOCUS_LABELS[day.focus]}
                       </p>
                       {day.notes ? (
-                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground line-clamp-2">{day.notes}</p>
+                        <p className="mt-1 text-xs leading-relaxed break-words text-muted-foreground line-clamp-2">{day.notes}</p>
                       ) : (
                         <p className="mt-1 text-xs text-muted-foreground/60">{isAr ? "بدون ملاحظات" : "no notes"}</p>
                       )}

@@ -16,12 +16,12 @@ export function RestDayCard({ extraWorkout }: { extraWorkout?: boolean }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-brand-500/10 to-brand-600/10 p-4 dark:from-brand-500/15 dark:to-brand-600/10">
-        <span className="text-3xl" aria-hidden="true">
-          💤
+        <span className="flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-performance-500 text-white shadow-soft" aria-hidden="true">
+          <MoonStar className="size-5" />
         </span>
-        <div>
-          <p className="font-semibold">{t.client.week.restDay}</p>
-          <p className="text-sm text-muted-foreground">{t.client.week.recoveryTip}</p>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold line-clamp-2 break-words">{t.client.week.restDay}</p>
+          <p className="text-sm text-muted-foreground line-clamp-2 break-words">{t.client.week.recoveryTip}</p>
         </div>
       </div>
 
@@ -35,7 +35,7 @@ export function RestDayCard({ extraWorkout }: { extraWorkout?: boolean }) {
             )}
           >
             <tip.icon className="mt-0.5 size-4 shrink-0 text-brand-600 dark:text-brand-400" />
-            <span>{tip.text}</span>
+            <span className="min-w-0 flex-1 break-words">{tip.text}</span>
           </li>
         ))}
       </ul>

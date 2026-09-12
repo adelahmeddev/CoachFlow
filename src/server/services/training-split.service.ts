@@ -16,18 +16,27 @@ export interface TrainingSplitWithDays extends TrainingSplit {
 }
 
 async function getOwnedClient(clientId: string, trainerProfileId?: string) {
-  if (trainerProfileId) {
+  if (!clientId || typeof clientId !== "string") return null
+  // Guard against empty/invalid trainer id — fall back to unscoped lookup
+  const scoped = typeof trainerProfileId === "string" && trainerProfileId.length > 0
+  try {
+    if (scoped) {
+      const res = await pool.query(
+        `SELECT "id", "fullName" FROM "Client" WHERE "id" = $1 AND "trainerId" = $2 LIMIT 1`,
+        [clientId, trainerProfileId]
+      )
+      return (res.rows[0] as { id: string; fullName: string | null } | undefined) ?? null
+    }
     const res = await pool.query(
-      `SELECT "id", "fullName" FROM "Client" WHERE "id" = $1 AND "trainerId" = $2 LIMIT 1`,
-      [clientId, trainerProfileId]
+      `SELECT "id", "fullName" FROM "Client" WHERE "id" = $1 LIMIT 1`,
+      [clientId]
     )
     return (res.rows[0] as { id: string; fullName: string | null } | undefined) ?? null
+  } catch (err) {
+    // Transient Neon cold-start / timeout — don't crash the whole RSC tree
+    console.error("[training-split] getOwnedClient failed", { clientId, scoped, err })
+    throw err
   }
-  const res = await pool.query(
-    `SELECT "id", "fullName" FROM "Client" WHERE "id" = $1 LIMIT 1`,
-    [clientId]
-  )
-  return (res.rows[0] as { id: string; fullName: string | null } | undefined) ?? null
 }
 
 export async function getOwnedClientForForm(
@@ -80,22 +89,95 @@ async function hydrateSplits(
   return out
 }
 
+/**
+ * Count historical workout logs referencing any exercise of a split.
+ * Workout history is immutable: a split with logs must never be edited
+ * in place (its days/exercises cannot be deleted without destroying history).
+ */
+export async function countSplitExerciseLogs(
+  splitId: string,
+  exec: typeof pool | PgClient = pool
+): Promise<number> {
+  const res = await exec.query(
+    `SELECT COUNT(*)::int AS count
+     FROM "ExerciseLog" el
+     JOIN "SplitDayExercise" sde ON sde."id" = el."splitDayExerciseId"
+     JOIN "TrainingSplitDay" tsd ON tsd."id" = sde."splitDayId"
+     WHERE tsd."splitId" = $1`,
+    [splitId]
+  )
+  return (res.rows[0] as { count: number }).count
+}
+
+async function insertSplitDays(
+  tx: PgClient,
+  splitId: string,
+  data: TrainingSplitInput
+): Promise<void> {
+  for (let index = 0; index < data.days.length; index++) {
+    const day = data.days[index]!
+    const dayId = generateId()
+    await tx.query(
+      `INSERT INTO "TrainingSplitDay" ("id", "splitId", "dayNumber", "focus", "customFocus", "weekday", "notes", "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, $4::"TrainingDayFocus", $5, $6::"Weekday", $7, NOW(), NOW())`,
+      [
+        dayId,
+        splitId,
+        index + 1,
+        day.focus,
+        day.customFocus?.trim() || null,
+        data.scheduleMode === ScheduleMode.FIXED_WEEKDAYS ? day.weekday ?? null : null,
+        day.notes?.trim() || null,
+      ]
+    )
+
+    const exercises = day.exercises ?? []
+    for (let exIndex = 0; exIndex < exercises.length; exIndex++) {
+      const exercise = exercises[exIndex]!
+      const exId = generateId()
+      await tx.query(
+        `INSERT INTO "SplitDayExercise" ("id", "splitDayId", "order", "exerciseId", "exerciseName", "targetSets", "targetReps", "targetWeightKg", "restSeconds", "notes", "videoUrl", "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())`,
+        [
+          exId,
+          dayId,
+          exIndex + 1,
+          exercise.exerciseId ?? null,
+          exercise.exerciseName.trim(),
+          toIntOrNull(exercise.targetSets),
+          toIntOrNull(exercise.targetReps),
+          toNumberOrNull(exercise.targetWeightKg),
+          toIntOrNull(exercise.restSeconds),
+          exercise.notes?.trim() || null,
+          exercise.videoUrl?.trim() || null,
+        ]
+      )
+    }
+  }
+}
+
 export async function getClientTrainingSplitData(
   clientId: string,
   trainerProfileId?: string
 ) {
-  const client = await getOwnedClient(clientId, trainerProfileId)
+  try {
+    const client = await getOwnedClient(clientId, trainerProfileId)
 
-  if (!client) return null
+    if (!client) return null
 
-  const res = await pool.query<TrainingSplit>(
-    `SELECT * FROM "TrainingSplit" WHERE "clientId" = $1 ORDER BY "createdAt" DESC`,
-    [client.id]
-  )
-  const splitsRaw = res.rows as TrainingSplit[]
-  const splits = await hydrateSplits(splitsRaw, pool)
+    const res = await pool.query<TrainingSplit>(
+      `SELECT * FROM "TrainingSplit" WHERE "clientId" = $1 ORDER BY "createdAt" DESC`,
+      [client.id]
+    )
+    const splitsRaw = res.rows as TrainingSplit[]
+    const splits = await hydrateSplits(splitsRaw, pool)
 
-  return { client, splits }
+    return { client, splits }
+  } catch (err) {
+    console.error("[training-split] getClientTrainingSplitData failed", { clientId, err })
+    // Let caller decide degraded UI — rethrow to be caught at page/tab layer
+    throw err
+  }
 }
 
 export async function getTrainerWeekStartDay(
@@ -179,46 +261,7 @@ export async function createTrainingSplit(
       ]
     )
 
-    for (let index = 0; index < data.days.length; index++) {
-      const day = data.days[index]!
-      const dayId = generateId()
-      await tx.query(
-        `INSERT INTO "TrainingSplitDay" ("id", "splitId", "dayNumber", "focus", "customFocus", "weekday", "notes", "createdAt", "updatedAt")
-         VALUES ($1, $2, $3, $4::"TrainingDayFocus", $5, $6::"Weekday", $7, NOW(), NOW())`,
-        [
-          dayId,
-          splitId,
-          index + 1,
-          day.focus,
-          day.customFocus?.trim() || null,
-          data.scheduleMode === ScheduleMode.FIXED_WEEKDAYS ? day.weekday ?? null : null,
-          day.notes?.trim() || null,
-        ]
-      )
-
-      const exercises = day.exercises ?? []
-      for (let exIndex = 0; exIndex < exercises.length; exIndex++) {
-        const exercise = exercises[exIndex]!
-        const exId = generateId()
-        await tx.query(
-          `INSERT INTO "SplitDayExercise" ("id", "splitDayId", "order", "exerciseId", "exerciseName", "targetSets", "targetReps", "targetWeightKg", "restSeconds", "notes", "videoUrl", "createdAt", "updatedAt")
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())`,
-          [
-            exId,
-            dayId,
-            exIndex + 1,
-            exercise.exerciseId ?? null,
-            exercise.exerciseName.trim(),
-            toIntOrNull(exercise.targetSets),
-            toIntOrNull(exercise.targetReps),
-            toNumberOrNull(exercise.targetWeightKg),
-            toIntOrNull(exercise.restSeconds),
-            exercise.notes?.trim() || null,
-            exercise.videoUrl?.trim() || null,
-          ]
-        )
-      }
-    }
+    await insertSplitDays(tx, splitId, data)
 
     const res = await tx.query<TrainingSplit>(`SELECT * FROM "TrainingSplit" WHERE "id" = $1 LIMIT 1`, [splitId])
     return res.rows[0] as TrainingSplit
@@ -230,7 +273,7 @@ export async function updateTrainingSplit(
   trainerProfileId: string,
   splitId: string,
   data: TrainingSplitInput
-): Promise<TrainingSplit | null> {
+): Promise<(TrainingSplit & { versioned?: boolean }) | null> {
   const client = await getOwnedClient(clientId, trainerProfileId)
 
   if (!client) return null
@@ -244,6 +287,49 @@ export async function updateTrainingSplit(
   if (!split) return null
 
   return withTransaction(async (tx) => {
+    // DATA INTEGRITY: workout history is immutable. If this split already has
+    // exercise logs, editing it in place would delete days/exercises and the
+    // FK (RESTRICT) rightly refuses. Instead, version: freeze the old split
+    // (COMPLETED, rows + logs intact) and create a new split with the edits.
+    // The log-count check runs inside the transaction to close the race where
+    // a client logs a workout while the coach is editing.
+    const logCount = await countSplitExerciseLogs(splitId, tx)
+
+    if (logCount > 0) {
+      if (split.status === PlanStatus.ACTIVE) {
+        await tx.query(
+          `UPDATE "TrainingSplit" SET "status" = 'COMPLETED'::"PlanStatus", "updatedAt" = NOW() WHERE "id" = $1`,
+          [splitId]
+        )
+      }
+      if (data.status === PlanStatus.ACTIVE) {
+        await tx.query(
+          `UPDATE "TrainingSplit" SET "status" = 'COMPLETED'::"PlanStatus", "updatedAt" = NOW() WHERE "clientId" = $1 AND "status" = 'ACTIVE'::"PlanStatus" AND "id" != $2`,
+          [client.id, splitId]
+        )
+      }
+
+      const newSplitId = generateId()
+      await tx.query(
+        `INSERT INTO "TrainingSplit" ("id", "clientId", "splitType", "daysPerWeek", "scheduleMode", "notes", "status", "createdAt", "updatedAt")
+         VALUES ($1, $2, $3::"SplitType", $4, $5::"ScheduleMode", $6, $7::"PlanStatus", NOW(), NOW())`,
+        [
+          newSplitId,
+          client.id,
+          data.splitType,
+          data.days.length,
+          data.scheduleMode,
+          data.notes || null,
+          data.status,
+        ]
+      )
+      await insertSplitDays(tx, newSplitId, data)
+
+      const res = await tx.query<TrainingSplit>(`SELECT * FROM "TrainingSplit" WHERE "id" = $1 LIMIT 1`, [newSplitId])
+      return { ...(res.rows[0] as TrainingSplit), versioned: true }
+    }
+
+    // No history yet — safe to update in place (preserves split id/links).
     if (data.status === PlanStatus.ACTIVE && split.status !== PlanStatus.ACTIVE) {
       await tx.query(
         `UPDATE "TrainingSplit" SET "status" = 'COMPLETED'::"PlanStatus", "updatedAt" = NOW() WHERE "clientId" = $1 AND "status" = 'ACTIVE'::"PlanStatus"`,
@@ -258,54 +344,7 @@ export async function updateTrainingSplit(
     const updated = updatedRes.rows[0] as TrainingSplit
 
     await tx.query(`DELETE FROM "TrainingSplitDay" WHERE "splitId" = $1`, [splitId])
-
-    const createdDayIds: string[] = []
-    for (let index = 0; index < data.days.length; index++) {
-      const day = data.days[index]!
-      const dayId = generateId()
-      createdDayIds.push(dayId)
-      await tx.query(
-        `INSERT INTO "TrainingSplitDay" ("id", "splitId", "dayNumber", "focus", "customFocus", "weekday", "notes", "createdAt", "updatedAt")
-         VALUES ($1, $2, $3, $4::"TrainingDayFocus", $5, $6::"Weekday", $7, NOW(), NOW())`,
-        [
-          dayId,
-          splitId,
-          index + 1,
-          day.focus,
-          day.customFocus?.trim() || null,
-          data.scheduleMode === ScheduleMode.FIXED_WEEKDAYS ? day.weekday ?? null : null,
-          day.notes?.trim() || null,
-        ]
-      )
-    }
-
-    // Insert exercises per day using the created day ids in order
-    for (let index = 0; index < data.days.length; index++) {
-      const day = data.days[index]!
-      const dayId = createdDayIds[index]!
-      const exercises = day.exercises ?? []
-      for (let exIndex = 0; exIndex < exercises.length; exIndex++) {
-        const exercise = exercises[exIndex]!
-        const exId = generateId()
-        await tx.query(
-          `INSERT INTO "SplitDayExercise" ("id", "splitDayId", "order", "exerciseId", "exerciseName", "targetSets", "targetReps", "targetWeightKg", "restSeconds", "notes", "videoUrl", "createdAt", "updatedAt")
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())`,
-          [
-            exId,
-            dayId,
-            exIndex + 1,
-            exercise.exerciseId ?? null,
-            exercise.exerciseName.trim(),
-            toIntOrNull(exercise.targetSets),
-            toIntOrNull(exercise.targetReps),
-            toNumberOrNull(exercise.targetWeightKg),
-            toIntOrNull(exercise.restSeconds),
-            exercise.notes?.trim() || null,
-            exercise.videoUrl?.trim() || null,
-          ]
-        )
-      }
-    }
+    await insertSplitDays(tx, splitId, data)
 
     return updated
   })
@@ -319,7 +358,7 @@ export async function getOtherClientsSplits(
   if (!client) return []
 
   let splitsRaw: TrainingSplit[] = []
-  let clientNames = new Map<string, string | null>()
+  const clientNames = new Map<string, string | null>()
 
   if (trainerProfileId) {
     const res = await pool.query<TrainingSplit & { fullName: string | null }>(

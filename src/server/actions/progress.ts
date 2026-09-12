@@ -14,6 +14,7 @@ import {
   createWorkoutLog,
   deleteWorkoutLog,
 } from "@/server/services/progress.service"
+import { getRecipientPair, notifySafe } from "@/server/services/notification.service"
 
 function isAuthorized(session: Awaited<ReturnType<typeof getCurrentSession>>) {
   return Boolean(
@@ -57,6 +58,21 @@ export async function createProgressReviewAction(
     `trainer:${trainerProfileId}:dashboard`,
     `trainer:${trainerProfileId}:clients`,
   ])
+  const pair = await getRecipientPair(clientId)
+  if (pair?.clientUserId) {
+    const notes = (parsed.data as { trainerNotes?: string | null }).trainerNotes
+    await notifySafe({
+      userId: pair.clientUserId,
+      type: "COACH_FEEDBACK",
+      titleKey: "coachFeedbackTitle",
+      bodyKey: "coachFeedbackBody",
+      params: {
+        coach: session?.user?.name ?? "",
+        preview: (notes ?? "").trim().slice(0, 120) || "—",
+      },
+      link: "/client/home",
+    })
+  }
   return { ok: true as const }
 }
 

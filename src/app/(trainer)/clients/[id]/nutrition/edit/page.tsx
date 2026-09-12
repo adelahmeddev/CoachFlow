@@ -53,11 +53,14 @@ export default async function NutritionEditPage({
         unit: item.unit,
       })),
     })),
-    meals: plan.meals.map(meal => ({
+    meals: plan.meals.map((meal: any) => ({
+      id: meal.id,
       kind: meal.kind,
       name: meal.name,
       nameAr: meal.nameAr ?? "",
-      items: meal.items.map(item => ({
+      isSpare: meal.isSpare ?? false,
+      replacesMealId: meal.replacesMealId ?? null,
+      items: meal.items.map((item: any) => ({
         foodName: item.foodName,
         foodNameAr: item.foodNameAr ?? "",
         amount: item.amount,

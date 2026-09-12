@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
@@ -52,24 +51,13 @@
   --shadow-glass: var(--shadow-glass);
   --shadow-card-hover: var(--shadow-card-hover);
   --shadow-glow: var(--shadow-glow);
-  --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.25rem;
-  --radius-2xl: 1.5rem;
-  --radius-3xl: 1.875rem;
-  --radius-4xl: 2.5rem;
-
-  --color-brand-50: #FFF4EC;
-  --color-brand-100: #FFE6D5;
-  --color-brand-200: #FECCAA;
-  --color-brand-300: #FDAC74;
-  --color-brand-400: #FB8A3C;
-  --color-brand-500: #E85D04;
-  --color-brand-600: #D05003;
-  --color-brand-700: #A83F02;
-  --color-brand-800: #853209;
-  --color-brand-900: #6B290A;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.125rem;
+  --radius-2xl: 1.375rem;
+  --radius-3xl: 1.75rem;
+  --radius-4xl: 2.25rem;
 
   --color-energy-50: #FFF7ED;
   --color-energy-100: #FFEDD5;
@@ -105,28 +93,46 @@
   --color-performance-900: #14532D;
 }
 
+/* NOTE: plain @theme (NOT inline) is REQUIRED for coach branding.
+   `inline` bakes literal values into utilities (e.g. .bg-brand-500{background-color:#e85d04}),
+   which runtime --color-brand-* overrides can never change. Plain @theme emits
+   var(--color-brand-*) references so BrandingProvider can recolor per coach.
+   Only the brand scale lives here — everything else stays inline untouched. */
+@theme {
+  --color-brand-50: #FDF2F2;
+  --color-brand-100: #FCE4E4;
+  --color-brand-200: #FACDCD;
+  --color-brand-300: #F59F9F;
+  --color-brand-400: #DE3B40;
+  --color-brand-500: #961112;
+  --color-brand-600: #820E0F;
+  --color-brand-700: #6B0B0C;
+  --color-brand-800: #540809;
+  --color-brand-900: #3D0506;
+}
+
 :root {
   color-scheme: light;
 
-  --background: #FAFAF8;
-  --foreground: #1C1917;
-  --card: #FFFFFF;
-  --card-foreground: #1C1917;
-  --popover: #FFFFFF;
-  --popover-foreground: #1C1917;
-  --primary: #E85D04;
+  --background: #fafafa;
+  --foreground: #111827;
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+  --primary: #961112;
   --primary-foreground: #FFFFFF;
-  --secondary: #F5F5F0;
+  --secondary: #F0EDE8;
   --secondary-foreground: #1C1917;
-  --muted: #F5F5F0;
+  --muted: #F0EDE8;
   --muted-foreground: #78716C;
-  --accent: #F5F5F0;
+  --accent: #F0EDE8;
   --accent-foreground: #1C1917;
   --destructive: #DC2626;
-  --border: #E7E5E4;
-  --input: #E7E5E4;
-  --ring: #E85D04;
-  --chart-1: #E85D04;
+  --border: #E2DDD8;
+  --input: #E2DDD8;
+  --ring: #961112;
+  --chart-1: #961112;
   --chart-2: #EF4444;
   --chart-3: #F59E0B;
   --chart-4: #0EA5E9;
@@ -138,30 +144,30 @@
   --surface: #FFFFFFD9;
   --surface-strong: #FFFFFFF2;
   --surface-subtle: #FFFFFFB3;
-  --shadow-soft: 0 1px 3px #1C19170F, 0 1px 2px #1C19170A;
-  --shadow-medium: 0 4px 12px -2px #1C191714, 0 2px 6px #1C19170A;
+  --shadow-soft: 0 1px 2px #1C191708, 0 2px 4px #1C19170A;
+  --shadow-medium: 0 2px 8px -1px #1C191710, 0 4px 12px -2px #1C19170D;
   --shadow-glass: 0 8px 32px -8px #1C191718, 0 4px 16px -4px #1C19170F;
-  --shadow-card-hover: 0 12px 32px -8px #1C19171C, 0 8px 24px -6px #1C19170F;
-  --shadow-glow: 0 0 24px -4px #E85D0440, 0 0 12px -2px #F59E0B30;
-  --radius: 0.75rem;
-  --sidebar: #FAFAF8;
+  --shadow-card-hover: 0 8px 24px -6px #1C191718, 0 4px 16px -4px #1C19170D;
+  --shadow-glow: 0 0 24px -4px color-mix(in oklab, var(--color-brand-500) 25%, transparent), 0 0 12px -2px #96111230;
+  --radius: 0.625rem;
+  --sidebar: #F5F2EE;
   --sidebar-foreground: #1C1917;
-  --sidebar-primary: #E85D04;
+  --sidebar-primary: #961112;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #F5F5F0;
+  --sidebar-accent: #EBE7E1;
   --sidebar-accent-foreground: #1C1917;
-  --sidebar-border: #E7E5E4;
-  --sidebar-ring: #E85D04;
+  --sidebar-border: #E2DDD8;
+  --sidebar-ring: #961112;
 
   --msg-ink: #1A1A2E;
   --msg-paper: #FFFFFF;
   --msg-steel: #F8F9FA;
-  --msg-orange: #E85D04;
+  --msg-orange: #961112;
   --msg-mist: #E8ECEF;
   --msg-teal: #0EA5E9;
 
-  --msg-bubble-own-bg: #E85D04;
-  --msg-bubble-own-border: #D05003;
+  --msg-bubble-own-bg: #961112;
+  --msg-bubble-own-border: #820E0F;
   --msg-bubble-own-text: #FFFFFF;
   --msg-bubble-own-time: rgba(255,255,255,0.9);
   --msg-bubble-other-bg: #F8F9FA;
@@ -181,28 +187,51 @@
   --msg-accent-yellow: #F59E0B;
 }
 
+/* Numeric aliases for custom utilities (gradient-*, card-energy/muscle/performance,
+   btn-energy, body glow). @theme only defines --color-*-* tokens, so bare
+   var(--brand-500)/var(--energy-500) would be invalid without these.
+   BrandingProvider overrides them per-coach at runtime. */
+:root {
+  --brand-50: var(--color-brand-50);
+  --brand-100: var(--color-brand-100);
+  --brand-200: var(--color-brand-200);
+  --brand-300: var(--color-brand-300);
+  --brand-400: var(--color-brand-400);
+  --brand-500: var(--color-brand-500);
+  --brand-600: var(--color-brand-600);
+  --brand-700: var(--color-brand-700);
+  --brand-800: var(--color-brand-800);
+  --brand-900: var(--color-brand-900);
+  --energy-400: var(--color-energy-400);
+  --energy-500: var(--color-energy-500);
+  --energy-600: var(--color-energy-600);
+  --muscle-500: var(--color-muscle-500);
+  --performance-400: var(--color-performance-400);
+  --performance-500: var(--color-performance-500);
+}
+
 .dark {
   color-scheme: dark;
 
-  --background: #0C0A09;
+  --background: #111009;
   --foreground: #FAFAF8;
-  --card: #1C1917;
+  --card: #1A1714;
   --card-foreground: #FAFAF8;
-  --popover: #1C1917;
+  --popover: #1A1714;
   --popover-foreground: #FAFAF8;
-  --primary: #FB8A3C;
-  --primary-foreground: #1C1917;
-  --secondary: #292524;
+  --primary: #DE3B40;
+  --primary-foreground: #FFFFFF;
+  --secondary: #222019;
   --secondary-foreground: #FAFAF8;
-  --muted: #292524;
+  --muted: #222019;
   --muted-foreground: #A8A29E;
-  --accent: #292524;
+  --accent: #222019;
   --accent-foreground: #FAFAF8;
   --destructive: #F87171;
-  --border: #3F3F3F;
-  --input: #3F3F3F;
-  --ring: #FB8A3C;
-  --chart-1: #FB8A3C;
+  --border: #2A2724;
+  --input: #2A2724;
+  --ring: #DE3B40;
+  --chart-1: #DE3B40;
   --chart-2: #F87171;
   --chart-3: #FBBF24;
   --chart-4: #2DD4BF;
@@ -211,34 +240,34 @@
   --success-foreground: #052E16;
   --warning: #FBBF24;
   --warning-foreground: #451A03;
-  --surface: #1C1917BF;
-  --surface-strong: #1C1917E6;
-  --surface-subtle: #1C19178C;
+  --surface: #1A1714BF;
+  --surface-strong: #1A1714E6;
+  --surface-subtle: #1A17148C;
   --shadow-soft: 0 1px 3px #00000050, 0 8px 24px #00000030;
   --shadow-medium: 0 4px 16px #00000040;
   --shadow-glass: 0 8px 32px -8px #00000050, 0 4px 16px #00000030;
   --shadow-card-hover: 0 16px 40px -10px #00000055;
-  --shadow-glow: 0 0 32px -6px #FB8A3C60, 0 0 16px -4px #FBBF2440;
-  --sidebar: #0C0A09;
+  --shadow-glow: 0 0 32px -6px color-mix(in oklab, var(--color-brand-400) 38%, transparent), 0 0 16px -4px #DE3B4040;
+  --sidebar: #0E0C0A;
   --sidebar-foreground: #FAFAF8;
-  --sidebar-primary: #FB8A3C;
-  --sidebar-primary-foreground: #1C1917;
-  --sidebar-accent: #292524;
+  --sidebar-primary: #DE3B40;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #1D1A16;
   --sidebar-accent-foreground: #FAFAF8;
-  --sidebar-border: #3F3F3F;
-  --sidebar-ring: #FB8A3C;
+  --sidebar-border: #2A2724;
+  --sidebar-ring: #DE3B40;
 
   --msg-ink: #F8F9FA;
   --msg-paper: #1A1A2E;
   --msg-steel: #222831;
-  --msg-orange: #FB8A3C;
+  --msg-orange: #DE3B40;
   --msg-mist: #2D3344;
   --msg-teal: #2DD4BF;
 
-  --msg-bubble-own-bg: #FB8A3C;
-  --msg-bubble-own-border: #E85D04;
-  --msg-bubble-own-text: #1C1917;
-  --msg-bubble-own-time: rgba(28,25,23,0.85);
+  --msg-bubble-own-bg: #DE3B40;
+  --msg-bubble-own-border: #961112;
+  --msg-bubble-own-text: #FFFFFF;
+  --msg-bubble-own-time: rgba(255,255,255,0.9);
   --msg-bubble-other-bg: #222831;
   --msg-bubble-other-border: #2D3344;
   --msg-bubble-other-text: #F8F9FA;
@@ -256,46 +285,96 @@
   --msg-accent-yellow: #FBBF24;
 }
 
-@utility glass {
-  background-color: color-mix(in oklab, var(--card) 82%, transparent);
-  -webkit-backdrop-filter: blur(16px) saturate(1.2);
-  backdrop-filter: blur(16px) saturate(1.2);
-  border: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
-  box-shadow: var(--shadow-glass);
-
+@utility glass-card {
+  @apply relative overflow-hidden bg-white/85 dark:bg-black/40 border shadow-glass transition-all duration-300;
+  border-color: color-mix(in oklab, var(--border) 40%, transparent);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  backdrop-filter: blur(24px) saturate(1.5);
+  box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.25), var(--shadow-glass);
+  
   &:where(.dark, .dark *) {
-    background-color: color-mix(in oklab, var(--card) 75%, transparent);
-    border-color: #FFFFFF1F;
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.12), var(--shadow-glass);
+  }
+  &:hover {
+    @apply shadow-card-hover -translate-y-0.5;
   }
 }
 
-@utility glass-subtle {
-  background-color: color-mix(in oklab, var(--card) 65%, transparent);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  border: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
-
+@utility glass-nav {
+  @apply bg-white/90 dark:bg-black/40 border shadow-glass transition-all;
+  border-color: color-mix(in oklab, var(--border) 40%, transparent);
+  -webkit-backdrop-filter: blur(32px) saturate(1.5);
+  backdrop-filter: blur(32px) saturate(1.5);
+  box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.25), var(--shadow-glass);
+  
   &:where(.dark, .dark *) {
-    background-color: color-mix(in oklab, var(--card) 55%, transparent);
-    border-color: #FFFFFF14;
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.12), var(--shadow-glass);
+  }
+  @supports not (backdrop-filter: blur(1px)) {
+    @apply bg-background;
+  }
+}
+
+@utility glass-modal {
+  @apply bg-white/90 dark:bg-black/45 border shadow-glow;
+  border-color: color-mix(in oklab, var(--border) 40%, transparent);
+  -webkit-backdrop-filter: blur(32px) saturate(1.5);
+  backdrop-filter: blur(32px) saturate(1.5);
+  box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.25), var(--shadow-glow);
+  
+  &:where(.dark, .dark *) {
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.12), var(--shadow-glow);
   }
 }
 
 @utility glass-strong {
-  background-color: color-mix(in oklab, var(--card) 92%, transparent);
-  -webkit-backdrop-filter: blur(20px) saturate(1.3);
-  backdrop-filter: blur(20px) saturate(1.3);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-glass);
-
+  @apply bg-white/95 dark:bg-black/60 border shadow-glow;
+  border-color: color-mix(in oklab, var(--border) 40%, transparent);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8);
+  backdrop-filter: blur(40px) saturate(1.8);
+  box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.25), var(--shadow-glow);
+  
   &:where(.dark, .dark *) {
-    background-color: color-mix(in oklab, var(--card) 88%, transparent);
-    border-color: #FFFFFF1F;
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.15), var(--shadow-glow);
   }
 }
 
+@utility glass-subtle {
+  @apply bg-white/70 dark:bg-black/30 border shadow-soft;
+  border-color: color-mix(in oklab, var(--border) 30%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  backdrop-filter: blur(16px) saturate(1.2);
+  
+  &:where(.dark, .dark *) {
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+}
+
+@utility glass-input {
+  @apply bg-transparent border shadow-inner transition-all;
+  border-color: color-mix(in oklab, var(--border) 80%, transparent);
+  
+  &:where(.dark, .dark *) {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  &:focus-visible {
+    border-color: var(--color-brand-500);
+    box-shadow: 0 0 12px -2px var(--color-brand-500);
+    outline: none;
+  }
+}
+
+@utility glass-chip {
+  @apply bg-white/80 dark:bg-black/40 border border-white/50 dark:border-white/10 shadow-sm backdrop-blur-md;
+}
+
 @utility card-fitness {
-  @apply relative overflow-hidden rounded-2xl border bg-card shadow-soft transition-all duration-300;
+  @apply relative overflow-hidden rounded-2xl border bg-card shadow-soft transition-[transform,box-shadow] duration-300;
   background: linear-gradient(180deg, color-mix(in oklab, var(--card) 95%, transparent) 0%, var(--card) 100%);
   
   &:hover {
@@ -310,7 +389,7 @@
 }
 
 @utility card-energy {
-  @apply relative overflow-hidden rounded-2xl bg-card shadow-soft transition-all duration-300;
+  @apply relative overflow-hidden rounded-2xl bg-card shadow-soft transition-[transform,box-shadow,border-color] duration-300;
   border: 1px solid color-mix(in oklab, var(--energy-500) 20%, var(--border));
   
   &:hover {
@@ -319,7 +398,7 @@
 }
 
 @utility card-muscle {
-  @apply relative overflow-hidden rounded-2xl bg-card shadow-soft transition-all duration-300;
+  @apply relative overflow-hidden rounded-2xl bg-card shadow-soft transition-[transform,box-shadow,border-color] duration-300;
   border: 1px solid color-mix(in oklab, var(--muscle-500) 20%, var(--border));
   
   &:hover {
@@ -328,7 +407,7 @@
 }
 
 @utility card-performance {
-  @apply relative overflow-hidden rounded-2xl bg-card shadow-soft transition-all duration-300;
+  @apply relative overflow-hidden rounded-2xl bg-card shadow-soft transition-[transform,box-shadow,border-color] duration-300;
   border: 1px solid color-mix(in oklab, var(--performance-500) 20%, var(--border));
   
   &:hover {
@@ -411,27 +490,26 @@
     inset: 0;
     pointer-events: none;
     z-index: -1;
-    background:
-      radial-gradient(ellipse 80% 60% at 50% 100%, var(--brand-200) 0%, transparent 70%),
-      radial-gradient(ellipse 60% 40% at 80% 20%, var(--brand-100) 0%, transparent 60%);
+    background: radial-gradient(ellipse 60% 40% at 50% 100%, var(--brand-100) 0%, transparent 60%);
+    opacity: 0.4;
   }
   .dark body::before {
-    background:
-      radial-gradient(ellipse 80% 60% at 50% 100%, var(--brand-500) 0%, transparent 70%),
-      radial-gradient(ellipse 60% 40% at 80% 20%, var(--brand-500) 0%, transparent 60%);
-    opacity: 0.15;
+    display: none;
   }
   html {
     @apply font-sans;
   }
   ::selection {
-    background-color: #E85D044D;
+    background-color: color-mix(in oklab, var(--primary) 30%, transparent);
   }
   .dark ::selection {
-    background-color: #FB8A3C59;
+    background-color: color-mix(in oklab, var(--primary) 35%, transparent);
+  }
+  :root {
+    scrollbar-color: var(--color-brand-300) transparent;
   }
   .dark {
-    scrollbar-color: #FB8A3C transparent;
+    scrollbar-color: var(--color-brand-400) transparent;
     scrollbar-width: thin;
   }
   .dark *::-webkit-scrollbar {
@@ -442,13 +520,13 @@
     background: transparent;
   }
   .dark *::-webkit-scrollbar-thumb {
-    background-color: #FB8A3C;
+    background-color: var(--color-brand-400);
     border: 2px solid transparent;
     border-radius: 9999px;
     background-clip: content-box;
   }
   .dark *::-webkit-scrollbar-thumb:hover {
-    background-color: #FDAC74;
+    background-color: var(--color-brand-300);
   }
   *::-webkit-scrollbar {
     width: 10px;
@@ -458,13 +536,13 @@
     background: transparent;
   }
   *::-webkit-scrollbar-thumb {
-    background-color: #FDAC74;
+    background-color: var(--color-brand-300);
     border: 2px solid transparent;
     border-radius: 9999px;
     background-clip: content-box;
   }
   *::-webkit-scrollbar-thumb:hover {
-    background-color: #FB8A3C;
+    background-color: var(--color-brand-400);
   }
 }
 
@@ -497,6 +575,21 @@
   }
 }
 
+/* Horizontal snap carousel row (blog rails, transformation rails).
+   Zero-JS, RTL-safe, snap-aligned. Pair with no-scrollbar when needed. */
+@utility scroll-row {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 1rem;
+  padding-block-end: 0.25rem;
+  & > * {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
+}
+
 @utility safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -510,6 +603,18 @@
   select,
   textarea {
     min-height: 44px;
+  }
+  /* Compact primitives opt out of the 44px touch rule — they sit inside
+     larger touch areas (nav rows, table cells, dialog footers). */
+  button[data-size="xs"],
+  button[data-size="sm"],
+  button[data-size="icon"],
+  button[data-size="icon-xs"],
+  button[data-size="icon-sm"],
+  [role="tab"],
+  [data-slot="tabs-trigger"],
+  [data-slot="select-trigger"][data-size="sm"] {
+    min-height: 0;
   }
   input[type="text"],
   input[type="email"],
@@ -527,24 +632,6 @@
   }
 }
 
-@utility texture-halftone {
-  position: relative;
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background-image: radial-gradient(circle at 1px 1px, var(--primary) 2px, transparent 0);
-    background-size: 24px 24px;
-    opacity: 0.08;
-    border-radius: inherit;
-    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 0%, transparent 70%);
-  }
-  .dark &::before {
-    opacity: 0.12;
-    mask-image: radial-gradient(ellipse 80% 60% at 50% 100%, black 0%, transparent 70%);
-  }
-}
 
 @utility sticker {
   border: 2px solid currentColor;
@@ -568,16 +655,16 @@
 
 @utility btn-sticker {
   @apply relative overflow-hidden;
-  box-shadow: 3px 3px 0 0 #A83F02;
+  box-shadow: 3px 3px 0 0 var(--color-brand-700);
   transition: box-shadow 0.05s ease, transform 0.05s ease;
-  &:hover { box-shadow: 2px 2px 0 0 #A83F02; }
+  &:hover { box-shadow: 2px 2px 0 0 var(--color-brand-700); }
   &:active {
     transform: translate(2px, 2px);
-    box-shadow: 1px 1px 0 0 #A83F02;
+    box-shadow: 1px 1px 0 0 var(--color-brand-700);
   }
   @media (prefers-reduced-motion: reduce) {
-    box-shadow: 3px 3px 0 0 #A83F02;
-    &:hover, &:active { transform: none; box-shadow: 3px 3px 0 0 #A83F02; }
+    box-shadow: 3px 3px 0 0 var(--color-brand-700);
+    &:hover, &:active { transform: none; box-shadow: 3px 3px 0 0 var(--color-brand-700); }
   }
 }
 
@@ -763,5 +850,80 @@
   &:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-card-hover);
+  }
+}
+
+/* Ambient organic drift for background gradients and glowing blobs */
+@keyframes ambient-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(3%, -2%) scale(1.03); }
+  66% { transform: translate(-2%, 2%) scale(0.97); }
+}
+
+@utility animate-ambient {
+  animation: ambient-drift 18s ease-in-out infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Live beacon ping for real-time gym activity and urgent alerts */
+@keyframes beacon-ping {
+  75%, 100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+@utility animate-beacon {
+  animation: beacon-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Radiant halo glow for high athletic streaks (7+ days) */
+@keyframes streak-radiance {
+  0%, 100% { box-shadow: 0 0 10px 0 rgba(245, 158, 11, 0.35); }
+  50% { box-shadow: 0 0 20px 3px rgba(245, 158, 11, 0.65); }
+}
+
+@utility animate-streak-radiance {
+  animation: streak-radiance 2.5s ease-in-out infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Global card robustness layer (Coach Flow card audit):
+   cards auto-size to content, never clip or push text outside,
+   and Arabic RTL content wraps safely. */
+@layer components {
+  [data-slot="card"],
+  [data-slot="card-header"],
+  [data-slot="card-content"],
+  [data-slot="card-footer"] {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  [data-slot="card-title"],
+  [data-slot="card-description"] {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-wrap: pretty;
+  }
+  /* Arabic has no uppercase and joining letters must not be
+     letter-spaced — both cause visual overflow in small cards. */
+  html:lang(ar) [data-slot="card"] .uppercase {
+    text-transform: none;
+  }
+  html:lang(ar) [data-slot="card"] .tracking-widest,
+  html:lang(ar) [data-slot="card"] .tracking-wider {
+    letter-spacing: 0;
+  }
+  /* Arabic glyphs are taller than Latin; leading-none clips them
+     inside cards. Keep it compact but never clipping. */
+  html:lang(ar) [data-slot="card"] .leading-none {
+    line-height: 1.5;
   }
 }

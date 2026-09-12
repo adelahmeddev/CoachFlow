@@ -138,10 +138,10 @@ export function DashboardActionCard({ client, data }: DashboardActionCardProps) 
 
   const hour = new Date().getHours()
   const greeting = hour < 12 
-    ? { ar: "صباح القوة 💪", en: "Morning Power" }
+    ? { ar: "صباح القوة", en: "Morning Power" }
     : hour < 18 
-      ? { ar: "نهارك جامد 🔥", en: "Strong Day" }
-      : { ar: "مساء الإنجاز ✨", en: "Evening Grind" }
+      ? { ar: "نهارك جامد", en: "Strong Day" }
+      : { ar: "مساء الإنجاز", en: "Evening Grind" }
 
   return (
     <div className="space-y-6">
@@ -156,17 +156,17 @@ export function DashboardActionCard({ client, data }: DashboardActionCardProps) 
             <span>{isAr ? greeting.ar : greeting.en}</span>
             <span className="size-1.5 rounded-full bg-white/40 ml-1" aria-hidden="true" />
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
-            {isAr ? "مرحباً بعودتك" : "Welcome back,"}{" "}
-            <span className="bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent ml-1">
-              {client.fullName}
-            </span>
-            {streak > 0 && (
-              <span className="ml-2 text-xl" aria-label={isAr ? `سلسلة ${streak} أيام` : `${streak} day streak`}>
-                🔥
-              </span>
-            )}
-          </h1>
+           <h1 className="text-2xl font-extrabold tracking-tight break-words sm:text-3xl">
+             {isAr ? "مرحباً بعودتك" : "Welcome back,"}{" "}
+             <span className="bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent ml-1">
+               {client.fullName}
+             </span>
+             {streak > 0 && (
+               <span className="ml-2 inline-flex" aria-label={isAr ? `سلسلة ${streak} أيام` : `${streak} day streak`}>
+                 <Flame className="size-5 text-white/90" />
+               </span>
+             )}
+           </h1>
           <p className="mt-2 text-white/90 max-w-xl mx-auto text-sm sm:text-base leading-relaxed">
             {hasWorkoutToStart 
               ? (isAr 
@@ -286,7 +286,7 @@ function StatPill({
         <span className="text-2xl font-extrabold tabular-nums text-foreground dark:text-white group-hover:scale-105 transition-transform duration-300">{value}</span>
         <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground dark:text-white/70">{label}</span>
         {trend && (
-          <span className="absolute -top-2 -right-2 px-1.5 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold animate-pulse">
+          <span className="absolute -top-2 -end-2 px-1.5 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold animate-pulse">
             {trend}
           </span>
         )}
@@ -356,7 +356,7 @@ function ActionCard({
 
 return (
     <div className={cn(baseStyles, buttonStyles)} onClick={() => !isDisabled && action.href && window.location.assign(action.href)} style={{ cursor: isDisabled ? 'not-allowed' : 'pointer' }}>
-      <div className="relative flex items-start gap-3">
+      <div className="relative flex min-w-0 items-start gap-3">
             <div className={cn(
               "flex size-10 shrink-0 items-center justify-center rounded-xl text-white shadow-soft transition-transform duration-300 group-hover:scale-110 group-hover:rotate-2",
               `bg-gradient-to-br ${action.color}`
@@ -364,8 +364,8 @@ return (
               <Icon className="size-5" aria-hidden="true" />
             </div>
             <div className="min-w-0 flex-1 space-y-1.5">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-foreground group-hover:text-brand-600 dark:text-white dark:group-hover:text-brand-300 transition-colors">{action.label}</span>
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <span className="min-w-0 flex-1 break-words text-sm font-semibold text-foreground group-hover:text-brand-600 dark:text-white dark:group-hover:text-brand-300 transition-colors">{action.label}</span>
                 {action.badge && (
                   <Badge 
                     variant="secondary" 
@@ -378,7 +378,7 @@ return (
                   </Badge>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground dark:text-white/70 leading-relaxed line-clamp-2">{action.description}</p>
+              <p className="text-xs text-muted-foreground dark:text-white/70 leading-relaxed break-words line-clamp-2">{action.description}</p>
               <div className="mt-2 flex items-center gap-1 text-muted-foreground/80 group-hover:text-foreground dark:text-white/50 dark:group-hover:text-white/80 transition-colors">
                 <ExternalLink className="size-3.5" aria-hidden="true" />
                 <span className="text-[11px] font-medium">{isAr ? "افتح" : "Open"}</span>

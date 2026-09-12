@@ -4,8 +4,6 @@ import { formatDate } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { ProgressRing } from "@/components/ui/progress-ring"
 
-type BodyCompositionLike = BodyComposition & Record<string, unknown>
-
 interface ProgressSummaryCardsProps {
   baseline: BodyComposition | null
   latest: BodyComposition | null
@@ -60,7 +58,7 @@ export function ProgressSummaryCards({
       value: weightChange === null ? "—" : `${weightChange > 0 ? "+" : ""}${formatNumber(weightChange)} kg`,
       icon: weightChange !== null ? (weightChange > 0 ? TrendingUp : weightChange < 0 ? TrendingDown : Minus) : Scale,
       variant: weightChange !== null ? (weightChange < 0 ? "performance" as const : weightChange > 0 ? "muscle" as const : "brand" as const) : "brand" as const,
-      sub: weightChange !== null ? (weightChange < 0 ? "نزول ممتاز 🔥" : weightChange > 0 ? "زيادة" : "ثابت") : "—",
+      sub: weightChange !== null ? (weightChange < 0 ? "نزول ممتاز" : weightChange > 0 ? "زيادة" : "ثابت") : "—",
       isDelta: true,
       weightChange,
     },
@@ -114,8 +112,8 @@ export function ProgressSummaryCards({
               <c.icon className="size-5" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{c.label}</p>
-              <p className="text-xs text-muted-foreground/70">{c.enLabel}</p>
+              <p className="text-[11px] font-bold uppercase tracking-widest break-words text-muted-foreground">{c.label}</p>
+              <p className="text-xs break-words text-muted-foreground/70">{c.enLabel}</p>
             </div>
             {c.showRing && c.ringValue !== undefined && (
               <ProgressRing value={c.ringValue} size={44} strokeWidth={4} variant={c.variant} showValue={false} className="shrink-0" />
@@ -133,7 +131,7 @@ export function ProgressSummaryCards({
                 {c.value}
               </span>
             ) : (
-              <p className="text-xl font-extrabold leading-none tracking-tight tabular-nums">
+              <p className="text-xl font-extrabold leading-snug tracking-tight tabular-nums break-words">
                 {c.showRing ? (
                   <span className="inline-flex items-baseline gap-1">
                     {c.value}
@@ -146,7 +144,7 @@ export function ProgressSummaryCards({
                 )}
               </p>
             )}
-            <p className="mt-1 text-xs text-muted-foreground">{c.sub}</p>
+            <p className="mt-1 text-xs break-words text-muted-foreground">{c.sub}</p>
           </div>
         </div>
       ))}

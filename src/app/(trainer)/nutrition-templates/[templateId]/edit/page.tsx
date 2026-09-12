@@ -51,11 +51,14 @@ export default async function EditNutritionTemplatePage({
         unit: item.unit,
       })),
     })),
-    meals: template.meals.map((meal) => ({
+    meals: template.meals.map((meal: any) => ({
+      id: meal.id,
       kind: meal.kind,
       name: meal.name,
       nameAr: meal.nameAr ?? "",
-      items: meal.items.map((item) => ({
+      isSpare: meal.isSpare ?? false,
+      replacesMealId: meal.replacesMealId ?? null,
+      items: meal.items.map((item: any) => ({
         foodName: item.foodName,
         foodNameAr: item.foodNameAr ?? "",
         amount: item.amount,

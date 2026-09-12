@@ -331,13 +331,24 @@ async function insertMealsForTemplate(
   templateId: string,
   meals: MealInput[]
 ) {
+  const idMap = new Map<string, string>()
+  for (const m of meals) {
+    if (m.id) idMap.set(m.id, generateId())
+  }
+
   for (let mIdx = 0; mIdx < meals.length; mIdx++) {
     const meal = meals[mIdx]
-    const mealId = generateId()
+    const mealId = meal.id && idMap.has(meal.id) ? idMap.get(meal.id)! : generateId()
+    
+    let replacesMealId = null
+    if (meal.replacesMealId && idMap.has(meal.replacesMealId)) {
+      replacesMealId = idMap.get(meal.replacesMealId)
+    }
+
     await client.query(
-      `INSERT INTO "Meal" ("id", "templateId", "kind", "order", "name", "nameAr")
-       VALUES ($1, $2, $3::"MealKind", $4, $5, $6)`,
-      [mealId, templateId, meal.kind, mIdx + 1, meal.name, meal.nameAr ?? null]
+      `INSERT INTO "Meal" ("id", "templateId", "kind", "order", "name", "nameAr", "isSpare", "replacesMealId")
+       VALUES ($1, $2, $3::"MealKind", $4, $5, $6, $7, $8)`,
+      [mealId, templateId, meal.kind, mIdx + 1, meal.name, meal.nameAr ?? null, meal.isSpare ?? false, replacesMealId]
     )
     for (let iIdx = 0; iIdx < meal.items.length; iIdx++) {
       const item = meal.items[iIdx]
@@ -364,14 +375,25 @@ async function insertMealsForTemplate(
 async function insertMealsForPlan(
   client: PgClient,
   planId: string,
-  meals: Array<{ kind: string; name: string; nameAr: string | null; order: number; items: Array<{ groupNumber: number; foodName: string; foodNameAr: string | null; amount: number | null; unit: string; calories: number | null; order: number }> }>
+  meals: Array<{ id?: string; isSpare?: boolean; replacesMealId?: string | null; kind: string; name: string; nameAr: string | null; order: number; items: Array<{ groupNumber: number; foodName: string; foodNameAr: string | null; amount: number | null; unit: string; calories: number | null; order: number }> }>
 ) {
+  const idMap = new Map<string, string>()
+  for (const m of meals) {
+    if (m.id) idMap.set(m.id, generateId())
+  }
+
   for (const meal of meals) {
-    const mealId = generateId()
+    const mealId = meal.id && idMap.has(meal.id) ? idMap.get(meal.id)! : generateId()
+
+    let replacesMealId = null
+    if (meal.replacesMealId && idMap.has(meal.replacesMealId)) {
+      replacesMealId = idMap.get(meal.replacesMealId)
+    }
+
     await client.query(
-      `INSERT INTO "Meal" ("id", "planId", "kind", "order", "name", "nameAr")
-       VALUES ($1, $2, $3::"MealKind", $4, $5, $6)`,
-      [mealId, planId, meal.kind, meal.order, meal.name, meal.nameAr]
+      `INSERT INTO "Meal" ("id", "planId", "kind", "order", "name", "nameAr", "isSpare", "replacesMealId")
+       VALUES ($1, $2, $3::"MealKind", $4, $5, $6, $7, $8)`,
+      [mealId, planId, meal.kind, meal.order, meal.name, meal.nameAr, meal.isSpare ?? false, replacesMealId]
     )
     for (const item of meal.items) {
       const itemId = generateId()
@@ -591,7 +613,7 @@ async function copyTemplateToPlanInTx(
     recommendedFoods: string[]
     supplementDefs: Array<{ name: string; nameAr: string | null; definition: string | null; definitionAr: string | null; importance: string | null; importanceAr: string | null; order: number }>
     substituteGroups: Array<{ category: string; caloriesLabel: string | null; order: number; items: Array<{ name: string; nameAr: string | null; amount: number | null; unit: string; order: number }> }>
-    meals: Array<{ kind: string; name: string; nameAr: string | null; order: number; items: Array<{ groupNumber: number; foodName: string; foodNameAr: string | null; amount: number | null; unit: string; calories: number | null; order: number }> }>
+    meals: Array<{ id: string; kind: string; name: string; nameAr: string | null; isSpare: boolean; replacesMealId: string | null; order: number; items: Array<{ groupNumber: number; foodName: string; foodNameAr: string | null; amount: number | null; unit: string; calories: number | null; order: number }> }>
   }
 
   await client.query(
@@ -640,9 +662,12 @@ async function copyTemplateToPlanInTx(
 
   // meals
   const meals = tpl.meals.map((meal, mealIndex) => ({
+    id: meal.id,
     kind: meal.kind,
     name: meal.name,
     nameAr: meal.nameAr,
+    isSpare: meal.isSpare,
+    replacesMealId: meal.replacesMealId,
     order: mealIndex + 1,
     items: meal.items.map((item, itemIndex) => ({
       groupNumber: item.groupNumber,
@@ -654,7 +679,7 @@ async function copyTemplateToPlanInTx(
       order: itemIndex + 1,
     })),
   }))
-  await insertMealsForPlan(client, planId, meals)
+  await insertMealsForPlan(client, planId, meals as any)
 }
 
 export async function assignTemplateToClients(
@@ -899,6 +924,38 @@ export async function toggleMealChoice(clientId: string, mealItemId: string) {
   if (existing.rowCount && existing.rowCount > 0) {
     await pool.query(`DELETE FROM "MealChoice" WHERE "id" = $1`, [(existing.rows[0] as { id: string }).id])
     return { chosen: false }
+  }
+
+  const groupRes = await pool.query(
+    `WITH target_meal AS (
+       SELECT m."id", m."isSpare", m."replacesMealId", m."planId"
+       FROM "MealItem" mi
+       JOIN "Meal" m ON mi."mealId" = m."id"
+       WHERE mi."id" = $1
+     )
+     SELECT m2."id"
+     FROM target_meal tm
+     JOIN "Meal" m2 ON m2."planId" = tm."planId"
+     WHERE (
+       m2."id" = COALESCE(tm."replacesMealId", tm."id") 
+       OR 
+       m2."replacesMealId" = COALESCE(tm."replacesMealId", tm."id")
+     )`,
+    [mealItemId]
+  )
+  
+  if (groupRes.rowCount && groupRes.rowCount > 0) {
+    const mealIds = (groupRes.rows as {id: string}[]).map(r => r.id)
+    await pool.query(
+      `DELETE FROM "MealChoice"
+       WHERE "clientId" = $1 AND "date" = $2 
+       AND "mealItemId" IN (
+         SELECT "id" FROM "MealItem" 
+         WHERE "mealId" = ANY($3::text[])
+         AND "mealId" != (SELECT "mealId" FROM "MealItem" WHERE "id" = $4)
+       )`,
+       [clientId, date, mealIds, mealItemId]
+    )
   }
 
   const id = generateId()

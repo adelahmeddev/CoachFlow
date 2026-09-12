@@ -5,6 +5,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react"
 export type Branding = {
   brandName: string
   logoUrl: string | null
+  avatarUrl: string | null
   primaryColor: string
   whatsappUrl: string | null
   facebookUrl: string | null
@@ -15,6 +16,7 @@ export type Branding = {
 const BrandingContext = createContext<Branding>({
   brandName: "Coach Flow",
   logoUrl: null,
+  avatarUrl: null,
   primaryColor: "#961112",
   whatsappUrl: null,
   facebookUrl: null,

@@ -24,6 +24,7 @@ import { calcAge } from "@/lib/format"
 import { formatDate } from "@/lib/i18n/format"
 import { cn } from "@/lib/utils"
 import { ResetPasswordDialog } from "@/components/features/clients/reset-password-dialog"
+import { ClientAccessCard } from "@/components/features/clients/client-access-card"
 import { EditClientInfoDialog } from "@/components/features/clients/edit-client-info-dialog"
 import { PainFlagsForm } from "@/components/features/body-composition/pain-flags-form"
 
@@ -43,6 +44,7 @@ export async function OverviewTab({ clientId, profile }: OverviewTabProps) {
       <QuickActions clientId={clientId} clientName={profile.client.fullName ?? ""} t={t} />
       <div className="grid gap-6 lg:grid-cols-2">
         <ClientInfoCard clientId={clientId} profile={profile} t={t} locale={locale} />
+        <ClientAccessCard clientId={clientId} profile={profile} />
         <InBodyCard clientId={clientId} profile={profile} t={t} locale={locale} />
         <PainFlagsForm
           clientId={clientId}

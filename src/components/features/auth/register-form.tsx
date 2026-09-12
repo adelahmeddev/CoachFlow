@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useSyncExternalStore, useState } from "react"
 import { useRouter } from "next/navigation"
@@ -172,8 +172,8 @@ export function RegisterForm() {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full" disabled={isPending || !hydrated}>
-          {isPending ? "Creating account..." : "Create account"}
+        <Button type="submit" className="w-full" disabled={isPending || !hydrated} loading={isPending}>
+          {isPending ? "Creating account…" : "Create account"}
         </Button>
       </form>
     </Form>

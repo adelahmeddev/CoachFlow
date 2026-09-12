@@ -2,6 +2,7 @@ import { pool, generateId } from "@/lib/db"
 import type { Role } from "@/lib/db/enums"
 import type { Message, Conversation } from "@/lib/db/types"
 import { publish } from "@/server/realtime/message-bus"
+import { getRecipientPair, notifySafe } from "@/server/services/notification.service"
 
 async function enrichConversationWith(
   conv: Record<string, unknown> & { id: string; trainerId: string; clientId: string },
@@ -37,7 +38,7 @@ export async function getOrCreateConversation(trainerId: string, clientId: strin
   const client = await pool.query(`SELECT "id", "trainerId" FROM "Client" WHERE "id" = $1 AND "trainerId" = $2 LIMIT 1`, [clientId, trainerId])
   if (!client.rowCount || client.rowCount === 0) return null
 
-  let convRes = await pool.query(`SELECT * FROM "Conversation" WHERE "clientId" = $1 LIMIT 1`, [clientId])
+  const convRes = await pool.query(`SELECT * FROM "Conversation" WHERE "clientId" = $1 LIMIT 1`, [clientId])
   if (convRes.rowCount && convRes.rowCount > 0) {
     const conv = convRes.rows[0] as Record<string, unknown> & { id: string; trainerId: string; clientId: string }
     return enrichConversationWith(conv, "basic", "basic")
@@ -73,7 +74,7 @@ export async function getConversationForClient(userId: string) {
   if (!clientRes.rowCount || clientRes.rowCount === 0) return null
   const client = clientRes.rows[0] as { id: string; trainerId: string }
 
-  let convRes = await pool.query(`SELECT * FROM "Conversation" WHERE "clientId" = $1 LIMIT 1`, [client.id])
+  const convRes = await pool.query(`SELECT * FROM "Conversation" WHERE "clientId" = $1 LIMIT 1`, [client.id])
   if (convRes.rowCount && convRes.rowCount > 0) {
     const conv = convRes.rows[0] as Record<string, unknown> & { id: string; trainerId: string; clientId: string }
     return enrichConversationWith(conv, "basic", "basic")
@@ -293,6 +294,31 @@ export async function sendMessage(params: {
         conversationId: (conversation as Conversation).id,
       },
     })
+  } catch {}
+
+  // Notify the recipient (best-effort — never breaks sending).
+  try {
+    const pair = await getRecipientPair((conversation as Conversation).clientId)
+    const preview = trimmed.length > 80 ? `${trimmed.slice(0, 80)}…` : trimmed
+    if (senderRole === "COACH" && pair?.clientUserId) {
+      await notifySafe({
+        userId: pair.clientUserId,
+        type: "NEW_MESSAGE",
+        titleKey: "newMessageTitle",
+        bodyKey: "newMessageBody",
+        params: { name: pair.trainerName ?? "", preview },
+        link: "/client/messages",
+      })
+    } else if (senderRole === "CLIENT" && pair?.trainerUserId) {
+      await notifySafe({
+        userId: pair.trainerUserId,
+        type: "NEW_MESSAGE",
+        titleKey: "newMessageTitle",
+        bodyKey: "newMessageBody",
+        params: { name: pair.clientName ?? "", preview },
+        link: `/messages/${(conversation as Conversation).clientId}`,
+      })
+    }
   } catch {}
 
   return { message, conversationId: (conversation as Conversation).id }

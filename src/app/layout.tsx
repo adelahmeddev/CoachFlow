@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Noto_Sans_Arabic, Alexandria } from "next/font/googl
 import "./globals.css"
 import { Providers } from "@/components/providers"
 import { getI18n } from "@/lib/i18n"
+import { BackgroundOrbs } from "@/components/layout/background-orbs"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -67,6 +68,7 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${arabic.variable} ${display.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <BackgroundOrbs />
         <a
           href="#main-content"
           className="sr-only z-50 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:rounded-md focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring"

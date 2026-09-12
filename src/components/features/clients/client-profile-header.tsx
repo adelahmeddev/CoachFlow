@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowLeft, MessageCircle, UserPlus } from "lucide-react"
+import { ArrowLeft, MessageCircle, UserPlus, Flame, Dumbbell, Package, Timer } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -84,7 +84,7 @@ export async function ClientProfileHeader({ profile }: ClientProfileHeaderProps)
               </div>
               {mockStreak > 0 && (
                 <span className="absolute -bottom-1.5 -end-1.5 inline-flex items-center gap-1 rounded-full bg-card px-1.5 py-0.5 text-xs font-bold shadow-soft ring-1 ring-border">
-                  <span aria-hidden="true" className="text-[10px] leading-none">🔥</span>
+                  <Flame aria-hidden="true" className="size-3 text-energy-600" />
                   <span className="tabular-nums text-xs">{mockStreak}</span>
                 </span>
               )}
@@ -92,8 +92,8 @@ export async function ClientProfileHeader({ profile }: ClientProfileHeaderProps)
 
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <h1 className="truncate text-[17px] sm:text-xl font-bold tracking-tight leading-tight">
+                <div className="min-w-0 flex-1">
+                  <h1 className="line-clamp-2 break-words text-[17px] sm:text-xl font-bold tracking-tight leading-snug">
                     {name}
                   </h1>
                   <div className="mt-1 flex flex-wrap items-center gap-1.5">
@@ -145,19 +145,19 @@ export async function ClientProfileHeader({ profile }: ClientProfileHeaderProps)
                 label: isAr ? "البرنامج" : "Program",
                 value: profile.latestTrainingSplit ? `${profile.latestTrainingSplit.daysPerWeek} ${isAr ? "أيام" : "days"}` : isAr ? "—" : "—",
                 sub: profile.latestTrainingSplit ? (isAr ? "نشط" : "active") : isAr ? "مفيش برنامج" : "no plan",
-                icon: "🏋️",
+                icon: Dumbbell,
               },
               {
                 label: isAr ? "الباقة" : "Package",
                 value: profile.latestSubscription ? profile.latestSubscription.planName : isAr ? "—" : "—",
                 sub: profile.latestSubscription ? (isAr ? "سارية" : "active") : isAr ? "مفيش باقة" : "no package",
-                icon: "📦",
+                icon: Package,
               },
               {
                 label: "Streak",
                 value: mockStreak ? `${mockStreak} ${isAr ? "يوم" : "d"}` : "—",
                 sub: mockStreak >= 7 ? (isAr ? "ممتاز" : "great") : mockStreak ? (isAr ? "مستمر" : "going") : isAr ? "ابدأ" : "start",
-                icon: "🔥",
+                icon: Flame,
               },
               {
                 label: isAr ? "آخر نشاط" : "Last active",
@@ -165,7 +165,7 @@ export async function ClientProfileHeader({ profile }: ClientProfileHeaderProps)
                   ? new Date(client.basicInfoCompletedAt).toLocaleDateString(isAr ? "ar-EG-u-nu-latn" : "en-GB", { day: "2-digit", month: "short" })
                   : isAr ? "—" : "—",
                 sub: client.basicInfoCompletedAt ? (isAr ? "تابع تقدمه" : "check progress") : isAr ? "مفيش" : "—",
-                icon: "⏱️",
+                icon: Timer,
               },
             ].map((m) => (
               <div
@@ -173,13 +173,11 @@ export async function ClientProfileHeader({ profile }: ClientProfileHeaderProps)
                 className="rounded-xl border bg-muted/30 px-3 py-2.5 text-start transition-colors hover:bg-card hover:shadow-soft hover:border-border"
               >
                 <div className="flex items-center gap-1.5">
-                  <span aria-hidden="true" className="text-xs leading-none">
-                    {m.icon}
-                  </span>
+                  <m.icon aria-hidden="true" className="size-3.5 text-muted-foreground" />
                   <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{m.label}</span>
                 </div>
-                <p className="mt-1 truncate text-sm font-semibold leading-none tracking-tight">{m.value}</p>
-                <p className="mt-0.5 truncate text-xs text-muted-foreground">{m.sub}</p>
+                <p className="mt-1 line-clamp-2 break-words text-sm font-semibold leading-snug tracking-tight">{m.value}</p>
+                <p className="mt-0.5 line-clamp-2 break-words text-xs text-muted-foreground">{m.sub}</p>
               </div>
             ))}
           </div>
@@ -239,8 +237,8 @@ function normalizePhone(phone: string): string {
 }
 
 function buildWhatsAppUrl(phone: string, clientName: string, portalUrl: string, locale: string) {
-  const arMessage = `أهلاً ${clientName} 👋\nتفضل رابط بوابتك عشان تتابع خطتك التدريبية:\n${portalUrl}`
-  const enMessage = `Hey ${clientName} 👋\nHere's your portal link to follow your training plan:\n${portalUrl}`
+  const arMessage = `أهلاً ${clientName}\nتفضل رابط بوابتك عشان تتابع خطتك التدريبية:\n${portalUrl}`
+  const enMessage = `Hey ${clientName}\nHere's your portal link to follow your training plan:\n${portalUrl}`
   const message = locale === "ar" ? arMessage : enMessage
   const encoded = encodeURIComponent(message)
   return `https://wa.me/${phone}?text=${encoded}`

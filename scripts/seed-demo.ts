@@ -52,7 +52,7 @@ interface SubscriptionData {
 
 const demoClients: DemoClient[] = [
   {
-    fullName: 'Ø£Ø­Ù…Ø¯ Ø³Ù…ÙŠØ± Ù…Ø­Ù…ÙˆØ¯',
+    fullName: 'أحمد سمير محمود',
     gender: 'M',
     age: 29,
     goal: Goal.WEIGHT_LOSS,
@@ -65,7 +65,7 @@ const demoClients: DemoClient[] = [
     hasWorkoutLogs: true,
     subscription: {
       status: SubscriptionStatus.ACTIVE,
-      planName: 'Ø¨Ø±ÙŠÙ…ÙŠÙˆÙ…',
+      planName: 'بريميوم',
       sessionsCount: 12,
       remainingSessions: 8,
       paymentStatus: PaymentStatus.PAID,
@@ -73,7 +73,7 @@ const demoClients: DemoClient[] = [
     },
   },
   {
-    fullName: 'Ø³Ø§Ø±Ø© Ø¹Ø¨Ø¯ Ø§Ù„Ø±Ø­Ù…Ù† Ø¹Ù„ÙŠ',
+    fullName: 'سارة عبد الرحمن علي',
     gender: 'F',
     age: 24,
     goal: Goal.MUSCLE_BUILDING,
@@ -86,7 +86,7 @@ const demoClients: DemoClient[] = [
     hasWorkoutLogs: true,
     subscription: {
       status: SubscriptionStatus.ACTIVE,
-      planName: 'Ø¨Ø±ÙŠÙ…ÙŠÙˆÙ…',
+      planName: 'بريميوم',
       sessionsCount: 12,
       remainingSessions: 6,
       paymentStatus: PaymentStatus.PAID,
@@ -94,7 +94,7 @@ const demoClients: DemoClient[] = [
     },
   },
   {
-    fullName: 'Ù…ØµØ·ÙÙ‰ Ø­Ø³Ù† Ø¥Ø¨Ø±Ø§Ù‡ÙŠÙ…',
+    fullName: 'مصطفى حسن إبراهيم',
     gender: 'M',
     age: 35,
     goal: Goal.WEIGHT_LOSS,
@@ -108,7 +108,7 @@ const demoClients: DemoClient[] = [
     hasWorkoutLogs: true,
     subscription: {
       status: SubscriptionStatus.ACTIVE,
-      planName: 'Ø¨Ø±ÙŠÙ…ÙŠÙˆÙ…',
+      planName: 'بريميوم',
       sessionsCount: 12,
       remainingSessions: 4,
       paymentStatus: PaymentStatus.PAID,
@@ -116,7 +116,7 @@ const demoClients: DemoClient[] = [
     },
   },
   {
-    fullName: 'ÙØ§Ø·Ù…Ø© Ø§Ù„Ø³ÙŠØ¯ Ù…ØµØ·ÙÙ‰',
+    fullName: 'فاطمة السيد مصطفى',
     gender: 'F',
     age: 31,
     goal: Goal.GENERAL_FITNESS,
@@ -129,7 +129,7 @@ const demoClients: DemoClient[] = [
     hasWorkoutLogs: false,
   },
   {
-    fullName: 'Ø¹Ù…Ø± Ø®Ø§Ù„Ø¯ ÙØ§Ø±ÙˆÙ‚',
+    fullName: 'عمر خالد فاروق',
     gender: 'M',
     age: 22,
     goal: Goal.STRENGTH,
@@ -142,7 +142,7 @@ const demoClients: DemoClient[] = [
     hasWorkoutLogs: true,
     subscription: {
       status: SubscriptionStatus.ACTIVE,
-      planName: 'Ø¨Ø±ÙŠÙ…ÙŠÙˆÙ…',
+      planName: 'بريميوم',
       sessionsCount: 12,
       remainingSessions: 10,
       paymentStatus: PaymentStatus.PAID,
@@ -150,7 +150,7 @@ const demoClients: DemoClient[] = [
     },
   },
   {
-    fullName: 'Ù†ÙˆØ± Ø£Ø­Ù…Ø¯ ÙØªØ­ÙŠ',
+    fullName: 'نور أحمد فتحي',
     gender: 'F',
     age: 27,
     goal: Goal.WEIGHT_LOSS,
@@ -163,7 +163,7 @@ const demoClients: DemoClient[] = [
     hasWorkoutLogs: true,
     subscription: {
       status: SubscriptionStatus.PAUSED,
-      planName: 'Ø¨Ø±ÙŠÙ…ÙŠÙˆÙ…',
+      planName: 'بريميوم',
       sessionsCount: 12,
       remainingSessions: 3,
       paymentStatus: PaymentStatus.PAID,
@@ -171,7 +171,7 @@ const demoClients: DemoClient[] = [
     },
   },
   {
-    fullName: 'Ø­Ø³Ù† Ø¥Ø¨Ø±Ø§Ù‡ÙŠÙ… Ø­Ø³Ù†',
+    fullName: 'حسن إبراهيم حسن',
     gender: 'M',
     age: 41,
     goal: Goal.WEIGHT_LOSS,
@@ -185,7 +185,7 @@ const demoClients: DemoClient[] = [
     hasWorkoutLogs: true,
     subscription: {
       status: SubscriptionStatus.ACTIVE,
-      planName: 'Ø¨Ø±ÙŠÙ…ÙŠÙˆÙ…',
+      planName: 'بريميوم',
       sessionsCount: 12,
       remainingSessions: 2,
       paymentStatus: PaymentStatus.PAID,
@@ -193,7 +193,7 @@ const demoClients: DemoClient[] = [
     },
   },
   {
-    fullName: 'Ù…Ø±ÙŠÙ… Ø·Ø§Ø±Ù‚ Ø£Ù†ÙˆØ±',
+    fullName: 'مريم طارق أنور',
     gender: 'F',
     age: 20,
     goal: Goal.WEIGHT_GAIN,
@@ -206,7 +206,7 @@ const demoClients: DemoClient[] = [
     hasWorkoutLogs: true,
     subscription: {
       status: SubscriptionStatus.TRIAL,
-      planName: 'Ø¨Ø§Ù‚Ø© ØªØ¬Ø±ÙŠØ¨ÙŠØ©',
+      planName: 'باقة تجريبية',
       sessionsCount: 4,
       remainingSessions: 1,
       paymentStatus: PaymentStatus.PAID,
@@ -214,7 +214,7 @@ const demoClients: DemoClient[] = [
     },
   },
   {
-    fullName: 'ÙŠÙˆØ³Ù Ø¹Ø§Ø¯Ù„ Ø±Ù…Ø²ÙŠ',
+    fullName: 'يوسف عادل رمزي',
     gender: 'M',
     age: 26,
     goal: Goal.MUSCLE_BUILDING,
@@ -227,7 +227,7 @@ const demoClients: DemoClient[] = [
     hasWorkoutLogs: true,
     subscription: {
       status: SubscriptionStatus.EXPIRED,
-      planName: 'Ø¨Ø±ÙŠÙ…ÙŠÙˆÙ…',
+      planName: 'بريميوم',
       sessionsCount: 12,
       remainingSessions: 0,
       paymentStatus: PaymentStatus.PAID,
@@ -235,7 +235,7 @@ const demoClients: DemoClient[] = [
     },
   },
   {
-    fullName: 'Ù‡Ù†Ø§ Ø³Ù…ÙŠØ± ÙØ¤Ø§Ø¯',
+    fullName: 'هنا سمير فؤاد',
     gender: 'F',
     age: 33,
     goal: Goal.GENERAL_FITNESS,
@@ -250,7 +250,7 @@ const demoClients: DemoClient[] = [
 ];
 
 const phonePrefixes = ['010', '011', '012', '015'];
-const jobTitles = ['Ù…Ø­Ø§Ø³Ø¨', 'Ù…Ø¹Ù„Ù…', 'Ù…Ù‡Ù†Ø¯Ø³', 'Ø·Ø§Ù„Ø¨', 'Ù…Ø¨ÙŠØ¹Ø§Øª'];
+const jobTitles = ['محاسب', 'معلم', 'مهندس', 'طالب', 'مبيعات'];
 
 function getPhone(index: number): string {
   const prefix = phonePrefixes[index % phonePrefixes.length];
@@ -399,7 +399,7 @@ async function createDemoTrainer() {
   if (userRow.rowCount === 0) {
     const id = generateId()
     await pool.query(
-      `INSERT INTO "User" ("id","username","phone","email","passwordHash","role","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5::"Role",NOW(),NOW())`,
+      `INSERT INTO "User" ("id","username","phone","email","passwordHash","role","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6::"Role",NOW(),NOW())`,
       [id, "coach.karim", DEMO_TRAINER_PHONE, "coach.karim@example.com", hashed, Role.COACH]
     )
     const fresh = await pool.query(`SELECT * FROM "User" WHERE "id" = $1`, [id])
@@ -424,6 +424,23 @@ async function createDemoTrainer() {
     trainerProfile = fresh.rows[0]
   } else {
     trainerProfile = profileRow.rows[0]
+  }
+
+  // Ensure active CoachSubscription for demo trainer
+  const subRes = await pool.query(`SELECT "id" FROM "CoachSubscription" WHERE "coachId" = $1 LIMIT 1`, [trainerProfile.id])
+  if (subRes.rowCount === 0) {
+    const subId = generateId()
+    const startDate = new Date()
+    const endDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+    await pool.query(
+      `INSERT INTO "CoachSubscription" ("id","coachId","startDate","endDate","amountPaid","paymentDate","status","notes","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,'ACTIVE'::"CoachSubscriptionStatus",$7,NOW(),NOW())`,
+      [subId, trainerProfile.id, startDate, endDate, 1000, startDate, "Demo 1-Year Subscription"]
+    )
+  } else {
+    await pool.query(
+      `UPDATE "CoachSubscription" SET "status" = 'ACTIVE'::"CoachSubscriptionStatus", "endDate" = $1, "updatedAt" = NOW() WHERE "id" = $2`,
+      [new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), subRes.rows[0].id]
+    )
   }
 
   return { user: trainerUser, profile: trainerProfile }
@@ -608,11 +625,11 @@ async function createClient(
       const firstDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
       const secondDate = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000)
       await pool.query(
-        `INSERT INTO "BodyComposition" ("id","clientId","date","source","weightKg","muscleMassKg","bodyFatKg","bodyWaterPct","fatControlKg","bmrKcal","fitnessScore","waistHipRatio","visceralFatLevel","notes","createdAt","updatedAt") VALUES ($1,$2,$3,$4::"BodyCompositionSource",$5,$6,$7,$8,$9,$10,$11,$12,$13,NOW(),NOW())`,
+        `INSERT INTO "BodyComposition" ("id","clientId","date","source","weightKg","muscleMassKg","bodyFatKg","bodyWaterPct","fatControlKg","bmrKcal","fitnessScore","waistHipRatio","visceralFatLevel","notes","createdAt","updatedAt") VALUES ($1,$2,$3,$4::"BodyCompositionSource",$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,NOW(),NOW())`,
         [generateId(), client.id, firstDate, BodyCompositionSource.COACH, 86.8, 32.5, 29.3, 42.1, -19.1, 1612, 63, 0.92, 12, "InBody — تحليل تركيب الجسم"]
       )
       await pool.query(
-        `INSERT INTO "BodyComposition" ("id","clientId","date","source","weightKg","muscleMassKg","bodyFatKg","bodyWaterPct","fatControlKg","bmrKcal","fitnessScore","waistHipRatio","visceralFatLevel","notes","createdAt","updatedAt") VALUES ($1,$2,$3,$4::"BodyCompositionSource",$5,$6,$7,$8,$9,$10,$11,$12,$13,NOW(),NOW())`,
+        `INSERT INTO "BodyComposition" ("id","clientId","date","source","weightKg","muscleMassKg","bodyFatKg","bodyWaterPct","fatControlKg","bmrKcal","fitnessScore","waistHipRatio","visceralFatLevel","notes","createdAt","updatedAt") VALUES ($1,$2,$3,$4::"BodyCompositionSource",$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,NOW(),NOW())`,
         [generateId(), client.id, secondDate, BodyCompositionSource.COACH, 84.2, 33.2, 27.1, 43.5, -16.8, 1635, 68, 0.89, 10, "InBody — متابعة"]
       )
     } else {
@@ -642,6 +659,18 @@ async function createClient(
       )
     } else {
       await pool.query(`UPDATE "User" SET "passwordHash" = $1, "role" = $2::"Role", "updatedAt" = NOW() WHERE "phone" = $3`, [password, Role.CLIENT, phone])
+    }
+
+    // Link the login to the athlete row (matched by phone). Without this,
+    // demo client logins resolve no clientProfileId and the portal renders
+    // "No longer subscribed" for a perfectly valid account.
+    const demoUserRow = await pool.query(`SELECT "id" FROM "User" WHERE "phone" = $1 LIMIT 1`, [phone])
+    const demoUserId = (demoUserRow.rows[0] as { id: string } | undefined)?.id
+    if (demoUserId) {
+      await pool.query(
+        `UPDATE "Client" SET "userId" = $1, "updatedAt" = NOW() WHERE "id" = $2 AND ("userId" IS NULL OR "userId" <> $1)`,
+        [demoUserId, client.id]
+      )
     }
   }
 

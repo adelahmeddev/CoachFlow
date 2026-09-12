@@ -22,7 +22,7 @@ import {
   CLIENT_STATUS_BADGE_VARIANTS,
   SUBSCRIPTION_STATUS_BADGE_VARIANTS,
 } from "@/lib/constants"
-import { differenceInYears } from "date-fns"
+
 import type { getAdminClients } from "@/server/services/admin.service"
 import { ResetPasswordDialog } from "@/components/features/clients/reset-password-dialog"
 
@@ -76,7 +76,7 @@ export function AdminClientsTable({
               </div>
               <span className="shrink-0 text-xs text-muted-foreground">
                 {client.birthDate
-                  ? differenceInYears(new Date(), client.birthDate)
+                  ? Math.floor((Date.now() - new Date(client.birthDate).getTime()) / 31557600000)
                   : "—"}
               </span>
             </div>
@@ -161,7 +161,7 @@ export function AdminClientsTable({
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {client.birthDate
-                    ? differenceInYears(new Date(), client.birthDate)
+                    ? Math.floor((Date.now() - new Date(client.birthDate).getTime()) / 31557600000)
                     : "—"}
                 </TableCell>
                 <TableCell className="text-muted-foreground">

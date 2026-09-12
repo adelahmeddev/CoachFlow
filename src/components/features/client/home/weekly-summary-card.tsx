@@ -50,11 +50,11 @@ export function WeeklySummaryCard({
     <Card className={cn("btn-pop", "card-fitness")}>
       <CardHeader>
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <CalendarCheck className="size-5 text-brand-600 dark:text-brand-400" />
-            <CardTitle>{lookup(t, "client.week.workoutsThisWeek")}</CardTitle>
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <CalendarCheck className="size-5 shrink-0 text-brand-600 dark:text-brand-400" />
+            <CardTitle className="min-w-0 flex-1 line-clamp-2 break-words">{lookup(t, "client.week.workoutsThisWeek")}</CardTitle>
           </div>
-          <span className="text-xl font-semibold tabular-nums">
+          <span className="text-xl font-semibold tabular-nums shrink-0">
             {done}
             <span className="text-muted-foreground">/{planned}</span>
           </span>

@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { formatDistanceToNow } from "date-fns"
+
 import { useI18n } from "@/lib/i18n/client"
 
 type ConversationRow = {
@@ -33,9 +33,7 @@ type ConversationItemProps = {
 export function ConversationItem({ conversation, pathname, t }: ConversationItemProps) {
   const isActive = pathname === `/messages/${conversation.clientId}` || pathname === `/messages/${conversation.id}`
   const preview = conversation.lastMessagePreview || conversation.lastMessage?.body || ""
-  const time = conversation.lastMessageAt
-    ? formatDistanceToNow(new Date(conversation.lastMessageAt), { addSuffix: false }).replace("about ", "")
-    : ""
+
 
   const initials = getInitials(conversation.client.fullName)
   const isOnline = conversation.lastMessageAt ? Date.now() - new Date(conversation.lastMessageAt).getTime() < 5 * 60 * 1000 : false
@@ -63,18 +61,18 @@ export function ConversationItem({ conversation, pathname, t }: ConversationItem
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-2">
-          <span className="truncate text-sm font-semibold tracking-tight">{conversation.client.fullName ?? "Client"}</span>
+        <div className="flex min-w-0 items-baseline gap-2">
+          <span className="min-w-0 flex-1 truncate text-sm font-semibold tracking-tight">{conversation.client.fullName ?? "Client"}</span>
           {(() => {
             const time = conversation.lastMessageAt
-              ? formatDistanceToNow(new Date(conversation.lastMessageAt), { addSuffix: false }).replace("about ", "")
+              ? new Intl.DateTimeFormat("en", { dateStyle: "short" }).format(new Date(conversation.lastMessageAt))
               : ""
             return time ? (
               <span className="ms-auto shrink-0 text-[11px] tabular-nums text-muted-foreground">{time}</span>
             ) : null
           })()}
         </div>
-        <p className="mt-0.5 line-clamp-1 truncate text-xs leading-relaxed text-muted-foreground">
+        <p className="mt-0.5 line-clamp-2 break-words text-xs leading-relaxed text-muted-foreground">
           {preview || (conversation.unreadCount > 0 ? `${conversation.unreadCount} unread` : "No messages")}
         </p>
       </div>

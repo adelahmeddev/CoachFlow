@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { BrandLogo } from "@/components/brand/brand-logo";
@@ -13,9 +13,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </div>
       <main className="relative z-10 flex w-full max-w-md flex-col items-center gap-5 sm:gap-6">
         <div className="flex flex-col items-center gap-3 text-center">
-          <div className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-medium ring-1 ring-brand-600/20 sm:h-20 sm:w-20">
-            <BrandLogo variant="mark" height={42} width={64} priority className="drop-shadow-sm" alt="Coach Flow" />
-          </div>
+          <BrandLogo variant="full" height={90} width={90} priority className="shadow-medium ring-1 ring-brand-500/20" alt="Coach Flow" />
           <div className="space-y-1">
             <h1 className="font-heading text-2xl font-extrabold tracking-tight sm:text-[28px]">
               Coach Flow

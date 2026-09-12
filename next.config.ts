@@ -1,7 +1,6 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@node-rs/bcrypt"],
   allowedDevOrigins: ["192.168.1.9", "192.168.1.9:3000", "http://192.168.1.9:3000"],
   images: {
     formats: ["image/avif", "image/webp"],
@@ -11,7 +10,9 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: "2mb",
+      // Raised from 2mb: progress photos/videos + payment receipts upload
+      // through server actions (validated + capped per-file in actions).
+      bodySizeLimit: "24mb",
     },
   },
   turbopack: {},

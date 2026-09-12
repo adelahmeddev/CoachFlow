@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 import { getCurrentSession } from "@/server/auth"
 import { getCoachSubscriptionWithPayments, getDaysRemaining, getRemainingLabel } from "@/server/services/coach-subscription.service"
-import { getCoachBranding, DEFAULT_BRANDING } from "@/server/services/branding.service"
+import { getCoachBranding, toBranding } from "@/server/services/branding.service"
 import { BrandingProvider } from "@/components/branding/branding-provider"
 import { CoachSubscriptionStatus } from "@/lib/db/enums"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -19,7 +19,7 @@ export default async function SubscriptionPage() {
 
   const { subscription: sub, payments } = await getCoachSubscriptionWithPayments(session.user.trainerProfileId)
   const brandingRaw = await getCoachBranding(session.user.trainerProfileId)
-  const branding = { brandName: brandingRaw.effective.brandName, logoUrl: brandingRaw.effective.logoUrl, primaryColor: brandingRaw.effective.primaryColor, coachId: session.user.trainerProfileId }
+  const branding = toBranding(brandingRaw, session.user.trainerProfileId)
 
   return (
     <BrandingProvider branding={branding}>

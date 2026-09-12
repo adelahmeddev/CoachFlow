@@ -1,6 +1,8 @@
 ﻿import { redirect } from "next/navigation"
 import { getCurrentSession } from "@/server/auth"
 import { getClientHomeData } from "@/server/services/client-portal.service"
+import { getCheckinStatus } from "@/server/services/checkin.service"
+import { listPublishedPostsForClient } from "@/server/services/blog.service"
 import { ClientHomeUI } from "./ClientHomeUI"
 
 export const dynamic = 'force-dynamic'
@@ -14,7 +16,11 @@ export default async function ClientHomePage() {
     redirect("/client/login")
   }
 
-  const data = await getClientHomeData(clientId)
+  const [data, checkin, blog] = await Promise.all([
+    getClientHomeData(clientId),
+    getCheckinStatus(clientId),
+    listPublishedPostsForClient(clientId, 6),
+  ])
 
   if (!data) {
     redirect("/client/login")
@@ -28,7 +34,13 @@ export default async function ClientHomePage() {
   return (
     <ClientHomeUI
       client={client}
-      data={data}
+      data={{
+        ...data,
+        // Real check-in streak (was a 0/1 stub in getClientHomeData).
+        client: { ...data.client, streak: checkin.current },
+      }}
+      checkin={checkin}
+      posts={blog.posts}
     />
   )
 }

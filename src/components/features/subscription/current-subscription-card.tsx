@@ -88,9 +88,9 @@ export async function CurrentSubscriptionCard({
 
   return (
     <Card>
-      <CardHeader className="flex-row items-start justify-between space-y-0">
-        <div>
-          <CardTitle>{subscription.planName}</CardTitle>
+      <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
+        <div className="min-w-0 flex-1">
+          <CardTitle className="break-words">{subscription.planName}</CardTitle>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Badge variant={PLAN_TYPE_BADGE_VARIANTS[subscription.planType]}>
               {getPlanTypeLabel(subscription.planType, locale)}

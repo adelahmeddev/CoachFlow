@@ -67,9 +67,11 @@ export function WeightProgressChart({ bodyCompositions, assessments }: WeightPro
             type="monotone"
             dataKey="weight"
             name="Weight (kg)"
-            stroke="#0ea5e9"
-            strokeWidth={2}
-            dot={{ r: 3 }}
+            stroke="var(--chart-1)"
+            strokeWidth={2.5}
+            dot={{ r: 3, fill: "var(--chart-1)", strokeWidth: 0 }}
+            activeDot={{ r: 5, fill: "var(--chart-1)" }}
+            animationDuration={400}
           />
         </LineChart>
       </ResponsiveContainer>

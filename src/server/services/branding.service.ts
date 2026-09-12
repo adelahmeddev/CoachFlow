@@ -5,6 +5,7 @@ import { normalizeFacebookUrl, normalizeInstagramUrl, normalizeWhatsappUrl } fro
 export const DEFAULT_BRANDING = {
   brandName: "Coach Flow",
   logoUrl: null as string | null,
+  avatarUrl: null as string | null,
   primaryColor: "#961112",
   whatsappUrl: null as string | null,
   facebookUrl: null as string | null,
@@ -71,9 +72,12 @@ export async function getCoachBranding(coachId: string): Promise<CoachBranding &
   try {
     const res = await pool.query<CoachBranding>(`SELECT * FROM "CoachBranding" WHERE "coachId" = $1 LIMIT 1`, [coachId])
     const row = res.rows[0] as CoachBranding | undefined
+    const profileRes = await pool.query<{ avatarUrl: string | null }>(`SELECT "avatarUrl" FROM "TrainerProfile" WHERE "id" = $1 LIMIT 1`, [coachId])
+    const avatarUrl = profileRes.rows[0]?.avatarUrl?.trim() ? (profileRes.rows[0].avatarUrl as string) : null
     const effective = {
       brandName: row?.brandName?.trim() ? row.brandName.trim() : DEFAULT_BRANDING.brandName,
       logoUrl: row?.logoUrl?.trim() ? row.logoUrl : DEFAULT_BRANDING.logoUrl,
+      avatarUrl,
       primaryColor: row?.primaryColor && isValidPrimaryColor(row.primaryColor) ? row.primaryColor : DEFAULT_BRANDING.primaryColor,
       whatsappUrl: row?.whatsappUrl?.trim() ? row.whatsappUrl.trim() : null,
       facebookUrl: row?.facebookUrl?.trim() ? row.facebookUrl.trim() : null,
@@ -129,6 +133,7 @@ export async function getBrandingForClient(clientId: string) {
 export type BrandingPayload = {
   brandName: string
   logoUrl: string | null
+  avatarUrl: string | null
   primaryColor: string
   whatsappUrl: string | null
   facebookUrl: string | null
@@ -138,7 +143,7 @@ export type BrandingPayload = {
 
 export function toBranding(
   raw: {
-    effective: { brandName: string; logoUrl: string | null; primaryColor: string; whatsappUrl?: string | null; facebookUrl?: string | null; instagramUrl?: string | null }
+    effective: { brandName: string; logoUrl: string | null; avatarUrl?: string | null; primaryColor: string; whatsappUrl?: string | null; facebookUrl?: string | null; instagramUrl?: string | null }
   } | null | undefined,
   coachId: string | null | undefined
 ): BrandingPayload {
@@ -148,6 +153,7 @@ export function toBranding(
   return {
     brandName: raw.effective.brandName,
     logoUrl: raw.effective.logoUrl,
+    avatarUrl: raw.effective.avatarUrl ?? null,
     primaryColor: raw.effective.primaryColor,
     whatsappUrl: raw.effective.whatsappUrl ?? null,
     facebookUrl: raw.effective.facebookUrl ?? null,

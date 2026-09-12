@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import Link from "next/link"
 import { Plus } from "lucide-react"
@@ -7,7 +7,6 @@ import { NutritionTemplatesTable } from "@/components/features/nutrition/nutriti
 import { useI18n } from "@/lib/i18n/client"
 import { useTemplates } from "@/hooks/useTemplates"
 import { useClients } from "@/hooks/useClients"
-import { useUnreadCount } from "@/hooks/useUnreadCount"
 import { useSession } from "next-auth/react"
 
 export default function NutritionTemplatesPage() {
@@ -28,10 +27,6 @@ export default function NutritionTemplatesPage() {
 
   const { templates, loading: templatesLoading } = useTemplates(trainerProfileId)
   const { clients, loading: clientsLoading } = useClients(trainerProfileId)
-  const { count: unreadCount } = useUnreadCount("COACH", trainerProfileId)
-
-  // Optionally display the unread count somewhere (e.g., badge)
-  // console.log('Unread messages:', unreadCount)
 
   if (templatesLoading || clientsLoading) {
     return <p className="mx-auto max-w-7xl p-4 md:p-8">Loading…</p>
