@@ -1,6 +1,5 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -20,6 +19,7 @@ model User {
   updatedAt          DateTime        @updatedAt
   clientProfile      Client?
   messages           Message[]
+  notifications      Notification[]
   trainerProfile     TrainerProfile?
 
   @@index([role])
@@ -30,6 +30,7 @@ model TrainerProfile {
   userId                      String                  @unique
   fullName                    String
   phone                       String
+  avatarUrl                   String?
   createdAt                   DateTime                @default(now())
   updatedAt                   DateTime                @updatedAt
   email                       String?
@@ -53,8 +54,15 @@ model TrainerProfile {
   user                        User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   splitTemplates              TrainingSplitTemplate[]
   coachSubscription           CoachSubscription?
+  goals                       ClientGoal[]
   paymentRecords              PaymentRecord[]
+  paymentProofs               PaymentProof[]
+  progressMedia               ProgressMedia[]
   branding                    CoachBranding?
+  logoFile                    CoachLogoFile?  @relation("CoachLogo")
+  avatarFile                  CoachAvatarFile? @relation("CoachAvatar")
+  posts                       CoachPost[]
+  postImages                  PostImageFile[]
 }
 
 model Client {
@@ -86,7 +94,10 @@ model Client {
   conversation         Conversation?
   dailyLogs            DailyLog[]
   exerciseLogs         ExerciseLog[]
+  goals                ClientGoal[]
   mealChoices          MealChoice[]
+  paymentProofs        PaymentProof[]
+  progressMedia        ProgressMedia[]
   progressReviews      ProgressReview[]
   subscriptions        Subscription[]
   trainingSplits       TrainingSplit[]
@@ -250,6 +261,7 @@ model Subscription {
   updatedAt         DateTime           @updatedAt
   client            Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
   plan              SubscriptionPlan?  @relation(fields: [planId], references: [id])
+  paymentProofs     PaymentProof[]
 
   @@index([clientId])
   @@index([status])
@@ -415,7 +427,7 @@ model ExerciseLog {
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
   client             Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  splitDayExercise   SplitDayExercise @relation(fields: [splitDayExerciseId], references: [id], onDelete: Cascade)
+  splitDayExercise   SplitDayExercise @relation(fields: [splitDayExerciseId], references: [id], onDelete: Restrict)
 
   @@index([clientId])
   @@index([clientId, date])
@@ -443,19 +455,22 @@ model DailyLog {
 }
 
 model Meal {
-  id         String               @id @default(cuid())
-  templateId String?
-  planId     String?
-  kind       MealKind             @default(MEAL)
-  order      Int
-  name       String
-  nameAr     String?
-  plan       ClientNutritionPlan? @relation(fields: [planId], references: [id], onDelete: Cascade)
-  template   NutritionTemplate?   @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  items      MealItem[]
+  id             String               @id @default(cuid())
+  templateId     String?
+  planId         String?
+  kind           MealKind             @default(MEAL)
+  order          Int
+  name           String
+  nameAr         String?
+  isSpare        Boolean              @default(false)
+  replacesMealId String?
+  plan           ClientNutritionPlan? @relation(fields: [planId], references: [id], onDelete: Cascade)
+  template       NutritionTemplate?   @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  items          MealItem[]
 
   @@index([templateId])
   @@index([planId])
+  @@index([replacesMealId])
 }
 
 model MealItem {
@@ -630,6 +645,56 @@ enum PaymentStatus {
   NOT_REQUIRED
 }
 
+enum PaymentProofStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum NotificationType {
+  WORKOUT_REMINDER
+  CHECKIN_REMINDER
+  NEW_MESSAGE
+  PLAN_UPDATED
+  SUBSCRIPTION_STATUS
+  COACH_FEEDBACK
+  PROGRESS_REMINDER
+  CLIENT_INACTIVE
+  SUBSCRIPTION_EXPIRING
+  PAYMENT_PROOF_PENDING
+  CLIENT_ACTIVITY
+  PROGRESS_UPDATE
+  MEDIA_SUBMITTED
+  CHECKIN_ACTIVITY
+}
+
+enum ProgressMediaType {
+  PROGRESS_PHOTO
+  FORM_VIDEO
+  OTHER
+}
+
+enum ProgressMediaStatus {
+  PENDING
+  REVIEWED
+}
+
+enum GoalType {
+  WEIGHT
+  BODY_FAT
+  MUSCLE
+  MEASUREMENT
+  STRENGTH
+  CUSTOM
+}
+
+enum GoalStatus {
+  ACTIVE
+  ACHIEVED
+  PAUSED
+  CANCELLED
+}
+
 enum Units {
   METRIC
   IMPERIAL
@@ -746,13 +811,158 @@ model PaymentRecord {
   @@index([subscriptionId])
 }
 
+model PaymentProof {
+  id             String            @id @default(cuid())
+  clientId       String
+  trainerId      String
+  subscriptionId String?
+  amount         Decimal?          @db.Decimal(10, 2)
+  proofUrl       String
+  status         PaymentProofStatus @default(PENDING)
+  note           String?
+  reviewedBy     String?
+  reviewedAt     DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  client         Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  trainer        TrainerProfile    @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  subscription   Subscription?     @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([trainerId, status])
+  @@index([clientId])
+  @@index([subscriptionId])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  titleKey  String
+  bodyKey   String
+  params    Json             @default("{}")
+  link      String?
+  dedupeKey String?          @unique
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, readAt])
+}
+
+model ProgressMedia {
+  id         String              @id @default(cuid())
+  clientId   String
+  trainerId  String
+  type       ProgressMediaType
+  storageUrl String
+  title      String?
+  note       String?
+  status     ProgressMediaStatus @default(PENDING)
+  feedback   String?
+  reviewedBy String?
+  reviewedAt DateTime?
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+  client     Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  trainer    TrainerProfile      @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt(sort: Desc)])
+  @@index([trainerId, status])
+  @@index([clientId, type])
+}
+
+model ClientGoal {
+  id           String     @id @default(cuid())
+  clientId     String
+  trainerId    String
+  type         GoalType
+  title        String
+  startValue   Float?
+  currentValue Float?
+  targetValue  Float
+  unit         String?
+  deadline     DateTime?
+  status       GoalStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  client       Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  trainer      TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, status])
+  @@index([trainerId, status])
+}
+
 model CoachBranding {
   id           String         @id @default(cuid())
   coachId      String         @unique
   brandName    String?
   logoUrl      String?
   primaryColor String?
+  whatsappUrl  String?
+  facebookUrl  String?
+  instagramUrl String?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   coach        TrainerProfile @relation(fields: [coachId], references: [id], onDelete: Cascade)
+}
+
+model CoachLogoFile {
+  coachId     String         @id
+  bytes       Bytes
+  contentType String         @default("image/webp")
+  byteSize    Int
+  updatedAt   DateTime       @updatedAt
+  coach       TrainerProfile @relation("CoachLogo", fields: [coachId], references: [id], onDelete: Cascade)
+}
+
+model CoachAvatarFile {
+  coachId     String         @id
+  bytes       Bytes
+  contentType String         @default("image/webp")
+  byteSize    Int
+  updatedAt   DateTime       @updatedAt
+  coach       TrainerProfile @relation("CoachAvatar", fields: [coachId], references: [id], onDelete: Cascade)
+}
+
+model CoachPost {
+  id                String       @id @default(cuid())
+  coachId           String
+  category          PostCategory @default(GENERAL)
+  title             String
+  excerpt           String?
+  content           String
+  coverImageUrl     String?
+  beforeImageUrl    String?
+  afterImageUrl     String?
+  clientDisplayName String?
+  published         Boolean      @default(false)
+  publishedAt       DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  coach             TrainerProfile @relation(fields: [coachId], references: [id], onDelete: Cascade)
+
+  @@index([coachId, published])
+  @@index([coachId, createdAt(sort: Desc)])
+}
+
+model PostImageFile {
+  id          String   @id @default(cuid())
+  coachId     String
+  bytes       Bytes
+  contentType String   @default("image/webp")
+  byteSize    Int
+  createdAt   DateTime @default(now())
+  coach       TrainerProfile @relation(fields: [coachId], references: [id], onDelete: Cascade)
+
+  @@index([coachId])
+}
+
+enum PostCategory {
+  TRANSFORMATION
+  TRAINING
+  NUTRITION
+  TIPS
+  EDUCATION
+  GENERAL
 }
