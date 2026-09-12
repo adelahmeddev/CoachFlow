@@ -59,8 +59,8 @@ export function ClientBottomNav() {
   }, [])
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 backdrop-blur-xl safe-bottom supports-[backdrop-filter]:bg-background/80" aria-label={t.common.openNavigation ?? "Main navigation"}>
-      <div className="mx-auto flex h-[68px] max-w-7xl items-center justify-around gap-1 px-2 pb-1.5">
+    <nav className="fixed inset-x-3 bottom-4 z-50 rounded-[2rem] border border-white/10 bg-background/60 shadow-[0_4px_30px_rgba(0,0,0,0.03)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/45 dark:border-white/5 dark:shadow-[0_4px_30px_rgba(0,0,0,0.2)]" aria-label={t.common.openNavigation ?? "Main navigation"}>
+      <div className="mx-auto flex h-[64px] max-w-7xl items-center justify-around gap-1 px-2">
         {CLIENT_BOTTOM_NAV_ITEMS.map((item) => {
           const isActive =
             pathname === item.href || pathname.startsWith(`${item.href}/`)
@@ -76,18 +76,28 @@ export function ClientBottomNav() {
                 try { navigator.vibrate?.(8) } catch {}
               }}
               className={cn(
-                "relative flex min-h-[48px] min-w-[48px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[10px] font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 btn-pop",
+                "relative flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[1.5rem] text-[10px] font-medium transition-[color,background-color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring btn-pop active:scale-95",
                 isActive
-                  ? "bg-gradient-to-r from-brand-500 to-brand-600 text-white shadow-soft dark:from-brand-500 dark:to-brand-600"
-                  : "text-muted-foreground hover:bg-white hover:text-foreground hover:shadow-soft dark:hover:bg-white/10"
+                  ? "text-brand-600 dark:text-brand-400"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <item.icon className={cn("size-[22px] shrink-0 transition-transform duration-200", isActive ? "scale-105" : "group-hover:scale-105")} aria-hidden="true" />
-              <span className="max-w-[64px] truncate leading-none">
+              <span
+                className={cn(
+                  "flex size-8 items-center justify-center rounded-xl transition-[color,background-color,transform,box-shadow] duration-200",
+                  isActive
+                    ? "bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-glow scale-110"
+                    : "bg-transparent hover:bg-muted/50"
+                )}
+                aria-hidden="true"
+              >
+                <item.icon className="size-[20px] shrink-0" />
+              </span>
+              <span className="max-w-[72px] truncate leading-none">
                 {lookup(t, item.labelKey)}
               </span>
               {showBadge && (
-                <span className="absolute right-2 top-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--msg-orange)] text-white text-[9px] font-bold flex items-center justify-center animate-pulse shadow-sm">
+                <span className="absolute right-1 top-0 min-w-[16px] h-[16px] px-1 rounded-full bg-[var(--msg-orange)] text-white text-[9px] font-bold tabular-nums flex items-center justify-center animate-pulse shadow-sm">
                   {unreadCount > 99 ? "99+" : unreadCount}
                 </span>
               )}

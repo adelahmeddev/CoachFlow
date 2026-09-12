@@ -1,10 +1,11 @@
-﻿import { redirect } from "next/navigation"
+import { redirect } from "next/navigation"
 import type { Metadata } from "next"
 import { getI18n } from "@/lib/i18n"
 import { pool } from "@/lib/db"
 import { getCurrentSession } from "@/server/auth"
 
 import { ProfileForm } from "@/components/features/settings/profile-form"
+import { BrandingSection } from "@/components/features/settings/branding-section"
 import { SecurityForm } from "@/components/features/settings/security-form"
 import { PreferencesForm } from "@/components/features/settings/preferences-form"
 import { DataTab } from "@/components/features/settings/data-tab"
@@ -22,12 +23,11 @@ export default async function SettingsPage() {
   const { t, locale } = await getI18n()
 
   const session = await getCurrentSession()
-  if (
-    !session?.user ||
-    session.user.role !== "COACH" ||
-    !session.user.trainerProfileId
-  ) {
+  if (!session?.user || session.user.role !== "COACH") {
     redirect("/login")
+  }
+  if (!session.user.trainerProfileId) {
+    redirect("/onboarding")
   }
 
   const profileRes = await pool.query<TrainerProfile>(`SELECT * FROM "TrainerProfile" WHERE "id" = $1 LIMIT 1`, [session.user.trainerProfileId])
@@ -54,6 +54,15 @@ export default async function SettingsPage() {
       <section className="space-y-4">
         <h2 className="text-lg font-medium">{t.settings.profile.title}</h2>
         <ProfileForm fullName={profile.fullName} phone={profile.phone} />
+      </section>
+
+      {/* Branding Section — coach self-service logo + identity.
+          Reads the same live BrandingProvider as the topnav/sidebar, so a
+          save updates the whole platform instantly. */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-medium">{t.settings.branding.title}</h2>
+        <p className="text-sm text-muted-foreground">{t.settings.branding.subtitle}</p>
+        <BrandingSection />
       </section>
 
       {/* Security Section */}

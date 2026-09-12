@@ -1,11 +1,11 @@
-﻿import { redirect } from "next/navigation"
+import { redirect } from "next/navigation"
 import { getCurrentSession } from "@/server/auth"
 import { pool } from "@/lib/db"
-import { AppSidebar } from "@/components/layout/app-sidebar"
-import { CLIENT_NAV_ITEMS } from "@/components/layout/nav-items"
+import { AppTopNav } from "@/components/layout/app-top-nav"
 import { NoLongerSubscribedCard } from "@/components/features/client/no-longer-subscribed"
-import { getCoachBranding, DEFAULT_BRANDING } from "@/server/services/branding.service"
+import { getCoachBranding, toBranding } from "@/server/services/branding.service"
 import { BrandingProvider } from "@/components/branding/branding-provider"
+import { CoachSocialFooter } from "@/components/branding/coach-social-footer"
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -43,20 +43,20 @@ export default async function ClientPortalLayout({
   }
 
   const brandingRaw = await getCoachBranding(client.trainerId)
-  const branding = { brandName: brandingRaw.effective.brandName, logoUrl: brandingRaw.effective.logoUrl, primaryColor: brandingRaw.effective.primaryColor, coachId: client.trainerId }
+  const branding = toBranding(brandingRaw, client.trainerId)
 
   return (
     <BrandingProvider branding={branding}>
       <div className="min-h-dvh bg-background">
-        <AppSidebar
+        <AppTopNav
           name={session.user.name ?? "Client"}
           role={session.user.role}
-          items={CLIENT_NAV_ITEMS}
           homeHref="/client/home"
         />
-        <main id="main-content" tabIndex={-1} className="md:ms-[264px] outline-none">
-          <div>{children}</div>
+        <main id="main-content" tabIndex={-1} className="outline-none">
+          <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8 md:py-8 pb-28">{children}</div>
         </main>
+        <CoachSocialFooter className="px-4 pb-10" />
       </div>
     </BrandingProvider>
   )

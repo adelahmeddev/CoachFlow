@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useSyncExternalStore } from "react"
 import { cn } from "@/lib/utils"
 import { useBranding } from "@/components/branding/branding-provider"
 
@@ -18,25 +18,14 @@ interface BrandLogoProps {
   showWordmark?: boolean
 }
 
-const RATIOS = {
-  full: 520 / 304, // 1.71
-  mark: 256 / 166, // 1.54
-}
-
 const SIZES = {
-  full: { height: 80, width: 137 },
-  mark: { height: 32, width: 49 },
-}
-
-const FILES = {
-  full: { dark: "/brand/logo-on-dark.png", light: "/brand/logo-on-light.png" },
-  mark: { dark: "/brand/logo-mark-dark.png", light: "/brand/logo-mark-light.png" },
+  full: { height: 76, width: 76 },
+  mark: { height: 48, width: 48 },
 }
 
 /**
- * Gradient wordmark — used as graceful fallback when the image fails to load,
- * and alongside the mark when showWordmark is set.
- * If coach has custom branding, show brandName, else CoachFlow/Coach Flow default.
+ * Gradient wordmark — used alongside the mark when showWordmark is set.
+ * If coach has custom branding, show brandName, else Coach Flow default.
  */
 function Wordmark({ fontSize, className }: { fontSize: number; className?: string }) {
   let brandName = "Coach Flow"
@@ -48,7 +37,7 @@ function Wordmark({ fontSize, className }: { fontSize: number; className?: strin
     <span
       dir="ltr"
       className={cn(
-        "select-none bg-gradient-to-r from-brand-600 to-energy-500 bg-clip-text font-extrabold tracking-tight text-transparent dark:from-brand-400 dark:to-energy-400",
+        "select-none bg-gradient-to-r from-brand-600 via-brand-500 to-brand-400 bg-clip-text font-extrabold tracking-tight text-transparent dark:from-brand-400 dark:via-brand-300 dark:to-brand-200",
         className
       )}
       style={{ fontSize }}
@@ -68,8 +57,14 @@ export function BrandLogo({
   quality = 95,
   showWordmark = false,
 }: BrandLogoProps) {
-  const [mounted, setMounted] = useState(false)
-  const [error, setError] = useState(false)
+  // Hydration-safe mount flag: placeholder on server/first paint (exact
+  // dimensions → zero layout shift), real logo after hydration.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
+  const [failedSrc, setFailedSrc] = useState<string | null>(null)
   let brandingLogo: string | null = null
   let brandingName: string | null = null
   try {
@@ -78,29 +73,16 @@ export function BrandLogo({
     brandingName = b.brandName
   } catch {}
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  // A failed load is tied to the URL that failed — a newly saved logo URL
+  // recovers automatically without any effect.
+  const src = brandingLogo ?? "/brand/logo.png"
+  const error = failedSrc !== null && failedSrc === src
 
   const defaults = SIZES[variant]
-  const ratio = RATIOS[variant]
-  let h = height ?? defaults.height
-  let w = width ?? defaults.width
+  const h = height ?? defaults.height
+  const w = width ?? defaults.width
 
-  // preserve aspect ratio if only one dimension given
-  if (height !== undefined && width === undefined) {
-    w = Math.round(h * ratio)
-  } else if (width !== undefined && height === undefined) {
-    h = Math.round(w / ratio)
-  }
-
-  const sizesAttr =
-    variant === "mark"
-      ? "(max-width: 768px) 48px, 72px"
-      : "(max-width: 640px) 150px, 190px"
-
-  // Before mount: themed placeholder with exact dimensions → zero layout shift,
-  // zero wrong-theme flash. Only ONE image is ever downloaded (theme-aware).
+  // Before mount: themed placeholder with exact dimensions → zero layout shift
   if (!mounted) {
     return (
       <span
@@ -110,17 +92,17 @@ export function BrandLogo({
       >
         <span
           className={cn(
-            "inline-block rounded-lg bg-brand-500/10 dark:bg-brand-500/15",
+            "inline-block rounded-full bg-brand-500/10 dark:bg-brand-500/15",
             !priority && "animate-pulse"
           )}
           style={{ width: w, height: h }}
         />
-        {showWordmark && <Wordmark fontSize={Math.max(14, h * 0.42)} />}
+        {showWordmark && <Wordmark fontSize={Math.round(Math.max(15, Math.min(17, h * 0.35)))} />}
       </span>
     )
   }
 
-  // Graceful fallback if the image can't load (missing file, offline, blocked).
+  // Graceful fallback if the image can't load
   if (error) {
     return (
       <span
@@ -132,7 +114,7 @@ export function BrandLogo({
     )
   }
 
-  // If coach has custom logo, use it (never break on missing)
+  // If coach has custom logo, use it
   if (brandingLogo) {
     return (
       <span
@@ -140,37 +122,46 @@ export function BrandLogo({
         style={{ gap: 10 }}
         aria-hidden={alt ? undefined : true}
       >
-        <img
-          src={brandingLogo}
-          alt={brandingName || alt}
-          height={h}
-          width={w}
-          className="h-auto w-auto max-w-full object-contain"
-          style={{ height: h, width: w }}
-          onError={() => setError(true)}
-        />
-        {showWordmark && <Wordmark fontSize={Math.max(14, h * 0.42)} />}
+        <span
+          className="relative flex shrink-0 items-center justify-center overflow-hidden rounded-full shadow-soft ring-1 ring-black/10 dark:ring-white/15"
+          style={{ width: w, height: h }}
+        >
+          <img
+            key={brandingLogo}
+            src={brandingLogo}
+            alt={brandingName || alt}
+            width={w}
+            height={h}
+            className="h-full w-full object-cover"
+            onError={() => setFailedSrc(brandingLogo)}
+          />
+        </span>
+        {showWordmark && <Wordmark fontSize={Math.round(Math.max(15, Math.min(17, h * 0.35)))} />}
       </span>
     )
   }
 
-  // Default Coach Flow — use favicon (loved barbell) instead of baked NANOUSH image
+  // Default official Coach Flow logo
   return (
     <span
       className={cn("inline-flex shrink-0 items-center", className)}
       style={{ gap: 10 }}
       aria-hidden={alt ? undefined : true}
     >
-      <img
-        src="/brand/favicon.svg"
-        alt={alt}
-        width={w}
-        height={h}
-        className="h-auto w-auto object-contain drop-shadow-sm"
+      <span
+        className="relative flex shrink-0 items-center justify-center overflow-hidden rounded-full shadow-soft ring-1 ring-black/10 dark:ring-white/15"
         style={{ width: w, height: h }}
-        onError={() => setError(true)}
-      />
-      {showWordmark && <Wordmark fontSize={Math.max(14, h * 0.42)} />}
+      >
+          <img
+            src="/brand/logo.png"
+            alt={alt}
+            width={w}
+            height={h}
+            className="h-full w-full object-contain"
+            onError={() => setFailedSrc(src)}
+          />
+      </span>
+      {showWordmark && <Wordmark fontSize={Math.round(Math.max(15, Math.min(17, h * 0.35)))} />}
     </span>
   )
 }
