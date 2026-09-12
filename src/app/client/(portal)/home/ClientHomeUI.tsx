@@ -3,7 +3,6 @@
 import { Flame, CalendarCheck, Scale, TrendingDown, TrendingUp } from "lucide-react"
 import { useI18n } from "@/lib/i18n/client"
 import { CoachHeroShowcase } from "@/components/features/client/coach-hero-showcase"
-import { CoachHeroShowcase } from "@/components/features/client/coach-hero-showcase"
 import { TodayWorkoutCard } from "@/components/features/client/home/today-workout-card"
 import { WeeklySummaryCard } from "@/components/features/client/home/weekly-summary-card"
 import { TrainerMessageCard } from "@/components/features/client/home/trainer-message-card"
@@ -99,9 +98,6 @@ export function ClientHomeUI({ client, data, checkin, posts }: ClientHomeUIProps
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-8">
-      {/* COACH HERO — showcase card opening the portal home */}
-      <CoachHeroShowcase />
-
       {/* HERO — unified greeting + coach + actions (replaces greeting card) */}
       <CoachHeroShowcase clientName={client.fullName} streak={streak} latestPost={posts[0] ?? null} />
 
