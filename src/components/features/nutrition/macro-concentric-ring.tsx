@@ -21,8 +21,8 @@ function Ring({
   const clamped = Math.min(1, Math.max(0, pct))
   return (
     <circle
-      cx={100}
-      cy={100}
+      cx={120}
+      cy={120}
       r={radius}
       fill="none"
       stroke={color}
@@ -134,55 +134,55 @@ export function MacroConcentricRing({
         {/* Luminous calorie visualization */}
         <div className="relative mx-auto w-fit shrink-0 sm:mx-0">
           <svg
-            width={196}
-            height={196}
-            viewBox="0 0 200 200"
+            width={220}
+            height={220}
+            viewBox="0 0 240 240"
             role="img"
             aria-label={n.calories}
-            className="block"
+            className="block h-auto max-w-full"
           >
             <circle
-              cx={100}
-              cy={100}
-              r={88}
+              cx={120}
+              cy={120}
+              r={108}
               fill="none"
               stroke="currentColor"
               strokeWidth={11}
               className="text-foreground/[0.07] dark:text-white/[0.08]"
             />
             <circle
-              cx={100}
-              cy={100}
-              r={72}
+              cx={120}
+              cy={120}
+              r={92}
               fill="none"
               stroke="currentColor"
               strokeWidth={11}
               className="text-foreground/[0.07] dark:text-white/[0.08]"
             />
             <circle
-              cx={100}
-              cy={100}
-              r={56}
+              cx={120}
+              cy={120}
+              r={76}
               fill="none"
               stroke="currentColor"
               strokeWidth={11}
               className="text-foreground/[0.07] dark:text-white/[0.08]"
             />
-            <g transform="rotate(-90 100 100)">
+            <g transform="rotate(-90 120 120)">
               <Ring
-                radius={88}
+                radius={108}
                 pct={kcalPct}
                 color="var(--color-brand-500)"
                 glow="color-mix(in srgb, var(--color-brand-500) 55%, transparent)"
               />
               <Ring
-                radius={72}
+                radius={92}
                 pct={itemsPct}
                 color="var(--color-energy-500)"
                 glow="color-mix(in srgb, var(--color-energy-500) 55%, transparent)"
               />
               <Ring
-                radius={56}
+                radius={76}
                 pct={mealsPct}
                 color="var(--color-performance-500)"
                 glow="color-mix(in srgb, var(--color-performance-500) 55%, transparent)"

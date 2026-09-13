@@ -104,10 +104,13 @@ export function AppTopNav({
   name,
   role,
   homeHref,
+  ticker,
 }: {
   name: string
   role: Role
   homeHref: string
+  /** Optional strip pinned to the bottom of the sticky header (e.g. client welcome ticker) */
+  ticker?: React.ReactNode
 }) {
   const pathname = usePathname()
   const { t, locale } = useI18n()
@@ -476,23 +479,23 @@ export function AppTopNav({
         {/* End: Utilities (Social Media, User Dropdown) */}
         <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
           {branding?.whatsappUrl && (
-            <Button asChild variant="ghost" size="icon" className="size-8 rounded-full border border-white/10 bg-white/5 p-2 text-muted-foreground transition-all duration-200 hover:bg-white/10 hover:text-foreground active:scale-95 dark:bg-white/5 dark:hover:bg-white/10">
+            <Button asChild variant="ghost" size="icon" className="size-8 rounded-full flex items-center justify-center backdrop-blur-xl border transition-all duration-200 active:scale-90 bg-[#25D366]/10 hover:bg-[#25D366]/20 border-[#25D366]/25 hover:border-[#25D366]/50 shadow-[0_0_10px_rgba(37,211,102,0.15)]">
               <a href={branding.whatsappUrl} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">
-                <WhatsappIcon className="size-4" aria-hidden="true" />
+                <WhatsappIcon className="size-4 text-[#25D366]" aria-hidden="true" />
               </a>
             </Button>
           )}
           {branding?.facebookUrl && (
-            <Button asChild variant="ghost" size="icon" className="size-8 rounded-full border border-white/10 bg-white/5 p-2 text-muted-foreground transition-all duration-200 hover:bg-white/10 hover:text-foreground active:scale-95 dark:bg-white/5 dark:hover:bg-white/10">
+            <Button asChild variant="ghost" size="icon" className="size-8 rounded-full flex items-center justify-center backdrop-blur-xl border transition-all duration-200 active:scale-90 bg-[#1877F2]/10 hover:bg-[#1877F2]/20 border-[#1877F2]/25 hover:border-[#1877F2]/50 shadow-[0_0_10px_rgba(24,119,242,0.15)]">
               <a href={branding.facebookUrl} target="_blank" rel="noopener noreferrer" aria-label="Facebook">
-                <FacebookIcon className="size-4" aria-hidden="true" />
+                <FacebookIcon className="size-4 text-[#1877F2]" aria-hidden="true" />
               </a>
             </Button>
           )}
           {branding?.instagramUrl && (
-            <Button asChild variant="ghost" size="icon" className="size-8 rounded-full border border-white/10 bg-white/5 p-2 text-muted-foreground transition-all duration-200 hover:bg-white/10 hover:text-foreground active:scale-95 dark:bg-white/5 dark:hover:bg-white/10">
+            <Button asChild variant="ghost" size="icon" className="size-8 rounded-full flex items-center justify-center backdrop-blur-xl border transition-all duration-200 active:scale-90 bg-[#E1306C]/10 hover:bg-[#E1306C]/20 border-[#E1306C]/25 hover:border-[#E1306C]/50 shadow-[0_0_10px_rgba(225,48,108,0.15)]">
               <a href={branding.instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Instagram">
-                <InstagramIcon className="size-4" aria-hidden="true" />
+                <InstagramIcon className="size-4 text-[#E1306C]" aria-hidden="true" />
               </a>
             </Button>
           )}
@@ -620,6 +623,7 @@ export function AppTopNav({
           </div>
         </div>
       )}
+      {ticker}
     </header>
   )
 }

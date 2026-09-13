@@ -163,7 +163,7 @@ D:\coach/
 │   │   │   ├── blog/                  # Public read-only feed of coach's articles
 │   │   │   ├── (portal)/              # Authenticated Mobile-First Client Experience
 │   │   │   │   ├── layout.tsx         # Mobile bottom navigation shell (ClientBottomNav)
-│   │   │   │   ├── home/page.tsx      # GreetingCard, TodayWorkoutCard, DailyChecklist, QuickStats
+│   │   │   │   ├── home/page.tsx      # CoachHeroSection, TodayWorkoutCard, DailyChecklist, QuickStats
 │   │   │   │   ├── week/page.tsx      # 7-day WeekBoard (Fixed vs Sequential scheduling)
 │   │   │   │   ├── workout/today/     # Exercise details with set/rep/load targets
 │   │   │   │   ├── nutrition/page.tsx # Interactive meal checklist with alternate meal exclusivity
@@ -199,18 +199,18 @@ D:\coach/
 │   │   │   ├── blog/                  # Post creator, rich-content view, image uploader
 │   │   │   ├── body-composition/      # InBody data table, delta analysis, trend indicators
 │   │   │   ├── checkin/               # ScalePicker (1-5), mood/sleep/notes, CelebrationBurst
-│   │   │   ├── client/                # Client portal cards (Greeting, WeekBoard, MacroCards)
+│   │   │   ├── client/                # CoachHeroSection, WeekBoard, MacroCards, CoachSocialFooter
 │   │   │   ├── clients/               # Coach CRM (ClientsGrid, ClientProfileHeader, SectionNav)
 │   │   │   ├── dashboard/             # NeedsActionSection, StatCard, TodayInGym
 │   │   │   ├── goals/                 # GoalCard, InBody auto-sync indicator, GoalForm
 │   │   │   ├── media/                 # MediaGallery, MediaUploadForm, coach feedback dialog
 │   │   │   ├── messages/              # ChatThread, ConversationList, MessageComposer, quick chips
 │   │   │   ├── notifications/         # NotificationBell, NotificationList with i18n lookup
-│   │   │   ├── nutrition/             # NutritionBuilder (33KB), ClientNutritionView (22KB)
+│   │   │   ├── nutrition/             # NutritionBuilder, ClientNutritionView + MacroConcentricRing (calorie HUD) + MealOverviewCard (meal cards) + MealDetailDrawer (main/alternative sheet)
 │   │   │   ├── progress/              # ChartsClient (lazy Recharts), ProgressRing, strength charts
 │   │   │   ├── subscription/          # SubscriptionForm, PaymentProofReview, UseSessionButton
 │   │   │   └── training-split/        # TrainingSplitForm (23KB), DaysEditor, SafetyWarningDialog
-│   │   ├── layout/                    # app-top-nav.tsx, background-orbs.tsx, ClientBottomNav, LanguageSwitcher, ThemeToggle
+│   │   ├── layout/                    # app-top-nav.tsx, background-orbs.tsx, ClientBottomNav (unmounted), WelcomeTicker, LanguageSwitcher, ThemeToggle
 │   │   ├── providers.tsx              # SessionProvider, LocaleProvider, Direction, Toaster
 │   │   └── ui/                        # Radix primitives & custom fitness widgets (FitnessCard, etc.)
 │   │
@@ -308,7 +308,7 @@ The platform custodian with overarching system governance.
   - Manual Billing Recording: logs manual fee collections into `PaymentRecord` (amount paid, date, notes).
   - Actions: sets start/end dates, extends subscription periods by N days, or flips status (`ACTIVE`, `EXPIRED`, `SUSPENDED`).
 - **Global Branding Administration**: Defines platform-wide defaults for brand name, logo, theme colors, and social links.
-  - **`CoachBranding`** (note: `whatsappUrl`/`facebookUrl`/`instagramUrl` exist in `schema.prisma` only — never migrated to the DB; see §20.7):
+  - **`CoachBranding`** (social columns added by migration `20260912140000_coach_branding_socials`; see §20.7):
     - Fields: `id`, `coachId` (unique FK to TrainerProfile), `brandName`, `logoUrl`, `primaryColor`, `whatsappUrl`, `facebookUrl`, `instagramUrl`.
 
 ### 5.2 COACH (Trainer)
@@ -337,7 +337,7 @@ The primary tenant who operates an independent coaching business on the platform
   - Formulates formal progress reviews and tracks strength trends across exercises.
   - Reviews client-submitted progress photos and form videos with feedback.
 - **Business Configuration (`/settings`, `branding.service.ts`, `src/server/actions/branding.ts`)**:
-  - Self-service branding: brand name, primary brand color (injected dynamically via CSS custom properties), and logo upload through a profile-picture-style editor (zoom/drag/rotate/flip, canvas 512px WebP crop). Saves update the whole platform instantly via the `branding:updated` event plus layout revalidation (see §20.5).
+  - Self-service branding: brand name, primary brand color (injected dynamically via CSS custom properties), logo upload through a profile-picture-style editor (zoom/drag/rotate/flip, canvas 512px WebP crop), coach social links (WhatsApp/Instagram/Facebook with phone→`wa.me` and `@handle`→URL normalization), and a dedicated personal coach photo independent from the brand logo. Saves update the whole platform instantly via the `branding:updated` event plus layout revalidation (see §20.5).
   - Working parameters: units (Metric/Imperial), week start day (Saturday default for Egypt, Sunday, or Monday), and timezone.
   - Self-service data export (CSV of all client data).
 
@@ -346,7 +346,8 @@ The end-user trainee consuming coaching services on mobile or desktop.
 - **Dedicated Route Group**: `/client/(portal)/*`.
 - **Authentication**: `Role.CLIENT` linked 1-to-1 with a `Client` profile record.
 - **Home Portal (`/client/home` & `client-portal.service.ts`)**:
-  - Personalized greeting card displaying current program, package status, and coach details.
+  - Sticky welcome ticker under the header (marquee: greeting, streak, date; RTL-aware direction, pauses on hover).
+  - Full-bleed coach hero (`CoachHeroSection`): personal photo banner with status badge, three action pills (daily tip dialog, meal-substitute deep link, coach chat), and a social footer with the coach's profiles.
   - **Today's Workout Card**: Immediate access to the scheduled workout for the day.
   - **Daily Checklist**: Quick interactive status tracker for daily tasks (workout, nutrition, check-in).
   - **Quick Stats**: Real-time streak badge, adherence percentage, and active goal countdown.
@@ -354,9 +355,10 @@ The end-user trainee consuming coaching services on mobile or desktop.
   - Displays ordered exercise cards with prescribed targets (sets, rep ranges, target weights, rest timers, form tips, and YouTube demonstration links).
   - **Active Session Logger**: Dedicated distraction-free gym mode allowing real-time set logging (actual reps, actual weight in kg, RPE 1–10) persisted as JSON arrays.
 - **Nutrition Execution Portal (`/client/nutrition`)**:
-  - Overview of prescribed macro targets and coach instructions.
-  - **Meal Checklist**: Visual meal cards showing prescribed items and quantities.
-  - Alternate meal selection: client can switch between Main and Alternative meals; selecting an alternate dynamically deselects the main meal and other alternates.
+  - Liquid Glass dashboard: luminous calorie overview HUD (`MacroConcentricRing` — triple SVG rings at `viewBox 240` with radii `108/92/76` so no stroke crosses the center text; consumed-vs-target kcal, items-logged and meals-completed shares; protein/carbs/fats shown as plan targets only, never fabricated) above a responsive meal-card grid (`1 col mobile → 2 sm → 3 xl`).
+  - **Meal Cards** (`MealOverviewCard`): order badge, luminous calorie figure from real item-calorie sums (`~` when partial, `—` when unknown), items-done counter, progress hairline, and `completed / current / upcoming` states (performance-green glow, brand breathing glow, soft upcoming) with an explicit view-details CTA.
+  - **Meal Detail Sheet** (`MealDetailDrawer`): Main-meal vs Alternative sections kept visually distinct (eat ONE option only), selectable alternative cards with active state, per-item checklist wired to `toggleMealChoiceAction` with group-level mutual exclusivity enforced server-side.
+  - Item calories are passed through into the client view (`page.tsx` maps `item.calories`); without this the consumed-kcal HUD reads zero.
   - Educational reference: supplement timing guide and category-based food substitution lookup.
 - **Daily Wellness Check-in (`/client/home` & `checkin.service.ts`)**:
   - Interactive 1–5 scale picker with haptic feedback for Energy and Mood.
@@ -1244,7 +1246,7 @@ The multi-tenant branding engine is implemented in `src/server/services/branding
 
 ### 20.1 Customization Parameters
 Every coach can personalize their portal experience:
-- **Brand Name**: Displayed in navigation headers and greeting cards (default: `"Coach Flow"`).
+- **Brand Name**: Displayed in navigation headers and the client home hero (default: `"Coach Flow"`).
 - **Primary Brand Color**: Hex color code overriding platform accents (default: `"#961112"`).
 - **Custom Logo**: Uploaded via settings, converted to WebP, and displayed across athlete and coach headers.
 
@@ -1295,11 +1297,27 @@ Placement math guarantees full coverage at any rotation: the wrapper center is c
 
 EXIF orientation is normalized at pick time (`createImageBitmap(file, { imageOrientation: "from-image" })` → canvas → blob URL, with raw-file fallback), so the editor's preview, natural dimensions, cover math, and crop all operate on the pixels the user sees.
 
+Edit-in-place: the pencil button opens the dialog with `initialImageUrl` (existing logo, `fetch` → blob so canvas never taints) instead of the file picker; a "Change image" ghost button swaps in a different file (dialog remounts fresh). The dialog is reusable via `uploadAction`/`editorTitle`/`savedToast` props (defaults preserve logo behavior) — the coach photo flow reuses it unchanged.
+
 ### 20.7 Schema Divergence — RESOLVED (migration `20260912140000_coach_branding_socials`)
 
 `schema.prisma` declared `CoachBranding.whatsappUrl/facebookUrl/instagramUrl`, but no migration had created them, so any `INSERT`/`UPDATE` mentioning them failed with `42703`. Resolved by applying that migration (dev DB verified via `information_schema`); the partial-upsert contract (§20.4) is retained as defense. **Production (`restless-king` per `.env`) still needs `prisma migrate deploy` with the production `DATABASE_URL`.**
 
 Social links are now fully wired: coach self-service inputs in Settings (§20.4), header icons beside the notification bell, and a `CoachSocialFooter` at the bottom of client portal pages. Normalization lives in `src/lib/validations/branding.ts` (Egyptian mobile → `wa.me`, `@handle` → profile URL) and is enforced server-side in `sanitizeBranding`.
+
+### 20.8 Coach Personal Photo (avatar, distinct from logo)
+
+- **Storage**: `TrainerProfile.avatarUrl` (versioned `/api/coach-avatar/<coachId>?v=` URL) + `CoachAvatarFile` bytes table (migration `20260912150000_coach_avatar_photo`; named Prisma relations `CoachLogo`/`CoachAvatar` disambiguate the two files pointing at `TrainerProfile`). Served by `src/app/api/coach-avatar/[coachId]/route.ts` with immutable caching.
+- **Actions** (`src/server/actions/branding.ts`): `coachUploadAvatarAction`, `coachUploadAvatarCroppedAction`, `coachRemoveAvatarAction` — same WebP pipeline and revalidation as logos.
+- **Read path**: `getCoachBranding()` resolves `avatarUrl` into `effective`, carried through `BrandingPayload` → `BrandingProvider`, so every layout (coach, client, public) receives it with no signature changes.
+- **Settings**: dedicated `CoachPhotoSection` (photo/initials display, edit-in-place, remove) reusing `LogoEditorDialog` via its override props; shared EXIF helper `normalize-picked-image.ts`.
+- **Display rule**: the avatar feeds the client home hero only; brand-mark slots (`BrandLogo`, headers) never fall back to it and vice versa.
+
+### 20.9 Client Home Hero & Welcome Ticker
+
+- **Hero** (`src/components/features/client/coach-hero-section.tsx`): full-bleed banner (`h-[360px] md:h-[440px]`, negative margins bleeding both padded portal containers) rendering the coach **avatar** via `next/image fill priority unoptimized` (`unoptimized` is required — versioned `?v=` URLs fail the default loader's `localPatterns` check). Single bottom-edge fade (`from-black/85 via-black/20`) so the mid-body stays visible; no status badge, no identity text overlay. Bottom-end dock holds three vertical glass pills: daily-tip dialog (latest post), `/client/nutrition#substitutes` deep link (`useRouter`; anchor with `scroll-mt-24` on the substitutes card), and `/client/messages` chat. Replaced the old `GreetingCard` + `CoachHeroShowcase` card (both deleted).
+- **Ticker** (`src/components/layout/welcome-ticker.tsx`): sticky strip pinned inside `AppTopNav` via an optional `ticker` slot (no fragile `top-[header-height]` offsets). Direction-aware marquee (`marquee-ltr/rtl` keyframes + `animate-marquee` utility in `globals.css`, hover-pause, `prefers-reduced-motion` off-switch) cycling greeting, streak, and date; data (client name + `getCheckinStatus`) resolved in the client portal layout.
+- **Header notes**: Messages entry points were removed from `AppTopNav` (routes still exist); profile dropdown is desktop-only (`hidden md:flex`); header/bell/social buttons use the liquid-glass capsule treatment. Social capsules carry official platform colors (WhatsApp `#25D366`, Facebook `#1877F2`, Instagram `#E1306C` — icon + tinted glass bg/border + matching glow; gated on configured `*Url`, `target="_blank rel=noopener"`); the notification bell stays neutral. `ClientBottomNav` is defined but currently unmounted anywhere.
 
 ---
 
@@ -1466,7 +1484,8 @@ Defined as CSS custom properties supporting dynamic tenant brand overrides:
 
 ### 25.3 Mobile-First Athlete Experience
 The client portal (`/client/(portal)/*`) is engineered specifically for mobile viewports:
-- **`ClientBottomNav`**: Persistent bottom tab bar with tactile icon feedback.
+- **Sticky glass header**: `AppTopNav` (liquid-glass, profile menu desktop-only) with pinned `WelcomeTicker` marquee and coach social icons (platform brand colors) beside the notification bell.
+- **`ClientBottomNav`**: defined but currently unmounted — not rendered on any route.
 - **Viewport Metas**: Configured with `viewport-fit=cover` and safe-area padding for iOS notch and home-indicator integration.
 
 ---
@@ -1496,13 +1515,14 @@ The client portal (`/client/(portal)/*`) is engineered specifically for mobile v
 | **Coach** | Reusable Subscription Plans (PERIOD/SESSIONS)| ✅ Implemented | COACH | `src/server/services/subscription-plan.service.ts` |
 | **Coach** | Payment Proof Approval Workflow | ✅ Implemented | COACH | `src/server/services/payment-proof.service.ts` |
 | **Coach** | Educational Blog / Post Publisher | ✅ Implemented | COACH | `src/server/services/blog.service.ts` |
-| **Coach** | Custom Branding (Color, Name, Logo) | ✅ Implemented | COACH | `src/server/services/branding.service.ts` |
+| **Coach** | Custom Branding (Color, Name, Logo, Socials, Photo) | ✅ Implemented | COACH | `src/server/services/branding.service.ts`, Settings Branding + Photo sections |
+| **Client** | Full-Bleed Coach Hero + Welcome Ticker | ✅ Implemented | CLIENT | `coach-hero-section.tsx`, `welcome-ticker.tsx` |
 | **Client** | 3-Step Guided Onboarding Wizard | ✅ Implemented | CLIENT | `src/app/invite/[token]/page.tsx` |
 | **Client** | Home Portal with Daily Checklist | ✅ Implemented | CLIENT | `src/app/client/(portal)/home/page.tsx` |
 | **Client** | 7-Day Interactive Week Board | ✅ Implemented | CLIENT | `src/app/client/(portal)/week/page.tsx` |
 | **Client** | Today's Workout & Exercise Targets | ✅ Implemented | CLIENT | `src/app/client/(portal)/workout/today/page.tsx` |
 | **Client** | Distraction-Free Gym Session Logger | ✅ Implemented | CLIENT | `src/app/client/(session)/workout/session/page.tsx` |
-| **Client** | Nutrition Plan & Alternate Meal Toggles | ✅ Implemented | CLIENT | `src/components/features/nutrition/client-nutrition-view.tsx` |
+| **Client** | Liquid Glass Nutrition Dashboard (overview HUD, meal cards, detail sheet) | ✅ Implemented | CLIENT | `src/components/features/nutrition/` (`client-nutrition-view`, `macro-concentric-ring`, `meal-overview-card`, `meal-detail-drawer`) |
 | **Client** | Supplement & Food Substitution Guides | ✅ Implemented | CLIENT | `SupplementDef` & `SubstituteGroup` tables |
 | **Client** | Daily Check-in with Haptic Scale Picker| ✅ Implemented | CLIENT | `src/components/features/checkin/checkin-card.tsx` |
 | **Client** | Streak Gamification & Celebrations | ✅ Implemented | CLIENT | `src/lib/checkin.ts` |
