@@ -1,5 +1,5 @@
 import { pool } from "@/lib/db"
-import { ScheduleMode } from "@/lib/db/enums"
+import { ScheduleMode, type WorkoutDisplayMode } from "@/lib/db/enums"
 import { withCache } from "@/lib/cache"
 import { parseSetData } from "@/lib/calculations/session-progress"
 import {
@@ -43,6 +43,7 @@ export interface DayDetail {
   weekday: string | null
   exercises: ClientDayExercise[]
   totalVolume: number | null
+  workoutDisplayMode: WorkoutDisplayMode
 }
 
 export interface ClientWeekBoard {
@@ -53,6 +54,7 @@ export interface ClientWeekBoard {
   activeDayId: string | null
   rangeStartKey: string | null
   rangeEndKey: string | null
+  workoutDisplayMode: WorkoutDisplayMode
 }
 
 const EMPTY_BOARD: ClientWeekBoard = {
@@ -63,6 +65,7 @@ const EMPTY_BOARD: ClientWeekBoard = {
   activeDayId: null,
   rangeStartKey: null,
   rangeEndKey: null,
+  workoutDisplayMode: "FULL",
 }
 
 export function getClientWeekBoard(clientId: string) {
@@ -78,14 +81,15 @@ export async function getClientWeekBoardUncached(
   clientId: string
 ): Promise<ClientWeekBoard> {
   const clientRes = await pool.query(
-    `SELECT c."id", tp."weekStartDay"
+    `SELECT c."id", c."workoutDisplayMode", tp."weekStartDay"
      FROM "Client" c
      LEFT JOIN "TrainerProfile" tp ON tp."id" = c."trainerId"
      WHERE c."id" = $1 LIMIT 1`,
     [clientId]
   )
-  const clientRow = clientRes.rows[0] as { id: string; weekStartDay: string | null } | undefined
+  const clientRow = clientRes.rows[0] as { id: string; weekStartDay: string | null; workoutDisplayMode: WorkoutDisplayMode | null } | undefined
   if (!clientRow) return EMPTY_BOARD
+  const workoutDisplayMode: WorkoutDisplayMode = clientRow.workoutDisplayMode ?? "FULL"
 
   const splitRes = await pool.query(
     `SELECT "id", "scheduleMode" FROM "TrainingSplit" WHERE "clientId" = $1 AND "status" = 'ACTIVE'::"PlanStatus" ORDER BY "createdAt" DESC LIMIT 1`,
@@ -163,6 +167,7 @@ export async function getClientWeekBoardUncached(
         board.find((entry) => entry.status === "CURRENT")?.dayId ?? null,
       rangeStartKey: null,
       rangeEndKey: null,
+      workoutDisplayMode,
     }
   }
 
@@ -194,6 +199,7 @@ export async function getClientWeekBoardUncached(
     activeDayId: todayEntry?.dayId ?? upcomingEntry?.dayId ?? null,
     rangeStartKey,
     rangeEndKey,
+    workoutDisplayMode,
   }
 }
 
@@ -235,6 +241,13 @@ export async function getDayDetail(
       }
     | undefined
   if (!day) return null
+
+  const modeRes = await pool.query(
+    `SELECT "workoutDisplayMode" FROM "Client" WHERE "id" = $1 LIMIT 1`,
+    [clientId]
+  )
+  const workoutDisplayMode: WorkoutDisplayMode =
+    (modeRes.rows[0] as { workoutDisplayMode: WorkoutDisplayMode | null } | undefined)?.workoutDisplayMode ?? "FULL"
 
   const exercisesRes = await pool.query(
     `SELECT sde."id", sde."splitDayId", sde."order", sde."exerciseId", sde."exerciseName", sde."targetSets", sde."targetReps", sde."targetWeightKg", sde."restSeconds", sde."notes", sde."videoUrl",
@@ -336,5 +349,6 @@ export async function getDayDetail(
     weekday: entry?.weekday ?? day.weekday ?? null,
     exercises: clientExercises,
     totalVolume: totalVolume > 0 ? totalVolume : null,
+    workoutDisplayMode,
   }
 }

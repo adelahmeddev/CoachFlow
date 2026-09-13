@@ -2,7 +2,7 @@
 
 import { Flame, CalendarCheck, Scale, TrendingDown, TrendingUp } from "lucide-react"
 import { useI18n } from "@/lib/i18n/client"
-import { CoachHeroShowcase } from "@/components/features/client/coach-hero-showcase"
+import { CoachHeroSection } from "@/components/features/client/coach-hero-section"
 import { TodayWorkoutCard } from "@/components/features/client/home/today-workout-card"
 import { WeeklySummaryCard } from "@/components/features/client/home/weekly-summary-card"
 import { TrainerMessageCard } from "@/components/features/client/home/trainer-message-card"
@@ -14,7 +14,6 @@ import { motion } from "motion/react"
 import { cn } from "@/lib/utils"
 
 interface ClientHomeUIProps {
-  client: { id: string; fullName: string }
   data: {
     client: { streak: number }
     todayWorkout: any
@@ -87,7 +86,7 @@ function MetricTile({
   )
 }
 
-export function ClientHomeUI({ client, data, checkin, posts }: ClientHomeUIProps) {
+export function ClientHomeUI({ data, checkin, posts }: ClientHomeUIProps) {
   const { locale } = useI18n()
   const isAr = locale === "ar"
   const streak = data.client.streak
@@ -98,12 +97,15 @@ export function ClientHomeUI({ client, data, checkin, posts }: ClientHomeUIProps
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-8">
-      {/* HERO — unified greeting + coach + actions (replaces greeting card) */}
-      <CoachHeroShowcase clientName={client.fullName} streak={streak} latestPost={posts[0] ?? null} />
+      {/* HERO — full-bleed coach banner with greeting actions */}
+      <CoachHeroSection latestPost={posts[0] ?? null} />
 
       {/* ACTION — today's workout is the hero CTA */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06, duration: 0.35 }}>
-        <TodayWorkoutCard workout={data.todayWorkout} />
+        <TodayWorkoutCard
+          workout={data.todayWorkout}
+          displayMode={data.todayWorkout?.workoutDisplayMode ?? "FULL"}
+        />
       </motion.div>
 
       {/* PROGRESS — compact 3-metric rail */}

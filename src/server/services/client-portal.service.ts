@@ -1,5 +1,5 @@
 import { pool, generateId, withTransaction } from "@/lib/db"
-import { PlanStatus, ScheduleMode, TrainingDayFocus } from "@/lib/db/enums"
+import { PlanStatus, ScheduleMode, TrainingDayFocus, type WorkoutDisplayMode } from "@/lib/db/enums"
 import type { BodyComposition, DailyLog, ProgressReview, Subscription } from "@/lib/db/types"
 import { withCache } from "@/lib/cache"
 import { parseSetData } from "@/lib/calculations/session-progress"
@@ -33,6 +33,7 @@ export interface TodayWorkoutResult {
   }>
   status: "TODAY" | "CURRENT" | "REST"
   nextTrainingDay: { focus: string; customFocus: string | null } | null
+  workoutDisplayMode: WorkoutDisplayMode
 }
 
 export async function getClientHomeData(clientId: string) {
@@ -140,6 +141,8 @@ async function getTodayWorkoutUncached(
     boardData.board.find((entry) => entry.status === "CURRENT") ??
     null
 
+  const workoutDisplayMode = boardData.workoutDisplayMode
+
   if (!activeEntry?.dayId) {
     const nextTraining = boardData.board.find(
       (entry) => entry.status === "UPCOMING" && entry.dayId !== null
@@ -151,6 +154,7 @@ async function getTodayWorkoutUncached(
       nextTrainingDay: nextTraining
         ? { focus: nextTraining.focus, customFocus: nextTraining.customFocus }
         : null,
+      workoutDisplayMode,
     }
   }
 
@@ -167,6 +171,7 @@ async function getTodayWorkoutUncached(
       exercises: [],
       status: activeEntry.status === "CURRENT" ? "CURRENT" : "TODAY",
       nextTrainingDay: null,
+      workoutDisplayMode,
     }
   }
 
@@ -239,12 +244,14 @@ async function getTodayWorkoutUncached(
       focus: todayDay.focus,
       customFocus: todayDay.customFocus,
     },
-    exercises,
+    // DAY_NAME_ONLY clients never receive advance exercise previews.
+    exercises: workoutDisplayMode === "DAY_NAME_ONLY" ? [] : exercises,
     status:
       boardData.mode === ScheduleMode.SEQUENTIAL || activeEntry.status === "CURRENT"
         ? "CURRENT"
         : "TODAY",
     nextTrainingDay: null,
+    workoutDisplayMode,
   }
 }
 
@@ -299,6 +306,8 @@ export async function getSessionWorkout(
         })),
         status: detail.status === "CURRENT" ? "CURRENT" : "TODAY",
         nextTrainingDay: null,
+        // Session keeps full detail for logging; the flag is informational here.
+        workoutDisplayMode: detail.workoutDisplayMode,
       }
     }
   }

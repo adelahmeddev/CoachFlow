@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Lock, Play } from "lucide-react"
+import { EyeOff, Lock, Play } from "lucide-react"
 import { useI18n } from "@/lib/i18n/client"
 import { lookup } from "@/lib/i18n/lookup"
 import { interpolate } from "@/lib/i18n/format"
@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import type { WorkoutDisplayMode } from "@/lib/db/enums"
 import { RestDayCard } from "./rest-day-card"
 import { getMyDayDetailAction } from "@/server/actions/client-portal"
 
@@ -56,13 +57,16 @@ export function DayDetailSheet({
   onOpenChange,
   entry,
   mode,
+  displayMode,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   entry: BoardEntry | null
   mode: "FIXED_WEEKDAYS" | "SEQUENTIAL"
+  displayMode: WorkoutDisplayMode
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const nameOnly = displayMode === "DAY_NAME_ONLY"
 
   const title = entry
     ? mode === "FIXED_WEEKDAYS" && entry.weekday
@@ -106,6 +110,17 @@ export function DayDetailSheet({
         <div className="space-y-4 p-4">
           {entry?.status === "REST" ? (
             <RestDayCard extraWorkout={entry.extraWorkout} />
+          ) : entry?.dayId && nameOnly ? (
+            <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white/10 text-muted-foreground">
+                <EyeOff className="size-4" aria-hidden="true" />
+              </span>
+              <p className="min-w-0 flex-1 text-sm leading-relaxed text-muted-foreground">
+                {locale === "ar"
+                  ? "عرض اسم اليوم فقط بناءً على إعدادات الخطة التدريبية."
+                  : "Showing the day name only, per your training plan settings."}
+              </p>
+            </div>
           ) : entry?.dayId ? (
             <DayDetailContent
               key={entry.dayId}

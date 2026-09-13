@@ -45,6 +45,7 @@ function detailToWorkout(detail: DayDetail): TodayWorkoutResult {
     })),
     status: detail.status === "CURRENT" ? "CURRENT" : "TODAY",
     nextTrainingDay: null,
+    workoutDisplayMode: detail.workoutDisplayMode,
   }
 }
 
@@ -66,6 +67,11 @@ export default async function ClientWorkoutTodayPage({
   if (dayId) {
     const detail = await getDayDetail(clientId, dayId)
     if (detail && detail.exercises.length > 0 && detail.status !== "REST") {
+      // DAY_NAME_ONLY clients start directly in session mode: no advance
+      // preview here, full logging access preserved in the session.
+      if (detail.workoutDisplayMode === "DAY_NAME_ONLY") {
+        redirect(`/client/workout/session?dayId=${dayId}`)
+      }
       workout = detailToWorkout(detail)
     }
   }
@@ -75,8 +81,11 @@ export default async function ClientWorkoutTodayPage({
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4 md:p-8">
-      <TodayWorkoutCard workout={workout} />
-      {workout.day ? (
+      <TodayWorkoutCard
+        workout={workout}
+        displayMode={workout.workoutDisplayMode}
+      />
+      {workout.day && workout.exercises.length > 0 ? (
         <TodayWorkoutClient exercises={workout.exercises} dayId={workout.day.id} />
       ) : null}
     </div>

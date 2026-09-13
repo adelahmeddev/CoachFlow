@@ -98,6 +98,12 @@ export async function getMyDayDetailAction(dayId: string) {
   if (!detail) return null
   if (detail.dayId !== dayId) return null
 
+  // DAY_NAME_ONLY clients must not receive exercise breakdowns in previews.
+  // (Active session logging via saveExerciseLogAction is unaffected.)
+  if (detail.workoutDisplayMode === "DAY_NAME_ONLY") {
+    return { ...detail, exercises: [], totalVolume: null }
+  }
+
   return detail
 }
 

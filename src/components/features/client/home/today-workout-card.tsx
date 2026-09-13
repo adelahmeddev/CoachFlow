@@ -5,6 +5,7 @@ import { Dumbbell, MoonStar, Flame, ArrowLeft, Clock, Target, Zap, Play, Trophy,
 import { useI18n } from "@/lib/i18n/client"
 import { lookup } from "@/lib/i18n/lookup"
 import type { TodayWorkoutResult } from "@/server/services/client-portal.service"
+import type { WorkoutDisplayMode } from "@/lib/db/enums"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
@@ -35,9 +36,19 @@ const focusMeta: Record<string, { icon: typeof Dumbbell; color: string }> = {
   REST: { icon: MoonStar, color: "from-muted to-muted" },
 }
 
-export function TodayWorkoutCard({ workout }: { workout: TodayWorkoutResult }) {
+export function TodayWorkoutCard({
+  workout,
+  displayMode,
+}: {
+  workout: TodayWorkoutResult
+  displayMode?: WorkoutDisplayMode
+}) {
   const { t, locale } = useI18n()
   const isAr = locale === "ar"
+  // Server sanitizes exercises for DAY_NAME_ONLY; this flag hides the
+  // count chips + preview lineup. Falls back to the payload when omitted.
+  const nameOnly =
+    (displayMode ?? workout.workoutDisplayMode) === "DAY_NAME_ONLY"
 
   if (!workout.day && workout.status === "REST") {
     const nextLabel = workout.nextTrainingDay
@@ -141,22 +152,24 @@ export function TodayWorkoutCard({ workout }: { workout: TodayWorkoutResult }) {
                     {focusLabel}
                   </span>
                 </h3>
-                <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 font-medium">
-                    <Dumbbell className="size-3 text-brand-600" />
-                    {workout.exercises.length} {isAr ? "تمارين" : "exercises"}
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 font-medium">
-                    <Clock className="size-3 text-muted-foreground" />
-                    ~{Math.round(workout.exercises.length * 3.5)} {isAr ? "دقيقة" : "min"}
-                  </span>
-                  {totalVolume > 0 && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-performance-500/10 px-2.5 py-1 font-medium text-performance-700 ring-1 ring-performance-500/15">
-                      <Target className="size-3" />
-                      {totalVolume.toLocaleString("en-GB")} {isAr ? "كجم" : "kg vol"}
+                {nameOnly ? null : (
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 font-medium">
+                      <Dumbbell className="size-3 text-brand-600" />
+                      {workout.exercises.length} {isAr ? "تمارين" : "exercises"}
                     </span>
-                  )}
-                </div>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 font-medium">
+                      <Clock className="size-3 text-muted-foreground" />
+                      ~{Math.round(workout.exercises.length * 3.5)} {isAr ? "دقيقة" : "min"}
+                    </span>
+                    {totalVolume > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-performance-500/10 px-2.5 py-1 font-medium text-performance-700 ring-1 ring-performance-500/15">
+                        <Target className="size-3" />
+                        {totalVolume.toLocaleString("en-GB")} {isAr ? "كجم" : "kg vol"}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             <Button asChild size="lg" className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-brand-600 to-energy-500 shadow-soft hover:brightness-110 btn-pop gap-2 shrink-0">
@@ -169,7 +182,7 @@ export function TodayWorkoutCard({ workout }: { workout: TodayWorkoutResult }) {
         </div>
 
         {/* EXERCISES PREVIEW */}
-        {workout.exercises.length > 0 && (
+        {!nameOnly && workout.exercises.length > 0 && (
           <div className="border-t bg-muted/20 p-4">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
