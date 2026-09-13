@@ -411,7 +411,7 @@ function HeroTile({
         )}
         </div>
 
-      {isComplete ? (
+      {nameOnly ? null : isComplete ? (
         <div className="relative inline-flex min-h-11 items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 px-5 text-sm text-white font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_0_18px_rgba(16,185,129,0.35)]">
           <CheckCircle2 className="relative size-4" aria-hidden="true" />
           <span className="relative">
