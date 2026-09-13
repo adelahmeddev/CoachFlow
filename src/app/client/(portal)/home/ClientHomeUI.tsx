@@ -14,6 +14,8 @@ import { motion } from "motion/react"
 import { cn } from "@/lib/utils"
 
 interface ClientHomeUIProps {
+  // Accepted for compatibility with callers that still pass it; unused.
+  client?: { id: string; fullName: string | null }
   data: {
     client: { streak: number }
     todayWorkout: any
