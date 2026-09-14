@@ -3,6 +3,7 @@ import { Suspense } from "react"
 import { notFound } from "next/navigation"
 import { getCurrentSession } from "@/server/auth"
 import { getI18n } from "@/lib/i18n"
+import { logger } from "@/lib/logger"
 import { adminCoachSubscriptionsQuerySchema } from "@/lib/validations/admin"
 import { listCoachSubscriptions } from "@/server/services/coach-subscription.service"
 import { Card, CardContent } from "@/components/ui/card"
@@ -10,6 +11,7 @@ import { AdminCoachSubscriptionsFilters } from "@/components/features/admin/admi
 import { AdminCoachSubscriptionsTable } from "@/components/features/admin/admin-coach-subscriptions-table"
 import { AdminPagination } from "@/components/features/admin/admin-pagination"
 import { AdminEmptyState } from "@/components/features/admin/admin-empty-state"
+import { AdminErrorState } from "@/components/features/admin/admin-error-state"
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n()
@@ -38,7 +40,28 @@ export default async function AdminSubscriptionsPage({
   })
   const params = parsed.success ? parsed.data : { page: 1, perPage: 10 }
 
-  const result = await listCoachSubscriptions(params as { status?: import("@/lib/db/enums").CoachSubscriptionStatus; filter?: string; q?: string; page?: number; perPage?: number })
+  let result: Awaited<ReturnType<typeof listCoachSubscriptions>> | null = null
+  try {
+    result = await listCoachSubscriptions(params as { status?: import("@/lib/db/enums").CoachSubscriptionStatus; filter?: string; q?: string; page?: number; perPage?: number })
+  } catch (err) {
+    logger.error("[admin] failed to load subscriptions", err)
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Coach Subscriptions
+          </h1>
+          <p className="text-muted-foreground">Admin-controlled manual subscriptions — active, expired, expiring soon, suspended.</p>
+        </div>
+        <AdminErrorState
+          title={t.admin.common.loadErrorTitle}
+          description={t.admin.common.loadErrorDescription}
+          retryHref="/admin/subscriptions"
+          retryLabel={t.admin.common.retry}
+        />
+      </div>
+    )
+  }
 
   const hasFilters = Boolean(params.q || params.status || (params as { filter?: string }).filter)
   const showNoResults = hasFilters && result.subscriptions.length === 0

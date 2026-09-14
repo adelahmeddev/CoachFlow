@@ -1260,6 +1260,12 @@ export const ar: Dictionary = {
   },
 
   admin: {
+    common: {
+      loadErrorTitle: "تعذر تحميل البيانات",
+      loadErrorDescription:
+        "تعذر الوصول إلى قاعدة البيانات مؤقتًا. تحقق من الاتصال وحاول مرة أخرى.",
+      retry: "حاول مرة أخرى",
+    },
     nav: {
       dashboard: "لوحة تحكم الإدارة",
       trainers: "المدربين",

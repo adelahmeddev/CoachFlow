@@ -3,6 +3,7 @@ import { Suspense } from "react"
 import { notFound } from "next/navigation"
 import { getCurrentSession } from "@/server/auth"
 import { getI18n } from "@/lib/i18n"
+import { logger } from "@/lib/logger"
 import { getAdminTrainers } from "@/server/services/admin.service"
 import { adminTrainersQuerySchema } from "@/lib/validations/admin"
 import { Card, CardContent } from "@/components/ui/card"
@@ -11,6 +12,7 @@ import { AdminTrainersTable } from "@/components/features/admin/admin-trainers-t
 import { AdminSearchInput } from "@/components/features/admin/admin-search-input"
 import { AdminPagination } from "@/components/features/admin/admin-pagination"
 import { AdminEmptyState } from "@/components/features/admin/admin-empty-state"
+import { AdminErrorState } from "@/components/features/admin/admin-error-state"
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n()
@@ -37,7 +39,28 @@ export default async function AdminTrainersPage({
   })
   const params = parsed.success ? parsed.data : { page: 1, perPage: 10 }
 
-  const result = await getAdminTrainers(params)
+  let result: Awaited<ReturnType<typeof getAdminTrainers>> | null = null
+  try {
+    result = await getAdminTrainers(params)
+  } catch (err) {
+    logger.error("[admin] failed to load trainers", err)
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t.admin.trainers.title}
+          </h1>
+          <p className="text-muted-foreground">{t.admin.trainers.subtitle}</p>
+        </div>
+        <AdminErrorState
+          title={t.admin.common.loadErrorTitle}
+          description={t.admin.common.loadErrorDescription}
+          retryHref="/admin/trainers"
+          retryLabel={t.admin.common.retry}
+        />
+      </div>
+    )
+  }
 
   const hasFilters = Boolean(params.q)
   const showNoResults = hasFilters && result.trainers.length === 0

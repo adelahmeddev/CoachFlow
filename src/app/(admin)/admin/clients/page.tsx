@@ -3,6 +3,7 @@ import { Suspense } from "react"
 import { notFound } from "next/navigation"
 import { getCurrentSession } from "@/server/auth"
 import { getI18n } from "@/lib/i18n"
+import { logger } from "@/lib/logger"
 import {
   getAdminClients,
   getAdminTrainerOptions,
@@ -13,6 +14,7 @@ import { AdminClientsFilters } from "@/components/features/admin/admin-clients-f
 import { AdminClientsTable } from "@/components/features/admin/admin-clients-table"
 import { AdminPagination } from "@/components/features/admin/admin-pagination"
 import { AdminEmptyState } from "@/components/features/admin/admin-empty-state"
+import { AdminErrorState } from "@/components/features/admin/admin-error-state"
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n()
@@ -42,10 +44,32 @@ export default async function AdminClientsPage({
   })
   const params = parsed.success ? parsed.data : { page: 1, perPage: 10 }
 
-  const [result, trainerOptions] = await Promise.all([
-    getAdminClients(params),
-    getAdminTrainerOptions(),
-  ])
+  let result: Awaited<ReturnType<typeof getAdminClients>> | null = null
+  let trainerOptions: Awaited<ReturnType<typeof getAdminTrainerOptions>> = []
+  try {
+    ;[result, trainerOptions] = await Promise.all([
+      getAdminClients(params),
+      getAdminTrainerOptions(),
+    ])
+  } catch (err) {
+    logger.error("[admin] failed to load clients", err)
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t.admin.clients.title}
+          </h1>
+          <p className="text-muted-foreground">{t.admin.clients.subtitle}</p>
+        </div>
+        <AdminErrorState
+          title={t.admin.common.loadErrorTitle}
+          description={t.admin.common.loadErrorDescription}
+          retryHref="/admin/clients"
+          retryLabel={t.admin.common.retry}
+        />
+      </div>
+    )
+  }
 
   const hasFilters = Boolean(params.q || params.trainerId || params.goal || params.status)
   const showNoResults = hasFilters && result.clients.length === 0

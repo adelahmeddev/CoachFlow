@@ -2,10 +2,12 @@
 import { notFound } from "next/navigation"
 import { getCurrentSession } from "@/server/auth"
 import { getI18n } from "@/lib/i18n"
+import { logger } from "@/lib/logger"
 import { getAdminDashboardStats } from "@/server/services/admin.service"
 import { AdminStatsCards } from "@/components/features/admin/admin-stats-cards"
 import { RecentTrainersCard } from "@/components/features/admin/recent-trainers-card"
 import { RecentClientsCard } from "@/components/features/admin/recent-clients-card"
+import { AdminErrorState } from "@/components/features/admin/admin-error-state"
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n()
@@ -19,7 +21,28 @@ export default async function AdminDashboardPage() {
   }
 
   const { t } = await getI18n()
-  const stats = await getAdminDashboardStats()
+  let stats: Awaited<ReturnType<typeof getAdminDashboardStats>> | null = null
+  try {
+    stats = await getAdminDashboardStats()
+  } catch (err) {
+    logger.error("[admin] failed to load dashboard stats", err)
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t.admin.dashboard.title}
+          </h1>
+          <p className="text-muted-foreground">{t.admin.dashboard.subtitle}</p>
+        </div>
+        <AdminErrorState
+          title={t.admin.common.loadErrorTitle}
+          description={t.admin.common.loadErrorDescription}
+          retryHref="/admin"
+          retryLabel={t.admin.common.retry}
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

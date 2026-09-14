@@ -1258,6 +1258,12 @@ export const en = {
   },
 
   admin: {
+    common: {
+      loadErrorTitle: "Couldn't load data",
+      loadErrorDescription:
+        "The database is temporarily unreachable. Please check your connection and try again.",
+      retry: "Try again",
+    },
     nav: {
       dashboard: "Admin Dashboard",
       trainers: "Trainers",
