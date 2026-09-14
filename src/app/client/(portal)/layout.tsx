@@ -4,8 +4,10 @@ import { pool } from "@/lib/db"
 import { AppTopNav } from "@/components/layout/app-top-nav"
 import { NoLongerSubscribedCard } from "@/components/features/client/no-longer-subscribed"
 import { getCoachBranding, toBranding } from "@/server/services/branding.service"
+import { getCheckinStatus } from "@/server/services/checkin.service"
 import { BrandingProvider } from "@/components/branding/branding-provider"
 import { CoachSocialFooter } from "@/components/branding/coach-social-footer"
+import { WelcomeTicker } from "@/components/layout/welcome-ticker"
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -35,8 +37,8 @@ export default async function ClientPortalLayout({
   }
 
   // Client record deleted by trainer (soft keep-user case) -> user exists but client link missing
-  const clientRes = await pool.query(`SELECT "id", "trainerId" FROM "Client" WHERE "userId" = $1 LIMIT 1`, [session.user.id])
-  const client = clientRes.rows[0] as { id: string; trainerId: string } | undefined
+  const clientRes = await pool.query(`SELECT "id", "trainerId", "fullName" FROM "Client" WHERE "userId" = $1 LIMIT 1`, [session.user.id])
+  const client = clientRes.rows[0] as { id: string; trainerId: string; fullName: string | null } | undefined
 
   if (!client) {
     return <NoLongerSubscribedCard />
@@ -44,6 +46,16 @@ export default async function ClientPortalLayout({
 
   const brandingRaw = await getCoachBranding(client.trainerId)
   const branding = toBranding(brandingRaw, client.trainerId)
+  // Ticker greeting data (best-effort — never breaks the layout)
+  let streak = 0
+  let waterLiters: number | null = null
+  try {
+    streak = (await getCheckinStatus(client.id)).current ?? 0
+  } catch {}
+  try {
+    const { getCachedActivePlanFull } = await import("@/server/services/nutrition.service")
+    waterLiters = (await getCachedActivePlanFull(client.id))?.waterLiters ?? null
+  } catch {}
 
   return (
     <BrandingProvider branding={branding}>
@@ -52,6 +64,7 @@ export default async function ClientPortalLayout({
           name={session.user.name ?? "Client"}
           role={session.user.role}
           homeHref="/client/home"
+          ticker={<WelcomeTicker clientName={client.fullName ?? session.user.name ?? "Client"} streak={streak} waterLiters={waterLiters} />}
         />
         <main id="main-content" tabIndex={-1} className="outline-none">
           <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8 md:py-8 pb-28">{children}</div>

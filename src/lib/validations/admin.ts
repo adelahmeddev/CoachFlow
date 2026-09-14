@@ -143,3 +143,16 @@ export const setCoachSubscriptionSchema = z.object({
 }).refine((d) => d.durationDays || d.endDate, { message: "Provide durationDays or endDate", path: ["durationDays"] })
 
 export type SetCoachSubscriptionInput = z.infer<typeof setCoachSubscriptionSchema>
+
+export const whatsAppTemplatesSchema = z.object({
+  reminderTemplate: z
+    .string()
+    .min(10, "WHATSAPP_REMINDER_MIN")
+    .max(1000, "WHATSAPP_REMINDER_MAX"),
+  followupTemplate: z
+    .string()
+    .min(10, "WHATSAPP_FOLLOWUP_MIN")
+    .max(1000, "WHATSAPP_FOLLOWUP_MAX"),
+})
+
+export type WhatsAppTemplatesInput = z.infer<typeof whatsAppTemplatesSchema>

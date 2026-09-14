@@ -16,7 +16,12 @@ import {
   setSubscriptionStatus,
 } from "@/server/services/coach-subscription.service"
 import { CoachSubscriptionStatus } from "@/lib/db/enums"
-import { setCoachSubscriptionSchema } from "@/lib/validations/admin"
+import { setCoachSubscriptionSchema, whatsAppTemplatesSchema } from "@/lib/validations/admin"
+import type { WhatsAppTemplatesInput } from "@/lib/validations/admin"
+import {
+  getWhatsAppTemplates,
+  saveWhatsAppTemplates,
+} from "@/server/services/system-settings.service"
 
 export async function adminCreateTrainerAction(input: unknown) {
   const session = await getCurrentSession()
@@ -173,6 +178,41 @@ export async function adminSetCoachSubscriptionStatusAction(
     return { ok: true as const, subscription: sub }
   } catch (e) {
     return { ok: false as const, error: (e as Error).message }
+  }
+}
+
+export async function getWhatsAppTemplatesAction() {
+  const session = await getCurrentSession()
+  if (!session?.user || session.user.role !== "SUPER_ADMIN") {
+    return { ok: false as const, error: "UNAUTHORIZED" }
+  }
+  try {
+    const data = await getWhatsAppTemplates()
+    return { ok: true as const, data }
+  } catch (e) {
+    return { ok: false as const, error: (e as Error).message || "INTERNAL_ERROR" }
+  }
+}
+
+export async function updateWhatsAppTemplatesAction(input: WhatsAppTemplatesInput) {
+  const session = await getCurrentSession()
+  if (!session?.user || session.user.role !== "SUPER_ADMIN") {
+    return { ok: false as const, error: "UNAUTHORIZED" }
+  }
+  const parsed = whatsAppTemplatesSchema.safeParse(input)
+  if (!parsed.success) {
+    return {
+      ok: false as const,
+      error: "VALIDATION_ERROR",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    }
+  }
+  try {
+    await saveWhatsAppTemplates(parsed.data)
+    revalidatePath("/admin/trainers")
+    return { ok: true as const }
+  } catch (e) {
+    return { ok: false as const, error: (e as Error).message || "INTERNAL_ERROR" }
   }
 }
 

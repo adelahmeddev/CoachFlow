@@ -916,6 +916,16 @@ model CoachLogoFile {
   coach       TrainerProfile @relation("CoachLogo", fields: [coachId], references: [id], onDelete: Cascade)
 }
 
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([key])
+}
+
 model CoachAvatarFile {
   coachId     String         @id
   bytes       Bytes

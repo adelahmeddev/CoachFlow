@@ -164,7 +164,7 @@ D:\coach/
 │   │   │   ├── (portal)/              # Authenticated Mobile-First Client Experience
 │   │   │   │   ├── layout.tsx         # Mobile bottom navigation shell (ClientBottomNav)
 │   │   │   │   ├── home/page.tsx      # CoachHeroSection, TodayWorkoutCard, DailyChecklist, QuickStats
-│   │   │   │   ├── week/page.tsx      # 7-day WeekBoard (Fixed vs Sequential scheduling)
+│   │   │   │   ├── week/page.tsx      # BentoWeekMatrix: asymmetric bento grid (Fixed vs Sequential scheduling)
 │   │   │   │   ├── workout/today/     # Exercise details with set/rep/load targets
 │   │   │   │   ├── nutrition/page.tsx # Interactive meal checklist with alternate meal exclusivity
 │   │   │   │   ├── messages/page.tsx  # Direct messaging with assigned coach
@@ -199,7 +199,7 @@ D:\coach/
 │   │   │   ├── blog/                  # Post creator, rich-content view, image uploader
 │   │   │   ├── body-composition/      # InBody data table, delta analysis, trend indicators
 │   │   │   ├── checkin/               # ScalePicker (1-5), mood/sleep/notes, CelebrationBurst
-│   │   │   ├── client/                # CoachHeroSection, WeekBoard, MacroCards, CoachSocialFooter
+│   │   │   ├── client/                # CoachHeroSection, MacroCards, CoachSocialFooter + week/BentoWeekMatrix (bento grid) + week/DayDetailSheet (preview drawer)
 │   │   │   ├── clients/               # Coach CRM (ClientsGrid, ClientProfileHeader, SectionNav)
 │   │   │   ├── dashboard/             # NeedsActionSection, StatCard, TodayInGym
 │   │   │   ├── goals/                 # GoalCard, InBody auto-sync indicator, GoalForm
@@ -597,6 +597,7 @@ erDiagram
 - **`CoachBranding`**: Custom tenant styling (brand name, primary color, logo URL, social links). Partial-upsert writes only provided keys (see §20.4).
 - **`CoachLogoFile`**: Direct binary storage for coach WebP logos.
 - **`CoachPost` & `PostImageFile`**: Coach blog articles and stored binary transformation images.
+- **`SystemSetting`**: Generic admin key-value store (`key` unique, `value` text) for platform configuration such as WhatsApp templates (see §8.3).
 
 ---
 
@@ -640,6 +641,11 @@ Controls platform monetization and SaaS license enforcement:
   - Records manual offline payments in `PaymentRecord` table (`amount`, `paymentDate`, `notes`).
 - **Paywall Enforcement (`subscription-guard.service.ts`)**:
   - Coach operations check `checkCoachSubscriptionAccess(coachId)`. If expired or suspended, coaches are redirected to `/subscription`, locking their ability to edit plans, invite clients, or message athletes until renewed.
+- **WhatsApp Expiry Reminders (`system-settings.service.ts`, `/admin/trainers/[id]`)**:
+  - An amber banner renders when a subscription is `EXPIRED` or `ACTIVE` with ≤ 7 days left (hidden otherwise), offering reminder / follow-up sends and template editing.
+  - Preview/edit dialogs launch `wa.me` links with interpolated `{coach_name}` / `{end_date}` / `{days_left}`; helpers in `src/lib/whatsapp.ts` (`normalizeEgyptianPhone`, `interpolateTemplate`, `buildWhatsAppUrl`) handle Egyptian → international normalization and URL encoding.
+  - Templates persist in the generic `SystemSetting` key-value table (`admin_whatsapp_templates` key; migration `20260913000000_add_system_setting`). The service self-heals via `CREATE TABLE IF NOT EXISTS` on first use and falls back to built-in defaults if the table is absent, because the repo migration pipeline cannot be relied on (broken shadow-DB validation, drifted histories — `migrate deploy` must NOT be added to the build for this reason).
+  - Note: local dev (`.env.local`) and tooling (`.env`) point at *different* Neon databases — schema changes must be applied to both.
 
 
 ---
@@ -835,6 +841,16 @@ If conflicts exist, the UI triggers a `SafetyWarningDialog`, highlighting contra
       { "set": 3, "reps": 8, "weightKg": 80, "rpe": 9.5 }
     ]
     ```
+
+### 11.5 Client Week Matrix (`BentoWeekMatrix`, `/client/week`)
+- **Layout**: summary glass banner (compliance `done/planned` + emerald adherence pill + range label) above an asymmetric bento grid (`1 col mobile → 2 sm → 4 lg`, `transform-gpu`); hero tile double-spans, remaining entries render as day/rest tiles, and tapping any tile opens the `DayDetailSheet` preview drawer (lazy exercise fetch via `getMyDayDetailAction`, no page reload).
+- **State-aware Today hero** (visual mapping only — source of truth stays `BoardEntry.done` / `status` / `dateKey` from `getClientWeekBoard`, nothing invented):
+  - `TODAY`/`CURRENT` + not done → crimson hero (ring, aura, radial emission, `LIVE` pill, crimson CTA → `/client/workout/session?dayId=`).
+  - `TODAY` + done → emerald success hero (emerald aura/ring/emission, `done • today` badge, emerald status block instead of the start CTA).
+  - Today is `REST` (FIXED slot whose `dateKey` equals `toDateKey(new Date())`; falls back to first rest slot) → calm highlighted glass (`ring-white/20`, `TODAY • REST` badge), clearly above muted `opacity-60` smoke rest tiles.
+  - Hero shows live set progress (actual vs target sets from the day detail); completed/other-done tiles use restrained emerald, upcoming tiles clean glass.
+- **`DAY_NAME_ONLY` enforcement** (`Client.workoutDisplayMode`, set by coach in client settings): mode is threaded through `getClientWeekBoard` / `getDayDetail` / `getTodayWorkout` payloads; `getMyDayDetailAction` sanitizes previews to `exercises: []`; bento hero/tiles/sheet and `TodayWorkoutCard` hide counts, set bars, lineups, and start CTAs (sheet shows a day-name-only glass notice); `/workout/today` renders a locked day-name view and `/workout/session` redirects to `/client/week` — execution logging stays fully available in `FULL` mode only. Coach-side `updateClientInfoAction` busts `client:{id}:workout` cache so toggles apply immediately.
+- **Files**: `src/components/features/client/week/bento-week-matrix.tsx` (matrix + `GlassSheen` specular helper), `day-detail-sheet.tsx`, `rest-day-card.tsx`. Obsolete `week-board.tsx` / `day-card.tsx` were removed (focus icon/label maps moved into the matrix).
 
 ---
 
@@ -1316,7 +1332,7 @@ Social links are now fully wired: coach self-service inputs in Settings (§20.4)
 ### 20.9 Client Home Hero & Welcome Ticker
 
 - **Hero** (`src/components/features/client/coach-hero-section.tsx`): full-bleed banner (`h-[360px] md:h-[440px]`, negative margins bleeding both padded portal containers) rendering the coach **avatar** via `next/image fill priority unoptimized` (`unoptimized` is required — versioned `?v=` URLs fail the default loader's `localPatterns` check). Single bottom-edge fade (`from-black/85 via-black/20`) so the mid-body stays visible; no status badge, no identity text overlay. Bottom-end dock holds three vertical glass pills: daily-tip dialog (latest post), `/client/nutrition#substitutes` deep link (`useRouter`; anchor with `scroll-mt-24` on the substitutes card), and `/client/messages` chat. Replaced the old `GreetingCard` + `CoachHeroShowcase` card (both deleted).
-- **Ticker** (`src/components/layout/welcome-ticker.tsx`): sticky strip pinned inside `AppTopNav` via an optional `ticker` slot (no fragile `top-[header-height]` offsets). Direction-aware marquee (`marquee-ltr/rtl` keyframes + `animate-marquee` utility in `globals.css`, hover-pause, `prefers-reduced-motion` off-switch) cycling greeting, streak, and date; data (client name + `getCheckinStatus`) resolved in the client portal layout.
+- **Ticker** (`src/components/layout/welcome-ticker.tsx`): sticky strip pinned inside `AppTopNav` via an optional `ticker` slot (no fragile `top-[header-height]` offsets). Direction-aware marquee (`marquee-ltr/rtl` keyframes + `animate-marquee` utility in `globals.css`, hover-pause, `prefers-reduced-motion` off-switch) cycling four Lucide-icon glass pills — greeting (`Sparkles` + `Dumbbell`), streak (`Flame` + `Trophy`, crimson glass), hydration (`Droplets` + `Target` + `Apple`, cyan glass), date (`CalendarDays` + `Clock`) — with zero raw Unicode emojis (AR + EN variants). Data (client name + `getCheckinStatus` streak) resolved in the client portal layout; `waterLiters` is an optional prop fed best-effort from the cached active nutrition plan, falling back to `3L`.
 - **Header notes**: Messages entry points were removed from `AppTopNav` (routes still exist); profile dropdown is desktop-only (`hidden md:flex`); header/bell/social buttons use the liquid-glass capsule treatment. Social capsules carry official platform colors (WhatsApp `#25D366`, Facebook `#1877F2`, Instagram `#E1306C` — icon + tinted glass bg/border + matching glow; gated on configured `*Url`, `target="_blank rel=noopener"`); the notification bell stays neutral. `ClientBottomNav` is defined but currently unmounted anywhere.
 
 ---
@@ -1519,7 +1535,7 @@ The client portal (`/client/(portal)/*`) is engineered specifically for mobile v
 | **Client** | Full-Bleed Coach Hero + Welcome Ticker | ✅ Implemented | CLIENT | `coach-hero-section.tsx`, `welcome-ticker.tsx` |
 | **Client** | 3-Step Guided Onboarding Wizard | ✅ Implemented | CLIENT | `src/app/invite/[token]/page.tsx` |
 | **Client** | Home Portal with Daily Checklist | ✅ Implemented | CLIENT | `src/app/client/(portal)/home/page.tsx` |
-| **Client** | 7-Day Interactive Week Board | ✅ Implemented | CLIENT | `src/app/client/(portal)/week/page.tsx` |
+| **Client** | Asymmetric Bento Week Matrix (state-aware Today hero, preview sheet) | ✅ Implemented | CLIENT | `src/components/features/client/week/bento-week-matrix.tsx` |
 | **Client** | Today's Workout & Exercise Targets | ✅ Implemented | CLIENT | `src/app/client/(portal)/workout/today/page.tsx` |
 | **Client** | Distraction-Free Gym Session Logger | ✅ Implemented | CLIENT | `src/app/client/(session)/workout/session/page.tsx` |
 | **Client** | Liquid Glass Nutrition Dashboard (overview HUD, meal cards, detail sheet) | ✅ Implemented | CLIENT | `src/components/features/nutrition/` (`client-nutrition-view`, `macro-concentric-ring`, `meal-overview-card`, `meal-detail-drawer`) |

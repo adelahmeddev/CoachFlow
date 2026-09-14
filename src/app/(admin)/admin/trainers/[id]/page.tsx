@@ -13,6 +13,8 @@ import { adminSuspendCoachAction, adminActivateCoachAction } from "@/server/acti
 import { AdminCoachSubscriptionForm } from "@/components/features/admin/admin-coach-subscription-form"
 import { AdminBrandingForm } from "@/components/features/admin/admin-branding-form"
 import { DeleteTrainerButton } from "@/components/features/admin/delete-trainer-button"
+import { TrainerSubscriptionWhatsAppActions } from "@/components/features/admin/trainer-subscription-whatsapp-actions"
+import { getWhatsAppTemplates } from "@/server/services/system-settings.service"
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: "Coach Details" }
@@ -44,8 +46,11 @@ export default async function CoachDetailPage({
   const coach = await getAdminCoachDetails(id)
   if (!coach) notFound()
 
-  const { subscription, payments } = await getCoachSubscriptionWithPayments(id)
-  const branding = await getCoachBranding(id)
+  const [{ subscription, payments }, branding, whatsAppTemplates] = await Promise.all([
+    getCoachSubscriptionWithPayments(id),
+    getCoachBranding(id),
+    getWhatsAppTemplates(),
+  ])
 
   const { t, locale } = await getI18n()
   const isSuspended = coach.accountStatus === "SUSPENDED"
@@ -121,6 +126,20 @@ export default async function CoachDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      <TrainerSubscriptionWhatsAppActions
+        coachName={coach.fullName}
+        phone={coach.phone}
+        subscription={
+          subscription
+            ? {
+                status: (subscription as { status: string }).status,
+                endDate: (subscription as { endDate: Date | string | null }).endDate,
+              }
+            : null
+        }
+        initialTemplates={whatsAppTemplates}
+      />
 
       <AdminCoachSubscriptionForm coachId={coach.id} subscription={subscription as never} payments={payments as never} />
 
