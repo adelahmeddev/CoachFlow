@@ -3,9 +3,21 @@ import { notFound } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { getCurrentSession } from "@/server/auth"
 import { getCoachPost } from "@/server/services/blog.service"
-import { BlogPostForm } from "@/components/features/blog/blog-post-form"
+import nextDynamic from "next/dynamic"
 import { Button } from "@/components/ui/button"
 import { getI18n } from "@/lib/i18n"
+
+const BlogPostForm = nextDynamic(
+  () => import("@/components/features/blog/blog-post-form").then((m) => m.BlogPostForm),
+  {
+    loading: () => (
+      <div className="space-y-4 animate-pulse p-4">
+        <div className="h-10 bg-muted rounded w-1/2" />
+        <div className="h-64 bg-muted rounded" />
+      </div>
+    ),
+  }
+)
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0

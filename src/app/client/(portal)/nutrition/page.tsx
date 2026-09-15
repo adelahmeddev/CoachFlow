@@ -64,7 +64,6 @@ export default async function ClientNutritionPage() {
         foodNameAr: item.foodNameAr,
         amount: item.amount,
         unit: item.unit,
-        groupNumber: item.groupNumber,
         calories: item.calories ?? null,
       })),
     })),

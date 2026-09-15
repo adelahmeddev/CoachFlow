@@ -80,7 +80,6 @@ function mealsCreate(meals: MealInput[]) {
     items: {
       create: meal.items.map((item, itemIndex) => ({
         order: itemIndex + 1,
-        groupNumber: item.groupNumber,
         foodName: item.foodName,
         foodNameAr: item.foodNameAr ?? null,
         amount: item.amount ?? null,
@@ -354,12 +353,11 @@ async function insertMealsForTemplate(
       const item = meal.items[iIdx]
       const itemId = generateId()
       await client.query(
-        `INSERT INTO "MealItem" ("id", "mealId", "groupNumber", "foodName", "foodNameAr", "amount", "unit", "calories", "order")
-         VALUES ($1, $2, $3, $4, $5, $6, $7::"QuantityUnit", $8, $9)`,
+        `INSERT INTO "MealItem" ("id", "mealId", "foodName", "foodNameAr", "amount", "unit", "calories", "order")
+         VALUES ($1, $2, $3, $4, $5, $6::"QuantityUnit", $7, $8)`,
         [
           itemId,
           mealId,
-          item.groupNumber,
           item.foodName,
           item.foodNameAr ?? null,
           item.amount ?? null,
@@ -375,7 +373,7 @@ async function insertMealsForTemplate(
 async function insertMealsForPlan(
   client: PgClient,
   planId: string,
-  meals: Array<{ id?: string; isSpare?: boolean; replacesMealId?: string | null; kind: string; name: string; nameAr: string | null; order: number; items: Array<{ groupNumber: number; foodName: string; foodNameAr: string | null; amount: number | null; unit: string; calories: number | null; order: number }> }>
+  meals: Array<{ id?: string; isSpare?: boolean; replacesMealId?: string | null; kind: string; name: string; nameAr: string | null; order: number; items: Array<{ groupNumber?: number; foodName: string; foodNameAr: string | null; amount: number | null; unit: string; calories: number | null; order: number }> }>
 ) {
   const idMap = new Map<string, string>()
   for (const m of meals) {
@@ -398,9 +396,9 @@ async function insertMealsForPlan(
     for (const item of meal.items) {
       const itemId = generateId()
       await client.query(
-        `INSERT INTO "MealItem" ("id", "mealId", "groupNumber", "foodName", "foodNameAr", "amount", "unit", "calories", "order")
-         VALUES ($1, $2, $3, $4, $5, $6, $7::"QuantityUnit", $8, $9)`,
-        [itemId, mealId, item.groupNumber, item.foodName, item.foodNameAr, item.amount, item.unit, item.calories, item.order]
+        `INSERT INTO "MealItem" ("id", "mealId", "foodName", "foodNameAr", "amount", "unit", "calories", "order")
+         VALUES ($1, $2, $3, $4, $5, $6::"QuantityUnit", $7, $8)`,
+        [itemId, mealId, item.foodName, item.foodNameAr, item.amount, item.unit, item.calories, item.order]
       )
     }
   }
@@ -670,7 +668,6 @@ async function copyTemplateToPlanInTx(
     replacesMealId: meal.replacesMealId,
     order: mealIndex + 1,
     items: meal.items.map((item, itemIndex) => ({
-      groupNumber: item.groupNumber,
       foodName: item.foodName,
       foodNameAr: item.foodNameAr,
       amount: item.amount,
@@ -679,7 +676,7 @@ async function copyTemplateToPlanInTx(
       order: itemIndex + 1,
     })),
   }))
-  await insertMealsForPlan(client, planId, meals as any)
+  await insertMealsForPlan(client, planId, meals)
 }
 
 export async function assignTemplateToClients(
@@ -848,7 +845,6 @@ export async function savePlanContent(
         nameAr: meal.nameAr ?? null,
         order: mIdx + 1,
         items: meal.items.map((item, iIdx) => ({
-          groupNumber: item.groupNumber,
           foodName: item.foodName,
           foodNameAr: item.foodNameAr ?? null,
           amount: item.amount ?? null,

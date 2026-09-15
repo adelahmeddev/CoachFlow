@@ -353,7 +353,7 @@ export type Meal = {
 export type MealItem = {
   id: string
   mealId: string
-  groupNumber: number
+  groupNumber?: number
   foodName: string
   foodNameAr: string | null
   amount: number | null

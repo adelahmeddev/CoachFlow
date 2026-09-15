@@ -3,7 +3,7 @@
 import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useI18n } from "@/lib/i18n/client"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -15,16 +15,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
-import { CalendarRange, Loader2 } from "lucide-react"
+import { CalendarRange, SlidersHorizontal, Calendar } from "lucide-react"
 import {
   trainingSplitSchema,
   type TrainingSplitDayInput,
@@ -33,6 +27,7 @@ import {
 import {
   SPLIT_TYPE_OPTIONS,
   SPLIT_TYPE_DEFAULT_TEMPLATES,
+  PLAN_STATUS_OPTIONS,
 } from "@/lib/constants"
 import { autoAssignWeekdays } from "@/lib/calculations/week-schedule"
 import {
@@ -43,93 +38,149 @@ import {
   PlanStatus,
   ScheduleMode,
   SplitType,
+  TrainingDayFocus,
   Weekday,
-  type Goal,
+  WeekStartDay,
+  Goal,
 } from "@/lib/db/enums"
-import type { TrainingSplit } from "@/lib/db/types"
-import { PLAN_STATUS_OPTIONS } from "@/lib/constants"
 import {
   DaysEditor,
   toExerciseDraft,
 } from "@/components/features/training-split/days-editor"
-import {
-  SafetyWarningDialog,
-  type ConflictResolution,
-} from "@/components/features/training-split/safety-warning-dialog"
 import {
   findConflicts,
   suggestAlternative,
   type ExerciseOption,
   type PainFlags,
 } from "@/lib/exercise-safety"
-
-interface FormExercise {
-  exerciseId: string | null
-  exerciseName: string
-  targetSets: number | null
-  targetReps: number | null
-  targetWeightKg: number | null
-  restSeconds: number | null
-  notes: string | null
-  videoUrl: string | null
-}
-
-interface FormDay {
-  focus: TrainingSplitDayInput["focus"]
-  customFocus: string | null
-  exercises: FormExercise[]
-}
-
-export interface TemplateSource {
-  id: string
-  name: string
-  goal: Goal | null
-  daysPerWeek: number
-  splitType: SplitType
-  days: FormDay[]
-}
-
-export interface CloneSource {
-  id: string
-  splitType: SplitType
-  client: { fullName: string | null }
-  days: FormDay[]
-}
+import {
+  SafetyWarningDialog,
+  type ConflictResolution,
+} from "@/components/features/training-split/safety-warning-dialog"
+import { GlassCard } from "./liquid-glass/glass-card"
+import { GlassConfirmDialog } from "./liquid-glass/glass-confirm-dialog"
+import { SplitStarterHub } from "./split-starter-hub"
+import { LiveVolumeRadar } from "./live-volume-radar"
+import { FloatingBuilderDock } from "./floating-builder-dock"
+import type { TemplatePreviewData } from "./template-preview-drawer"
 
 interface TrainingSplitFormProps {
   clientId: string
-  split?: TrainingSplit
   exercises: ExerciseOption[]
-  templates?: TemplateSource[]
-  cloneSources?: CloneSource[]
+  templates: {
+    id: string
+    name: string
+    goal: Goal | null
+    level: string | null
+    splitType: SplitType
+    daysPerWeek: number
+    description: string | null
+    days: {
+      focus: TrainingDayFocus
+      customFocus: string | null
+      exercises: {
+        exerciseId: string | null
+        exerciseName: string
+        targetSets: number | null
+        targetReps: number | null
+        targetWeightKg: number | null
+        restSeconds: number | null
+        notes: string | null
+        videoUrl: string | null
+      }[]
+    }[]
+  }[]
+  cloneSources: {
+    id: string
+    client: { fullName: string | null }
+    splitType: SplitType
+    days: {
+      focus: TrainingDayFocus
+      customFocus: string | null
+      exercises: {
+        exerciseId: string | null
+        exerciseName: string
+        targetSets: number | null
+        targetReps: number | null
+        targetWeightKg: number | null
+        restSeconds: number | null
+        notes: string | null
+        videoUrl: string | null
+      }[]
+    }[]
+  }[]
+  split?: {
+    id: string
+    splitType: SplitType
+    scheduleMode: ScheduleMode
+    status: PlanStatus
+    notes: string | null
+    days: {
+      id: string
+      dayNumber: number
+      weekday: Weekday | null
+      focus: TrainingDayFocus
+      customFocus: string | null
+      notes: string | null
+      exercises: {
+        id: string
+        exerciseId: string | null
+        exerciseName: string
+        targetSets: number | null
+        targetReps: number | null
+        targetWeightKg: number | null
+        restSeconds: number | null
+        notes: string | null
+        videoUrl: string | null
+      }[]
+    }[]
+  }
   painFlags?: PainFlags | null
-  weekStartDay?: Weekday
+  weekStartDay?: WeekStartDay
 }
 
-function splitDaysToInputs(split: TrainingSplit | undefined): TrainingSplitDayInput[] {
-  if (!split) return []
-  const days = (split as TrainingSplit & { days?: unknown[] }).days ?? []
-  return days.map((day) => ({
-    focus: (day as { focus: TrainingSplitDayInput["focus"] }).focus,
-    customFocus:
-      (day as { customFocus?: string | null }).customFocus ?? "",
-    notes: (day as { notes?: string | null }).notes ?? "",
-    weekday:
-      ((day as { weekday?: Weekday | null }).weekday as Weekday | null) ?? null,
-    exercises: ((day as { exercises?: FormExercise[] }).exercises ?? []).map(
-      (exercise) => toExerciseDraft(exercise)
+function splitDaysToInputs(
+  split: TrainingSplitFormProps["split"]
+): TrainingSplitDayInput[] {
+  if (!split) {
+    const defaultTemplate =
+      SPLIT_TYPE_DEFAULT_TEMPLATES[SplitType.FULL_BODY]
+    return defaultTemplate.days.map((focus) => ({
+      focus,
+      customFocus: "",
+      notes: "",
+      exercises: [],
+    }))
+  }
+
+  return split.days.map((day) => ({
+    focus: day.focus,
+    customFocus: day.customFocus ?? "",
+    notes: day.notes ?? "",
+    weekday: day.weekday ?? null,
+    exercises: day.exercises.map((exercise) =>
+      toExerciseDraft({
+        exerciseId: exercise.exerciseId,
+        exerciseName: exercise.exerciseName,
+        targetSets: exercise.targetSets,
+        targetReps: exercise.targetReps,
+        targetWeightKg: exercise.targetWeightKg,
+        restSeconds: exercise.restSeconds,
+        notes: exercise.notes,
+        videoUrl: exercise.videoUrl,
+      })
     ),
   }))
 }
 
 export function TrainingSplitForm({
   clientId,
-  split,
   exercises,
-  templates = [],
-  cloneSources = [],
+  templates,
+  cloneSources,
+  split,
   painFlags,
-  weekStartDay = "SAT",
+  weekStartDay = WeekStartDay.SAT,
 }: TrainingSplitFormProps) {
   const router = useRouter()
   const { t } = useI18n()
@@ -147,7 +198,17 @@ export function TrainingSplitForm({
   )
   const [conflicts, setConflicts] = useState<ConflictResolution[]>([])
 
-  const exerciseMap = new Map(exercises.map((exercise) => [exercise.id, exercise]))
+  // Modal confirmation for replacing custom exercises
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false)
+  const [pendingOverwriteAction, setPendingOverwriteAction] = useState<(() => void) | null>(null)
+
+  // Auto assign confirmation dialog
+  const [autoAssignConfirmOpen, setAutoAssignConfirmOpen] = useState(false)
+
+  const exerciseMap = useMemo(
+    () => new Map(exercises.map((exercise) => [exercise.id, exercise])),
+    [exercises]
+  )
 
   function withAssignedWeekdays(
     nextDays: TrainingSplitDayInput[]
@@ -159,23 +220,12 @@ export function TrainingSplitForm({
     }))
   }
 
-  // Sync form's days value with local state for validation.
-  // In FIXED mode a day-count change re-runs auto-assign after confirmation.
   const setDaysSynced = (
     nextDays: TrainingSplitDayInput[] | ((prev: TrainingSplitDayInput[]) => TrainingSplitDayInput[])
   ) => {
     const resolved = typeof nextDays === "function" ? nextDays(days) : nextDays
-    let final = resolved
-    if (
-      scheduleMode === ScheduleMode.FIXED_WEEKDAYS &&
-      resolved.length !== days.length
-    ) {
-      if (window.confirm(t.trainingSplit.autoAssignConfirm)) {
-        final = withAssignedWeekdays(resolved)
-      }
-    }
-    setDays(final)
-    form.setValue("days", final, { shouldValidate: true })
+    setDays(resolved)
+    form.setValue("days", resolved, { shouldValidate: true })
   }
 
   function handleAutoAssign() {
@@ -206,23 +256,9 @@ export function TrainingSplitForm({
 
   const status = form.watch("status")
 
-  function handleSplitTypeChange(value: SplitType) {
-    setSplitType(value)
-    form.setValue("splitType", value, { shouldValidate: false })
-    const template = SPLIT_TYPE_DEFAULT_TEMPLATES[value]
-    if (template) {
-      let nextDays: TrainingSplitDayInput[] = template.days.map((focus) => ({
-        focus,
-        customFocus: "",
-        notes: "",
-        exercises: [],
-      }))
-      if (scheduleMode === ScheduleMode.FIXED_WEEKDAYS) {
-        nextDays = withAssignedWeekdays(nextDays)
-      }
-      setDaysSynced(nextDays)
-    }
-  }
+  const hasExistingExercises = useMemo(() => {
+    return days.some((d) => (d.exercises?.length ?? 0) > 0)
+  }, [days])
 
   function checkSafety(nextDays: TrainingSplitDayInput[]) {
     if (!painFlags) return
@@ -250,30 +286,62 @@ export function TrainingSplitForm({
     checkSafety(resolved)
   }
 
-  function handleTemplateChange(templateId: string) {
-    if (!templateId) return
-    const template = templates.find((item) => item.id === templateId)
-    if (!template) return
-    const nextDays = template.days.map((day) => ({
-      focus: day.focus,
-      customFocus: day.customFocus ?? "",
-      notes: "",
-      exercises: day.exercises.map((exercise) => toExerciseDraft(exercise)),
-    }))
-    applyDays(nextDays, template.splitType)
+  function executeOrConfirm(action: () => void) {
+    if (hasExistingExercises) {
+      setPendingOverwriteAction(() => action)
+      setConfirmModalOpen(true)
+    } else {
+      action()
+    }
   }
 
-  function handleCloneChange(splitId: string) {
-    if (!splitId) return
+  function handleSplitTypeChange(value: SplitType) {
+    const template = SPLIT_TYPE_DEFAULT_TEMPLATES[value]
+    if (!template) {
+      setSplitType(value)
+      form.setValue("splitType", value, { shouldValidate: false })
+      return
+    }
+
+    executeOrConfirm(() => {
+      const nextDays: TrainingSplitDayInput[] = template.days.map((focus) => ({
+        focus,
+        customFocus: "",
+        notes: "",
+        exercises: [],
+      }))
+      applyDays(nextDays, value)
+    })
+  }
+
+  function handlePresetSelect(presetType: SplitType) {
+    handleSplitTypeChange(presetType)
+  }
+
+  function handleTemplateApply(template: TemplatePreviewData) {
+    executeOrConfirm(() => {
+      const nextDays: TrainingSplitDayInput[] = template.days.map((day) => ({
+        focus: day.focus,
+        customFocus: day.customFocus ?? "",
+        notes: "",
+        exercises: (day.exercises ?? []).map((ex) => toExerciseDraft(ex)),
+      }))
+      applyDays(nextDays, template.splitType)
+    })
+  }
+
+  function handleCloneApply(splitId: string) {
     const source = cloneSources.find((item) => item.id === splitId)
     if (!source) return
-    const nextDays = source.days.map((day) => ({
-      focus: day.focus,
-      customFocus: day.customFocus ?? "",
-      notes: "",
-      exercises: day.exercises.map((exercise) => toExerciseDraft(exercise)),
-    }))
-    applyDays(nextDays, source.splitType)
+    executeOrConfirm(() => {
+      const nextDays: TrainingSplitDayInput[] = source.days.map((day) => ({
+        focus: day.focus,
+        customFocus: day.customFocus ?? "",
+        notes: "",
+        exercises: day.exercises.map((exercise) => toExerciseDraft(exercise)),
+      }))
+      applyDays(nextDays, source.splitType)
+    })
   }
 
   function handleReplace(conflict: ConflictResolution) {
@@ -424,16 +492,47 @@ export function TrainingSplitForm({
     }
   }
 
+  const totalExercisesCount = useMemo(() => {
+    return days.reduce((acc, d) => acc + (d.exercises?.length ?? 0), 0)
+  }, [days])
+
   return (
     <form
       onSubmit={form.handleSubmit(() => onSubmit())}
-      className="space-y-6"
+      className="space-y-6 pb-20"
     >
+      {/* Safety Warning Dialog */}
       <SafetyWarningDialog
         open={conflicts.length > 0}
         conflicts={conflicts}
         onReplace={handleReplace}
         onKeep={handleKeep}
+      />
+
+      {/* Confirmation Dialog for Overwriting Existing Split */}
+      <GlassConfirmDialog
+        open={confirmModalOpen}
+        onOpenChange={setConfirmModalOpen}
+        title="Replace Current Split Structure?"
+        description="You have already added exercises to this split. Loading a new preset or template will replace your current days and exercise list."
+        confirmLabel="Replace & Apply"
+        cancelLabel="Keep Current Work"
+        destructive={true}
+        onConfirm={() => {
+          pendingOverwriteAction?.()
+          setPendingOverwriteAction(null)
+        }}
+      />
+
+      {/* Auto Assign Confirmation Dialog */}
+      <GlassConfirmDialog
+        open={autoAssignConfirmOpen}
+        onOpenChange={setAutoAssignConfirmOpen}
+        title={t.trainingSplit.autoAssignDays}
+        description={t.trainingSplit.autoAssignConfirm}
+        confirmLabel={t.common.confirm}
+        cancelLabel={t.common.cancel}
+        onConfirm={handleAutoAssign}
       />
 
       {serverError && (
@@ -442,75 +541,39 @@ export function TrainingSplitForm({
         </Alert>
       )}
 
-      {(templates.length > 0 || cloneSources.length > 0) ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t.trainingSplit.startFromTemplate}</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>{t.trainingSplit.startFromTemplate}</Label>
-              <Select onValueChange={handleTemplateChange} disabled={isSubmitting}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={t.trainingSplit.selectTemplate} />
-                </SelectTrigger>
-                <SelectContent>
-                  {templates.length === 0 ? (
-                    <SelectItem value="__none" disabled>
-                      {t.trainingSplit.noTemplatesMatch}
-                    </SelectItem>
-                  ) : (
-                    templates.map((template) => (
-                      <SelectItem key={template.id} value={template.id}>
-                        {template.name} · {template.daysPerWeek} {t.trainingSplit.activeDays}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+      {/* 1. Split Starter Hub (Presets, Templates, Clones) */}
+      <SplitStarterHub
+        templates={templates}
+        cloneSources={cloneSources}
+        activeSplitType={splitType}
+        hasExistingExercises={hasExistingExercises}
+        onSelectPreset={handlePresetSelect}
+        onSelectTemplate={handleTemplateApply}
+        onSelectClone={handleCloneApply}
+      />
 
-            <div className="space-y-2">
-              <Label>{t.trainingSplit.cloneFromClient}</Label>
-              <Select onValueChange={handleCloneChange} disabled={isSubmitting}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={t.trainingSplit.selectCloneSource} />
-                </SelectTrigger>
-                <SelectContent>
-                  {cloneSources.length === 0 ? (
-                    <SelectItem value="__none" disabled>
-                      {t.trainingSplit.noClonableSplits}
-                    </SelectItem>
-                  ) : (
-                    cloneSources.map((source) => (
-                      <SelectItem key={source.id} value={source.id}>
-                        {source.client.fullName ?? t.common.none} ·{" "}
-                        {source.days.length} {t.trainingSplit.activeDays}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
+      {/* 2. Split Meta & Details (GlassCard) */}
+      <GlassCard variant="neutral" className="p-5" showSheen={true}>
+        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-white/10">
+          <SlidersHorizontal className="size-4 text-brand-400" />
+          <h3 className="text-sm font-bold tracking-wide">
+            {t.trainingSplit.details}
+          </h3>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t.trainingSplit.details}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <div className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="splitType">{t.trainingSplit.splitType}</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="splitType" className="text-xs font-semibold">
+                {t.trainingSplit.splitType}
+              </Label>
               <Select
-                value={form.watch("splitType")}
+                value={splitType}
                 onValueChange={(value) =>
                   handleSplitTypeChange(value as SplitType)
                 }
               >
-                <SelectTrigger id="splitType" className="w-full">
+                <SelectTrigger id="splitType" className="w-full rounded-xl border-white/15 bg-white/[0.04] backdrop-blur-md">
                   <SelectValue placeholder={t.trainingSplit.selectSplitType} />
                 </SelectTrigger>
                 <SelectContent>
@@ -522,19 +585,21 @@ export function TrainingSplitForm({
                 </SelectContent>
               </Select>
               {form.formState.errors.splitType && (
-                <p className="text-sm text-destructive">
+                <p className="text-xs text-destructive">
                   {form.formState.errors.splitType.message}
                 </p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="status">{t.trainingSplit.status}</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="status" className="text-xs font-semibold">
+                {t.trainingSplit.status}
+              </Label>
               <Select
                 value={status}
                 onValueChange={(value) => form.setValue("status", value as PlanStatus)}
               >
-                <SelectTrigger id="status" className="w-full">
+                <SelectTrigger id="status" className="w-full rounded-xl border-white/15 bg-white/[0.04] backdrop-blur-md">
                   <SelectValue placeholder={t.trainingSplit.selectStatus} />
                 </SelectTrigger>
                 <SelectContent>
@@ -545,14 +610,15 @@ export function TrainingSplitForm({
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground">
                 {t.trainingSplit.activeStatusHint}
               </p>
             </div>
           </div>
 
+          {/* Schedule Mode Selector */}
           <div className="space-y-2">
-            <Label>{t.trainingSplit.scheduleMode}</Label>
+            <Label className="text-xs font-semibold">{t.trainingSplit.scheduleMode}</Label>
             <div
               role="radiogroup"
               aria-label={t.trainingSplit.scheduleMode}
@@ -567,16 +633,16 @@ export function TrainingSplitForm({
                   handleScheduleModeChange(ScheduleMode.FIXED_WEEKDAYS)
                 }
                 className={cn(
-                  "rounded-xl border p-4 text-start transition-colors",
+                  "rounded-2xl border p-3.5 text-start transition-all backdrop-blur-md",
                   scheduleMode === ScheduleMode.FIXED_WEEKDAYS
-                    ? "border-brand-500/60 bg-brand-50/60 ring-1 ring-brand-500/40 dark:bg-brand-900/40"
-                    : "hover:bg-white/60 dark:hover:bg-white/5"
+                    ? "border-brand-400/80 bg-brand-500/15 ring-1 ring-brand-400/40 shadow-glow"
+                    : "border-white/10 bg-white/[0.03] hover:border-white/25 hover:bg-white/[0.06]"
                 )}
               >
-                <span className="block text-sm font-semibold">
+                <span className="block text-xs font-bold text-foreground">
                   {t.trainingSplit.scheduleModeFixed}
                 </span>
-                <span className="mt-1 block text-xs text-muted-foreground">
+                <span className="mt-1 block text-[11px] text-muted-foreground leading-snug">
                   {t.trainingSplit.scheduleModeFixedHint}
                 </span>
               </button>
@@ -590,90 +656,103 @@ export function TrainingSplitForm({
                   handleScheduleModeChange(ScheduleMode.SEQUENTIAL)
                 }
                 className={cn(
-                  "rounded-xl border p-4 text-start transition-colors",
+                  "rounded-2xl border p-3.5 text-start transition-all backdrop-blur-md",
                   scheduleMode === ScheduleMode.SEQUENTIAL
-                    ? "border-brand-500/60 bg-brand-50/60 ring-1 ring-brand-500/40 dark:bg-brand-900/40"
-                    : "hover:bg-white/60 dark:hover:bg-white/5"
+                    ? "border-brand-400/80 bg-brand-500/15 ring-1 ring-brand-400/40 shadow-glow"
+                    : "border-white/10 bg-white/[0.03] hover:border-white/25 hover:bg-white/[0.06]"
                 )}
               >
-                <span className="block text-sm font-semibold">
+                <span className="block text-xs font-bold text-foreground">
                   {t.trainingSplit.scheduleModeSequential}
                 </span>
-                <span className="mt-1 block text-xs text-muted-foreground">
+                <span className="mt-1 block text-[11px] text-muted-foreground leading-snug">
                   {t.trainingSplit.scheduleModeSequentialHint}
                 </span>
               </button>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="notes">{t.trainingSplit.notes}</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="notes" className="text-xs font-semibold">
+              {t.trainingSplit.notes}
+            </Label>
             <Textarea
               id="notes"
               placeholder={t.trainingSplit.splitNotesPlaceholder}
-              rows={3}
+              rows={2}
+              className="rounded-xl border-white/15 bg-white/[0.04] backdrop-blur-md text-xs"
               {...form.register("notes")}
             />
             {form.formState.errors.notes && (
-              <p className="text-sm text-destructive">
+              <p className="text-xs text-destructive">
                 {form.formState.errors.notes.message}
               </p>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </GlassCard>
 
-      <Card>
-        <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardTitle>{t.trainingSplit.weeklySchedule}</CardTitle>
-          {scheduleMode === ScheduleMode.FIXED_WEEKDAYS ? (
+      {/* 3. Live Muscle Volume Radar */}
+      <LiveVolumeRadar days={days} exerciseLibrary={exercises} />
+
+      {/* 4. Weekly Schedule Days Editor */}
+      <GlassCard variant="neutral" className="p-5" showSheen={true}>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <Calendar className="size-4 text-brand-400" />
+            <h3 className="text-sm font-bold tracking-wide">
+              {t.trainingSplit.weeklySchedule}
+            </h3>
+          </div>
+
+          {scheduleMode === ScheduleMode.FIXED_WEEKDAYS && (
             <Button
               type="button"
               variant="outline"
-              size="sm"
+              size="xs"
               disabled={isSubmitting || days.length === 0}
-              onClick={handleAutoAssign}
+              onClick={() => setAutoAssignConfirmOpen(true)}
+              className="h-7 rounded-xl text-xs gap-1.5 border-white/15 bg-white/[0.04] hover:bg-white/[0.08]"
             >
-              <CalendarRange className="size-4" />
-              {t.trainingSplit.autoAssignDays}
+              <CalendarRange className="size-3.5" />
+              <span>{t.trainingSplit.autoAssignDays}</span>
             </Button>
-          ) : null}
-        </CardHeader>
-        <CardContent>
-          <DaysEditor
-            days={days}
-            disabled={isSubmitting}
-            onChange={setDaysSynced}
-            exerciseLibrary={exercises}
-            onExerciseAdded={handleExerciseAdded}
-            scheduleMode={scheduleMode}
-          />
-        </CardContent>
-      </Card>
-
-      <div className="flex gap-4">
-        <Button type="submit" disabled={isSubmitting} className="min-w-[160px]">
-          {isSubmitting ? (
-            <>
-              <Loader2 className="me-2 h-4 w-4 animate-spin" />
-              {t.common.saving}
-            </>
-          ) : isEdit ? (
-            t.common.save
-          ) : (
-            t.trainingSplit.createSplit
           )}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.push(`/clients/${clientId}?tab=training-split`)}
+        </div>
+
+        <DaysEditor
+          days={days}
           disabled={isSubmitting}
-          className="min-w-[160px]"
-        >
-          {t.common.cancel}
-        </Button>
-      </div>
+          onChange={setDaysSynced}
+          exerciseLibrary={exercises}
+          onExerciseAdded={handleExerciseAdded}
+          scheduleMode={scheduleMode}
+        />
+      </GlassCard>
+
+      {/* 5. Floating Builder Dock (Always accessible) */}
+      <FloatingBuilderDock
+        daysCount={days.length}
+        exercisesCount={totalExercisesCount}
+        conflictCount={conflicts.length}
+        isSubmitting={isSubmitting}
+        isEdit={isEdit}
+        onAddDay={() => {
+          if (days.length < 7) {
+            setDaysSynced([
+              ...days,
+              {
+                focus: TrainingDayFocus.CUSTOM,
+                customFocus: "",
+                notes: "",
+                exercises: [],
+              },
+            ])
+          }
+        }}
+        onSave={() => form.handleSubmit(() => onSubmit())()}
+        onCancel={() => router.push(`/clients/${clientId}?tab=training-split`)}
+      />
     </form>
   )
 }

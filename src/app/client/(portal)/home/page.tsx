@@ -26,14 +26,8 @@ export default async function ClientHomePage() {
     redirect("/client/login")
   }
 
-  const client = {
-    id: data.client.id,
-    fullName: data.client.fullName ?? "Client",
-  }
-
   return (
     <ClientHomeUI
-      client={client}
       data={{
         ...data,
         // Real check-in streak (was a 0/1 stub in getClientHomeData).

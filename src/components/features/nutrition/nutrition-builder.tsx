@@ -67,7 +67,6 @@ export interface BuilderMealItem {
   amount: number | null
   unit: QuantityUnit
   calories: number | null
-  groupNumber: number
 }
 
 export interface BuilderMeal {
@@ -290,7 +289,6 @@ export function NutritionBuilder({
             items: m.items
               .filter((i) => i.foodName.trim() || i.foodNameAr?.trim())
               .map((i) => ({
-                groupNumber: i.groupNumber,
                 foodName: i.foodName || i.foodNameAr || "",
                 foodNameAr: i.foodNameAr || null,
                 amount: i.amount,
@@ -387,7 +385,7 @@ export function NutritionBuilder({
     }
   }
 
-  function addItem(mealIndex: number, groupNumber: number) {
+  function addItem(mealIndex: number) {
     const meal = meals[mealIndex]
     updateMeal(mealIndex, {
       items: [
@@ -398,22 +396,9 @@ export function NutritionBuilder({
           amount: null,
           unit: "G" as QuantityUnit,
           calories: null,
-          groupNumber,
         },
       ],
     })
-  }
-
-  function nextGroup(meal: BuilderMeal): number {
-    return meal.items.reduce((max, item) => Math.max(max, item.groupNumber), 0) + 1
-  }
-
-  function groupCounts(meal: BuilderMeal): Map<number, number> {
-    const counts = new Map<number, number>()
-    for (const item of meal.items) {
-      counts.set(item.groupNumber, (counts.get(item.groupNumber) ?? 0) + 1)
-    }
-    return counts
   }
 
   const unitLabel = (unit: QuantityUnit) =>
@@ -626,7 +611,6 @@ export function NutritionBuilder({
              const alternatives = meals.map((m, i) => ({ ...m, globalIndex: i })).filter(m => m.isSpare && m.replacesMealId === mainMeal.id)
              
              const renderMealBlock = (meal: any, mealIndex: number, isAlt: boolean) => {
-               const counts = groupCounts(meal)
                return (
                  <div key={mealIndex} className={cn("rounded-xl border p-3 space-y-3", isAlt ? "bg-amber-50/10 border-amber-500/30 dark:bg-amber-950/10 dark:border-amber-900/30" : "bg-card")}>
                     <div className="flex flex-wrap items-center gap-2">
@@ -660,7 +644,6 @@ export function NutritionBuilder({
 
                     <div className="space-y-2">
                       {meal.items.map((item: any, itemIndex: number) => {
-                        const count = counts.get(item.groupNumber) ?? 0
                         return (
                           <div key={itemIndex} className="flex flex-wrap items-center gap-2 rounded-lg bg-muted/40 p-2">
                             {/* Group logic removed */}
@@ -691,7 +674,7 @@ export function NutritionBuilder({
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      <Button type="button" variant="outline" size="sm" onClick={() => addItem(mealIndex, 1)}>
+                      <Button type="button" variant="outline" size="sm" onClick={() => addItem(mealIndex)}>
                         <Plus className="size-4" />{n.addItem}
                       </Button>
                       {/* Add option group button removed */}

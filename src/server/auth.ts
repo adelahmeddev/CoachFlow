@@ -6,6 +6,9 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { pool, generateId } from "@/lib/db";
 import { comparePassword } from "@/lib/auth";
 import type { Role } from "@/lib/db/enums";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+import { logger } from "@/lib/logger";
 
 // Ensure NEXTAUTH_URL matches the actual deployment on Vercel
 if (!process.env.NEXTAUTH_URL && process.env.VERCEL_URL) {
@@ -31,10 +34,37 @@ const RATE_LIMIT_LOCKOUT_MS = 15 * 60 * 1000;
 
 type AttemptRecord = { failures: number; firstFailureAt: number; lockedUntil: number };
 
-// NOTE: In-memory rate limiter — state is per-process and resets on server restart.
-// Works correctly for single-instance deployments. For multi-instance or serverless
-// (Vercel, AWS Lambda) replace with a Redis-backed or DB-backed store so lockouts
-// are shared across all instances.
+// Distributed rate limiter using Upstash Redis when configured; falls back to in-memory store.
+let upstashRatelimit: Ratelimit | null = null;
+let rateLimitInitialized = false;
+
+function getUpstashRatelimit(): Ratelimit | null {
+  if (rateLimitInitialized) return upstashRatelimit;
+  rateLimitInitialized = true;
+
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (url && token) {
+    try {
+      const redis = new Redis({ url, token });
+      upstashRatelimit = new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(RATE_LIMIT_MAX_FAILURES, "15 m"),
+        prefix: "coachflow:ratelimit:login",
+      });
+      logger.info("[auth] Upstash distributed rate limiter initialized");
+    } catch (err) {
+      logger.error("[auth] Failed to initialize Upstash rate limiter; falling back to memory", err);
+      upstashRatelimit = null;
+    }
+  } else {
+    logger.info("[auth] UPSTASH_REDIS_REST_URL/TOKEN not configured; using memory rate limiter");
+  }
+
+  return upstashRatelimit;
+}
+
 const loginAttempts = new Map<string, AttemptRecord>();
 
 function cleanupAttempts(now: number) {
@@ -48,9 +78,29 @@ function cleanupAttempts(now: number) {
   }
 }
 
-export function checkLoginRateLimit(identifier: string):
+export async function checkLoginRateLimit(identifier: string): Promise<
   | { allowed: true }
-  | { allowed: false; retryAfterSeconds: number } {
+  | { allowed: false; retryAfterSeconds: number }
+> {
+  const limiter = getUpstashRatelimit();
+  if (limiter) {
+    try {
+      const key = identifier.toLowerCase().trim();
+      const result = await limiter.limit(key);
+      if (!result.success) {
+        return {
+          allowed: false,
+          retryAfterSeconds: Math.max(1, Math.ceil((result.reset - Date.now()) / 1000)),
+        };
+      }
+      return { allowed: true };
+    } catch (err) {
+      logger.error("[auth] Upstash rate limit check failed; allowing attempt", err);
+      return { allowed: true };
+    }
+  }
+
+  // In-memory fallback
   const now = Date.now();
   cleanupAttempts(now);
   const record = loginAttempts.get(identifier.toLowerCase());
@@ -137,7 +187,7 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const limit = checkLoginRateLimit(credentials.identifier);
+        const limit = await checkLoginRateLimit(credentials.identifier);
         if (!limit.allowed) {
           throw new Error("TOO_MANY_ATTEMPTS");
         }

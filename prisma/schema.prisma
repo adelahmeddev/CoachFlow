@@ -476,7 +476,6 @@ model Meal {
 model MealItem {
   id          String       @id @default(cuid())
   mealId      String
-  groupNumber Int          @default(1)
   foodName    String
   foodNameAr  String?
   amount      Float?

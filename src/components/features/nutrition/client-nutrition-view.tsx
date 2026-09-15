@@ -32,7 +32,6 @@ export interface ClientMealView {
     foodNameAr: string | null
     amount: number | null
     unit: QuantityUnit
-    groupNumber: number
     calories: number | null
   }[]
 }

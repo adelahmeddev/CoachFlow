@@ -683,6 +683,26 @@
   }
 }
 
+@keyframes marquee-ltr {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes marquee-rtl {
+  from { transform: translateX(0); }
+  to { transform: translateX(50%); }
+}
+
+@utility animate-marquee {
+  animation: marquee-ltr 30s linear infinite;
+  [dir="rtl"] & {
+    animation-name: marquee-rtl;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
 @keyframes pulse-slow {
   0%, 100% { opacity: 0.15; transform: scale(1); }
   50% { opacity: 0.3; transform: scale(1.05); }

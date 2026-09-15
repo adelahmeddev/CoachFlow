@@ -51,7 +51,7 @@ export const mealItemSchema = z.object({
   amount: optionalNumber,
   unit: z.nativeEnum(QuantityUnit),
   calories: optionalInt,
-  groupNumber: z.preprocess(coerceGroupNumber, z.number().int().min(1).max(20)),
+  groupNumber: z.preprocess(coerceGroupNumber, z.number().int().min(1).max(20)).default(1).optional(),
 })
 
 export const mealSchema = z.object({

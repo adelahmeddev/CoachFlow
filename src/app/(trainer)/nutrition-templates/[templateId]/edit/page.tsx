@@ -64,7 +64,6 @@ export default async function EditNutritionTemplatePage({
         amount: item.amount,
         unit: item.unit,
         calories: item.calories,
-        groupNumber: item.groupNumber,
       })),
     })),
   }

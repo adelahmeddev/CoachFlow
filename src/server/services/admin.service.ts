@@ -1,5 +1,5 @@
 import { hashPassword } from "@/lib/auth"
-import { pool, generateId, withTransaction } from "@/lib/db"
+import { pool, replicaPool, generateId, withTransaction } from "@/lib/db"
 import {
   ClientStatus,
   Goal,
@@ -32,36 +32,36 @@ export async function getAdminDashboardStats() {
         recentTrainersRes,
         recentClientsRes,
       ] = await Promise.all([
-        pool.query<{ count: number }>(
+        replicaPool.query<{ count: number }>(
           `SELECT COUNT(*)::int AS count FROM "TrainerProfile"`
         ),
-        pool.query<{ count: number }>(
+        replicaPool.query<{ count: number }>(
           `SELECT COUNT(*)::int AS count FROM "TrainerProfile" WHERE "accountStatus" = 'ACTIVE'`
         ),
-        pool.query<{ count: number }>(
+        replicaPool.query<{ count: number }>(
           `SELECT COUNT(*)::int AS count FROM "TrainerProfile" WHERE "accountStatus" = 'SUSPENDED'`
         ),
-        pool.query<{ count: number }>(
+        replicaPool.query<{ count: number }>(
           `SELECT COUNT(*)::int AS count FROM "Client"`
         ),
-        pool.query<{ count: number }>(
+        replicaPool.query<{ count: number }>(
           `SELECT COUNT(*)::int AS count FROM "Subscription" WHERE "status" IN ($1::"SubscriptionStatus", $2::"SubscriptionStatus")`,
           [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL]
         ),
-        pool.query<{ count: number }>(
+        replicaPool.query<{ count: number }>(
           `SELECT COUNT(*)::int AS count FROM "Client" WHERE "status" = $1::"ClientStatus"`,
           [ClientStatus.PENDING_ASSESSMENT]
         ),
-        pool.query<{ count: number }>(
+        replicaPool.query<{ count: number }>(
           `SELECT COUNT(*)::int AS count FROM "CoachSubscription" WHERE "status" = 'ACTIVE'::"CoachSubscriptionStatus"`
         ),
-        pool.query<{ count: number }>(
+        replicaPool.query<{ count: number }>(
           `SELECT COUNT(*)::int AS count FROM "CoachSubscription" WHERE "status" = 'EXPIRED'::"CoachSubscriptionStatus"`
         ),
-        pool.query<{ count: number }>(
+        replicaPool.query<{ count: number }>(
           `SELECT COUNT(*)::int AS count FROM "CoachSubscription" WHERE "status" = 'ACTIVE'::"CoachSubscriptionStatus" AND "endDate" BETWEEN NOW() AND NOW() + INTERVAL '7 days'`
         ),
-        pool.query<{
+        replicaPool.query<{
           id: string
           fullName: string
           phone: string
@@ -70,7 +70,7 @@ export async function getAdminDashboardStats() {
         }>(
           `SELECT "id", "fullName", "phone", "createdAt", "accountStatus" FROM "TrainerProfile" ORDER BY "createdAt" DESC LIMIT 5`
         ),
-        pool.query<{
+        replicaPool.query<{
           id: string
           fullName: string | null
           status: ClientStatus

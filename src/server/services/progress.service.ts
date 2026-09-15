@@ -1,4 +1,4 @@
-import { pool, generateId } from "@/lib/db"
+import { pool, replicaQuery, generateId } from "@/lib/db"
 import { PlanStatus, type TrainingDayFocus } from "@/lib/db/enums"
 import { withCache } from "@/lib/cache"
 import type {
@@ -21,7 +21,7 @@ export interface ExerciseStrengthSeries {
 export function getCachedStrengthSeries(clientId: string) {
   return withCache(
     async (): Promise<ExerciseStrengthSeries[]> => {
-      const res = await pool.query(
+      const res = await replicaQuery(
         `SELECT el."actualWeightKg", el."date", sde."id" AS "sde_id", sde."exerciseName" AS "sde_name"
          FROM "ExerciseLog" el
          JOIN "SplitDayExercise" sde ON el."splitDayExerciseId" = sde."id"

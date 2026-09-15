@@ -13,10 +13,26 @@ import {
   getOtherClientsSplits,
 } from "@/server/services/training-split.service"
 
+import dynamic from "next/dynamic"
 import { Button } from "@/components/ui/button"
-import { TrainingSplitForm } from "@/components/features/training-split/training-split-form"
 import { getI18n } from "@/lib/i18n"
 import { getTrainerWeekStartDay } from "@/server/services/training-split.service"
+
+const TrainingSplitForm = dynamic(
+  () =>
+    import("@/components/features/training-split/training-split-form").then(
+      (m) => m.TrainingSplitForm
+    ),
+  {
+    loading: () => (
+      <div className="space-y-4 animate-pulse p-4">
+        <div className="h-10 bg-muted rounded w-1/3" />
+        <div className="h-48 bg-muted rounded" />
+        <div className="h-48 bg-muted rounded" />
+      </div>
+    ),
+  }
+)
 
 interface EditTrainingSplitPageProps {
   params: Promise<{ id: string; splitId: string }>

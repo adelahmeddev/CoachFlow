@@ -4,7 +4,7 @@ import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { Loader2 } from "lucide-react"
+import { Loader2, SlidersHorizontal, Calendar } from "lucide-react"
 import { useI18n } from "@/lib/i18n/client"
 import { getGoalLabel } from "@/lib/i18n/labels"
 import { Button } from "@/components/ui/button"
@@ -18,12 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { toast } from "sonner"
 import {
@@ -39,6 +33,8 @@ import {
 } from "@/server/actions/training-split-template"
 import { Goal, SplitType } from "@/lib/db/enums"
 import type { ExerciseOption } from "@/lib/exercise-safety"
+import { GlassCard } from "./liquid-glass/glass-card"
+import { LiveVolumeRadar } from "./live-volume-radar"
 
 interface TemplateFormProps {
   exercises: ExerciseOption[]
@@ -211,28 +207,37 @@ export function TemplateForm({
         </Alert>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t.templates.details}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <GlassCard variant="neutral" className="p-5" showSheen={true}>
+        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-white/10">
+          <SlidersHorizontal className="size-4 text-brand-400" />
+          <h3 className="text-sm font-bold tracking-wide">
+            {t.templates.details}
+          </h3>
+        </div>
+
+        <div className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="templateName">{t.templates.templateName}</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="templateName" className="text-xs font-semibold">
+                {t.templates.templateName}
+              </Label>
               <Input
                 id="templateName"
                 placeholder={t.templates.templateNamePlaceholder}
+                className="rounded-xl border-white/15 bg-white/[0.04] backdrop-blur-md text-xs"
                 {...form.register("name")}
               />
               {form.formState.errors.name && (
-                <p className="text-sm text-destructive">
+                <p className="text-xs text-destructive">
                   {form.formState.errors.name.message}
                 </p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="templateGoal">{t.templates.goal}</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="templateGoal" className="text-xs font-semibold">
+                {t.templates.goal}
+              </Label>
               <Select
                 value={form.watch("goal") ?? "none"}
                 onValueChange={(value) =>
@@ -242,7 +247,7 @@ export function TemplateForm({
                   )
                 }
               >
-                <SelectTrigger id="templateGoal" className="w-full">
+                <SelectTrigger id="templateGoal" className="w-full rounded-xl border-white/15 bg-white/[0.04] backdrop-blur-md text-xs">
                   <SelectValue placeholder={t.templates.selectGoal} />
                 </SelectTrigger>
                 <SelectContent>
@@ -256,24 +261,29 @@ export function TemplateForm({
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="templateLevel">{t.templates.level}</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="templateLevel" className="text-xs font-semibold">
+                {t.templates.level}
+              </Label>
               <Input
                 id="templateLevel"
                 placeholder={t.templates.levelPlaceholder}
+                className="rounded-xl border-white/15 bg-white/[0.04] backdrop-blur-md text-xs"
                 {...form.register("level")}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="templateSplitType">{t.templates.splitType}</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="templateSplitType" className="text-xs font-semibold">
+                {t.templates.splitType}
+              </Label>
               <Select
                 value={form.watch("splitType")}
                 onValueChange={(value) =>
                   handleSplitTypeChange(value as SplitType)
                 }
               >
-                <SelectTrigger id="templateSplitType" className="w-full">
+                <SelectTrigger id="templateSplitType" className="w-full rounded-xl border-white/15 bg-white/[0.04] backdrop-blur-md text-xs">
                   <SelectValue placeholder={t.templates.selectSplitType} />
                 </SelectTrigger>
                 <SelectContent>
@@ -285,57 +295,68 @@ export function TemplateForm({
                 </SelectContent>
               </Select>
               {form.formState.errors.splitType && (
-                <p className="text-sm text-destructive">
+                <p className="text-xs text-destructive">
                   {form.formState.errors.splitType.message}
                 </p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="templateDays">{t.templates.daysPerWeek}</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="templateDays" className="text-xs font-semibold">
+                {t.templates.daysPerWeek}
+              </Label>
               <Input
                 id="templateDays"
                 type="number"
                 min={1}
                 max={7}
+                className="rounded-xl border-white/15 bg-white/[0.04] backdrop-blur-md text-xs font-mono"
                 {...form.register("daysPerWeek", { valueAsNumber: true })}
               />
               {form.formState.errors.daysPerWeek && (
-                <p className="text-sm text-destructive">
+                <p className="text-xs text-destructive">
                   {form.formState.errors.daysPerWeek.message}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="templateDescription">{t.templates.description}</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="templateDescription" className="text-xs font-semibold">
+              {t.templates.description}
+            </Label>
             <Textarea
               id="templateDescription"
               placeholder={t.templates.descriptionPlaceholder}
-              rows={3}
+              rows={2}
+              className="rounded-xl border-white/15 bg-white/[0.04] backdrop-blur-md text-xs"
               {...form.register("description")}
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </GlassCard>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t.templates.daysSchedule}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DaysEditor
-            days={days}
-            disabled={isSubmitting}
-            onChange={setDaysSynced}
-            exerciseLibrary={exercises}
-          />
-        </CardContent>
-      </Card>
+      {/* Live Volume Radar */}
+      <LiveVolumeRadar days={days} exerciseLibrary={exercises} />
+
+      <GlassCard variant="neutral" className="p-5" showSheen={true}>
+        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-white/10">
+          <Calendar className="size-4 text-brand-400" />
+          <h3 className="text-sm font-bold tracking-wide">
+            {t.templates.daysSchedule}
+          </h3>
+        </div>
+
+        <DaysEditor
+          days={days}
+          disabled={isSubmitting}
+          onChange={setDaysSynced}
+          exerciseLibrary={exercises}
+        />
+      </GlassCard>
 
       <div className="flex gap-4">
-        <Button type="submit" disabled={isSubmitting} className="min-w-[160px]">
+        <Button type="submit" disabled={isSubmitting} className="min-w-[160px] rounded-xl shadow-glow">
           {isSubmitting ? (
             <>
               <Loader2 className="me-2 h-4 w-4 animate-spin" />
@@ -352,7 +373,7 @@ export function TemplateForm({
           variant="outline"
           onClick={() => router.push("/training-split-templates")}
           disabled={isSubmitting}
-          className="min-w-[160px]"
+          className="min-w-[160px] rounded-xl border-white/15 bg-white/[0.04]"
         >
           {t.common.cancel}
         </Button>

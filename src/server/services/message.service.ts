@@ -3,6 +3,7 @@ import type { Role } from "@/lib/db/enums"
 import type { Message, Conversation } from "@/lib/db/types"
 import { publish } from "@/server/realtime/message-bus"
 import { getRecipientPair, notifySafe } from "@/server/services/notification.service"
+import { logger } from "@/lib/logger"
 
 async function enrichConversationWith(
   conv: Record<string, unknown> & { id: string; trainerId: string; clientId: string },
@@ -276,9 +277,6 @@ export async function sendMessage(params: {
     [message.createdAt, trimmed.slice(0, 80), (conversation as Conversation).id]
   )
 
-  // Bust unread caches so badge updates immediately (otherwise 10s stale)
-  unreadTrainerCache.clear()
-  unreadClientCache.clear()
 
   // broadcast to SSE listeners — fire and forget
   try {
@@ -331,21 +329,10 @@ export async function markMessagesAsRead(conversationId: string, readerId: strin
      WHERE "conversationId" = $1 AND "senderRole" = $2::"Role" AND "readAt" IS NULL`,
     [conversationId, oppositeRole]
   )
-  // Bust caches so next poll sees 0 immediately
-  unreadTrainerCache.clear()
-  unreadClientCache.clear()
 }
 
-// Simple 10s in-memory cache to avoid DB hammer from 30s polling (sidebar + bottom-nav)
-// Each trainer/client polls every 30s; without cache every poll does 2-3 queries.
-const unreadTrainerCache = new Map<string, { count: number; expires: number }>()
-const unreadClientCache = new Map<string, { count: number; expires: number }>()
-const UNREAD_TTL_MS = 10_000
-
-export async function countUnreadForTrainer(trainerId: string) {
-  const cached = unreadTrainerCache.get(trainerId)
-  if (cached && cached.expires > Date.now()) return cached.count
-
+// Unread counters compute directly on indexed queries to ensure consistent counts across all serverless instances
+export async function countUnreadForTrainer(trainerId: string): Promise<number> {
   try {
     const res = await pool.query(
       `SELECT COUNT(*)::int AS count FROM "Message"
@@ -353,19 +340,14 @@ export async function countUnreadForTrainer(trainerId: string) {
          AND "senderRole" = $2::"Role" AND "readAt" IS NULL`,
       [trainerId, "CLIENT"]
     )
-    const count = (res.rows[0] as { count: number }).count
-    unreadTrainerCache.set(trainerId, { count, expires: Date.now() + UNREAD_TTL_MS })
-    return count
+    return (res.rows[0] as { count?: number })?.count ?? 0
   } catch (err) {
-    console.error("[countUnreadForTrainer] failed", err)
-    return cached?.count ?? 0
+    logger.error("[countUnreadForTrainer] failed", err, { trainerId })
+    return 0
   }
 }
 
-export async function countUnreadForClient(userId: string) {
-  const cached = unreadClientCache.get(userId)
-  if (cached && cached.expires > Date.now()) return cached.count
-
+export async function countUnreadForClient(userId: string): Promise<number> {
   try {
     const res = await pool.query(
       `SELECT COUNT(*)::int AS count FROM "Message" m
@@ -374,19 +356,16 @@ export async function countUnreadForClient(userId: string) {
        WHERE cl."userId" = $1 AND m."senderRole" = $2::"Role" AND m."readAt" IS NULL`,
       [userId, "COACH"]
     )
-    const count = (res.rows[0] as { count: number }).count
-    unreadClientCache.set(userId, { count, expires: Date.now() + UNREAD_TTL_MS })
-    return count
+    return (res.rows[0] as { count?: number })?.count ?? 0
   } catch (err) {
-    console.error("[countUnreadForClient] failed", err)
-    return cached?.count ?? 0
+    logger.error("[countUnreadForClient] failed", err, { userId })
+    return 0
   }
 }
 
-// Call after marking read or sending message to bust cache immediately
-export function invalidateUnreadCache(trainerId?: string, clientUserId?: string) {
-  if (trainerId) unreadTrainerCache.delete(trainerId)
-  if (clientUserId) unreadClientCache.delete(clientUserId)
+// In-memory cache removed in favor of direct indexed DB queries
+export function invalidateUnreadCache(_trainerId?: string, _clientUserId?: string) {
+  // No-op: counts are always freshly computed from the database
 }
 
 export async function isClientArchived(clientId: string) {

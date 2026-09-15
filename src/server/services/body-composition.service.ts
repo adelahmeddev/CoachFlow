@@ -1,4 +1,4 @@
-import { pool, generateId } from "@/lib/db"
+import { pool, replicaQueryMany, replicaQueryOne, generateId } from "@/lib/db"
 import { BodyCompositionSource } from "@/lib/db/enums"
 import type { BodyComposition } from "@/lib/db/types"
 
@@ -18,27 +18,24 @@ export interface BodyCompositionInput {
 }
 
 export async function getBodyCompositions(clientId: string): Promise<BodyComposition[]> {
-  const res = await pool.query<BodyComposition>(
+  return replicaQueryMany<BodyComposition>(
     `SELECT * FROM "BodyComposition" WHERE "clientId" = $1 ORDER BY "date" DESC`,
     [clientId]
   )
-  return res.rows as BodyComposition[]
 }
 
 export async function getLatestBodyCompositions(clientId: string, take = 2): Promise<BodyComposition[]> {
-  const res = await pool.query<BodyComposition>(
+  return replicaQueryMany<BodyComposition>(
     `SELECT * FROM "BodyComposition" WHERE "clientId" = $1 ORDER BY "date" DESC LIMIT $2`,
     [clientId, take]
   )
-  return res.rows as BodyComposition[]
 }
 
 export async function getBodyCompositionById(id: string, clientId: string): Promise<BodyComposition | null> {
-  const res = await pool.query<BodyComposition>(
+  return replicaQueryOne<BodyComposition>(
     `SELECT * FROM "BodyComposition" WHERE "id" = $1 AND "clientId" = $2 LIMIT 1`,
     [id, clientId]
   )
-  return (res.rows[0] as BodyComposition) ?? null
 }
 
 export async function createBodyComposition(

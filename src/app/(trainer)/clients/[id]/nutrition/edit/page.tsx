@@ -66,7 +66,6 @@ export default async function NutritionEditPage({
         amount: item.amount,
         unit: item.unit,
         calories: item.calories,
-        groupNumber: item.groupNumber,
       })),
     })),
   }
