@@ -108,7 +108,7 @@ export function SplitStarterHub({
 
           <div className="flex items-center gap-2 ms-auto">
             {/* Segmented Mode Selector */}
-            <div className="flex rounded-xl border border-white/10 bg-white/[0.04] p-1 text-xs backdrop-blur-md">
+            <div className="flex rounded-xl border border-white/10 bg-white/[0.04] p-1 text-xs">
               <button
                 type="button"
                 onClick={() => {
@@ -188,7 +188,7 @@ export function SplitStarterHub({
                       onClick={() => onSelectPreset(preset.type)}
                       className={cn(
                         "group relative flex flex-col justify-between rounded-xl border p-3.5 text-start transition-all duration-200",
-                        "backdrop-blur-md hover:-translate-y-0.5 active:scale-[0.98]",
+                        "hover:-translate-y-0.5 active:scale-[0.98]",
                         isSelected
                           ? "border-brand-400/60 bg-brand-500/15 ring-1 ring-brand-400/40 shadow-glow"
                           : "border-white/10 bg-white/[0.03] hover:border-white/25 hover:bg-white/[0.06]"
@@ -216,7 +216,7 @@ export function SplitStarterHub({
                 {templates.map((template) => (
                   <div
                     key={template.id}
-                    className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] p-3 text-start backdrop-blur-md hover:border-white/20 transition-colors"
+                    className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] p-3 text-start hover:border-white/20 transition-colors"
                   >
                     <div className="min-w-0 flex-1 pe-2">
                       <div className="flex items-center gap-2">
@@ -260,7 +260,7 @@ export function SplitStarterHub({
                 {cloneSources.map((source) => (
                   <div
                     key={source.id}
-                    className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] p-3 text-start backdrop-blur-md hover:border-white/20 transition-colors"
+                    className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] p-3 text-start hover:border-white/20 transition-colors"
                   >
                     <div className="min-w-0 flex-1 pe-2">
                       <div className="flex items-center gap-2">

@@ -15,36 +15,66 @@ type TemplateWithDays = TrainingSplitTemplate & {
   days: (TrainingSplitTemplateDay & { exercises: TemplateDayExercise[] })[]
 }
 
-async function hydrateTemplateDays(
-  templateId: string,
-  exec: typeof pool | PgClient
-): Promise<(TrainingSplitTemplateDay & { exercises: TemplateDayExercise[] })[]> {
-  const daysRes = await exec.query<TrainingSplitTemplateDay>(
-    `SELECT * FROM "TrainingSplitTemplateDay" WHERE "templateId" = $1 ORDER BY "dayNumber" ASC`,
-    [templateId]
-  )
-  const days = daysRes.rows as TrainingSplitTemplateDay[]
-  const out: (TrainingSplitTemplateDay & { exercises: TemplateDayExercise[] })[] = []
-  for (const day of days) {
-    const exRes = await exec.query<TemplateDayExercise>(
-      `SELECT * FROM "TemplateDayExercise" WHERE "templateDayId" = $1 ORDER BY "order" ASC`,
-      [day.id]
-    )
-    out.push({ ...day, exercises: exRes.rows as TemplateDayExercise[] })
-  }
-  return out
-}
-
 async function hydrateTemplates(
   rows: TrainingSplitTemplate[],
   exec: typeof pool | PgClient
 ): Promise<TemplateWithDays[]> {
-  const out: TemplateWithDays[] = []
-  for (const row of rows) {
-    const days = await hydrateTemplateDays(row.id, exec)
-    out.push({ ...row, days })
+  if (rows.length === 0) return []
+  const templateIds = rows.map((r) => r.id)
+
+  const daysRes = await exec.query<TrainingSplitTemplateDay>(
+    `SELECT * FROM "TrainingSplitTemplateDay" WHERE "templateId" = ANY($1::text[]) ORDER BY "dayNumber" ASC`,
+    [templateIds]
+  )
+  const allDays = daysRes.rows as TrainingSplitTemplateDay[]
+
+  if (allDays.length === 0) {
+    return rows.map((r) => ({ ...r, days: [] }))
   }
-  return out
+
+  const dayIds = allDays.map((d) => d.id)
+  const exRes = await exec.query<TemplateDayExercise>(
+    `SELECT * FROM "TemplateDayExercise" WHERE "templateDayId" = ANY($1::text[]) ORDER BY "order" ASC`,
+    [dayIds]
+  )
+  const allExercises = exRes.rows as TemplateDayExercise[]
+
+  const exercisesByDayId = new Map<string, TemplateDayExercise[]>()
+  for (const ex of allExercises) {
+    const list = exercisesByDayId.get(ex.templateDayId)
+    if (list) {
+      list.push(ex)
+    } else {
+      exercisesByDayId.set(ex.templateDayId, [ex])
+    }
+  }
+
+  const daysByTemplateId = new Map<string, (TrainingSplitTemplateDay & { exercises: TemplateDayExercise[] })[]>()
+  for (const day of allDays) {
+    const dayWithEx = {
+      ...day,
+      exercises: exercisesByDayId.get(day.id) ?? [],
+    }
+    const list = daysByTemplateId.get(day.templateId)
+    if (list) {
+      list.push(dayWithEx)
+    } else {
+      daysByTemplateId.set(day.templateId, [dayWithEx])
+    }
+  }
+
+  return rows.map((r) => ({
+    ...r,
+    days: daysByTemplateId.get(r.id) ?? [],
+  }))
+}
+
+async function hydrateTemplateDays(
+  templateId: string,
+  exec: typeof pool | PgClient
+): Promise<(TrainingSplitTemplateDay & { exercises: TemplateDayExercise[] })[]> {
+  const result = await hydrateTemplates([{ id: templateId } as TrainingSplitTemplate], exec)
+  return result[0]?.days ?? []
 }
 
 const getGlobalSplitTemplatesCached = withCache(

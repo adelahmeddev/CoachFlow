@@ -13,7 +13,10 @@ interface LiveVolumeRadarProps {
   exerciseLibrary?: ExerciseOption[]
 }
 
-export function LiveVolumeRadar({ days, exerciseLibrary = [] }: LiveVolumeRadarProps) {
+export const LiveVolumeRadar = React.memo(function LiveVolumeRadar({
+  days,
+  exerciseLibrary = [],
+}: LiveVolumeRadarProps) {
   const { locale } = useI18n()
   const [isExpanded, setIsExpanded] = useState(false)
 
@@ -81,7 +84,7 @@ export function LiveVolumeRadar({ days, exerciseLibrary = [] }: LiveVolumeRadarP
           return (
             <div
               key={muscle}
-              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs backdrop-blur-md"
+              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs"
             >
               <span className="font-medium text-foreground/80">{label}</span>
               <span className="font-mono text-[10px] font-bold text-brand-300 bg-brand-500/20 px-1.5 py-0.2 rounded-full">
@@ -98,4 +101,4 @@ export function LiveVolumeRadar({ days, exerciseLibrary = [] }: LiveVolumeRadarP
       </div>
     </GlassCard>
   )
-}
+})

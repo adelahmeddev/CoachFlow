@@ -43,7 +43,6 @@ import type { SplitDayExerciseInput } from "@/lib/validations/exercise"
 import { MAX_EXERCISES_PER_DAY } from "@/lib/validations/exercise"
 import type { TrainingDayFocus, Weekday } from "@/lib/db/enums"
 import { ScheduleMode } from "@/lib/db/enums"
-import { ExercisePicker } from "@/components/features/training-split/exercise-picker"
 import { BatchExercisePicker } from "@/components/features/training-split/batch-exercise-picker"
 import { WeekdayStripSelector } from "@/components/features/training-split/weekday-strip-selector"
 import { GlassCard } from "./liquid-glass/glass-card"
@@ -110,6 +109,10 @@ export function DaysEditor({
   const { t } = useI18n()
   const [collapsedDays, setCollapsedDays] = useState<Record<number, boolean>>({})
   const [batchPickerDayIndex, setBatchPickerDayIndex] = useState<number | null>(null)
+  const [singlePickerTarget, setSinglePickerTarget] = useState<{
+    dayIndex: number
+    exerciseIndex: number
+  } | null>(null)
 
   function toggleCollapse(index: number) {
     setCollapsedDays((prev) => ({
@@ -364,6 +367,27 @@ export function DaysEditor({
         />
       )}
 
+      {/* Single Exercise Picker Modal */}
+      {singlePickerTarget !== null && (
+        <BatchExercisePicker
+          open={singlePickerTarget !== null}
+          onOpenChange={(open) => !open && setSinglePickerTarget(null)}
+          exercises={exerciseLibrary}
+          dayNumber={singlePickerTarget.dayIndex + 1}
+          mode="single"
+          initialSelectedIds={
+            days[singlePickerTarget.dayIndex]?.exercises?.[singlePickerTarget.exerciseIndex]?.exerciseId
+              ? [days[singlePickerTarget.dayIndex]!.exercises![singlePickerTarget.exerciseIndex]!.exerciseId!]
+              : []
+          }
+          onSelectSingle={(option) => {
+            handleExerciseSelect(singlePickerTarget.dayIndex, singlePickerTarget.exerciseIndex, option)
+            onExerciseAdded?.(singlePickerTarget.dayIndex, option)
+            setSinglePickerTarget(null)
+          }}
+        />
+      )}
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Label className="text-sm font-bold tracking-wide">
@@ -396,12 +420,12 @@ export function DaysEditor({
               <div className="flex items-center gap-2">
                 <Badge
                   variant="secondary"
-                  className="h-7 px-2.5 font-bold tracking-wider bg-white/10 text-white backdrop-blur-md"
+                  className="h-7 px-2.5 font-bold tracking-wider bg-white/10 text-white"
                 >
                   {t.trainingSplit.dayPrefix} {index + 1}
                 </Badge>
 
-                <div className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.04] px-2.5 py-1 text-xs backdrop-blur-md">
+                <div className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.04] px-2.5 py-1 text-xs">
                   <FocusIcon className="size-3.5 text-brand-300" />
                   <span className="font-semibold text-foreground/90">
                     {day.focus === "CUSTOM"
@@ -467,7 +491,7 @@ export function DaysEditor({
               <div className="mt-3 space-y-4 border-t border-white/10 pt-3">
                 {/* Fixed Weekday Strip Selector */}
                 {isFixed && (
-                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 backdrop-blur-md">
+                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
                     <WeekdayStripSelector
                       value={day.weekday}
                       allAssigned={allAssigned}
@@ -490,7 +514,7 @@ export function DaysEditor({
                         handleFocusChange(index, value as TrainingDayFocus)
                       }
                     >
-                      <SelectTrigger className="w-full rounded-xl border-white/15 bg-white/[0.04] backdrop-blur-md">
+                      <SelectTrigger className="w-full rounded-xl border-white/15 bg-white/[0.04]">
                         <SelectValue placeholder={t.trainingSplit.selectFocus} />
                       </SelectTrigger>
                       <SelectContent>
@@ -511,7 +535,7 @@ export function DaysEditor({
                         disabled={disabled}
                         value={day.customFocus ?? ""}
                         onChange={(e) => handleCustomFocusChange(index, e.target.value)}
-                        className="rounded-xl border-white/15 bg-white/[0.04] backdrop-blur-md"
+                        className="rounded-xl border-white/15 bg-white/[0.04]"
                       />
                       {invalidCustomIndexes.includes(index) && (
                         <p className="text-xs text-destructive">
@@ -528,14 +552,14 @@ export function DaysEditor({
                       disabled={disabled}
                       value={day.notes ?? ""}
                       onChange={(e) => handleNotesChange(index, e.target.value)}
-                      className="rounded-xl border-white/15 bg-white/[0.04] backdrop-blur-md"
+                      className="rounded-xl border-white/15 bg-white/[0.04]"
                     />
                   </div>
                 </div>
 
                 {/* Exercises section */}
                 {hasLibrary && (
-                  <div className="space-y-2.5 rounded-xl border border-white/10 bg-white/[0.02] p-3.5 backdrop-blur-md">
+                  <div className="space-y-2.5 rounded-xl border border-white/10 bg-white/[0.02] p-3.5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Dumbbell className="size-3.5 text-brand-400" />
@@ -582,7 +606,7 @@ export function DaysEditor({
                         return (
                           <div
                             key={exIndex}
-                            className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-2.5 backdrop-blur-md transition-all hover:border-white/20"
+                            className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-2.5 transition-colors hover:border-white/20"
                           >
                             <div className="flex items-center gap-2">
                               {/* Reorder controls */}
@@ -612,17 +636,19 @@ export function DaysEditor({
                               </div>
 
                               {/* Exercise library picker */}
-                              <ExercisePicker
-                                value={exercise.exerciseId ?? null}
-                                exercises={exerciseLibrary ?? []}
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
                                 disabled={disabled}
-                                onSelect={(option) => {
-                                  if (option) {
-                                    handleExerciseSelect(index, exIndex, option)
-                                    onExerciseAdded?.(index, option)
-                                  }
-                                }}
-                              />
+                                onClick={() => setSinglePickerTarget({ dayIndex: index, exerciseIndex: exIndex })}
+                                className="justify-start gap-1.5 font-normal h-8 text-xs max-w-[170px] shrink-0 border-white/15 bg-white/[0.04]"
+                              >
+                                <Dumbbell className="size-3.5 shrink-0 text-muted-foreground" />
+                                <span className="truncate">
+                                  {exercise.exerciseName || t.trainingSplit.selectExercise}
+                                </span>
+                              </Button>
 
                               {/* Name input */}
                               <Input

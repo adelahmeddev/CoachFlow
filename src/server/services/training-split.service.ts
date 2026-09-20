@@ -60,37 +60,68 @@ export async function getOwnedClientForForm(
   return row ? { ...row, goals: parseGoals(row.goals) } : null
 }
 
-async function hydrateSplitDays(
-  splitId: string,
-  exec: typeof pool | PgClient
-): Promise<(TrainingSplitDay & { exercises: SplitDayExercise[] })[]> {
-  const daysRes = await exec.query<TrainingSplitDay>(
-    `SELECT * FROM "TrainingSplitDay" WHERE "splitId" = $1 ORDER BY "dayNumber" ASC`,
-    [splitId]
-  )
-  const days = daysRes.rows as TrainingSplitDay[]
-  const result: (TrainingSplitDay & { exercises: SplitDayExercise[] })[] = []
-  for (const day of days) {
-    const exRes = await exec.query<SplitDayExercise>(
-      `SELECT * FROM "SplitDayExercise" WHERE "splitDayId" = $1 ORDER BY "order" ASC`,
-      [day.id]
-    )
-    result.push({ ...day, exercises: exRes.rows as SplitDayExercise[] })
-  }
-  return result
-}
-
 async function hydrateSplits(
   splits: TrainingSplit[],
   exec: typeof pool | PgClient
 ): Promise<TrainingSplitWithDays[]> {
-  const out: TrainingSplitWithDays[] = []
-  for (const split of splits) {
-    const days = await hydrateSplitDays(split.id, exec)
-    out.push({ ...split, days })
+  if (splits.length === 0) return []
+  const splitIds = splits.map((s) => s.id)
+
+  const daysRes = await exec.query<TrainingSplitDay>(
+    `SELECT * FROM "TrainingSplitDay" WHERE "splitId" = ANY($1::text[]) ORDER BY "dayNumber" ASC`,
+    [splitIds]
+  )
+  const allDays = daysRes.rows as TrainingSplitDay[]
+
+  if (allDays.length === 0) {
+    return splits.map((s) => ({ ...s, days: [] }))
   }
-  return out
+
+  const dayIds = allDays.map((d) => d.id)
+  const exRes = await exec.query<SplitDayExercise>(
+    `SELECT * FROM "SplitDayExercise" WHERE "splitDayId" = ANY($1::text[]) ORDER BY "order" ASC`,
+    [dayIds]
+  )
+  const allExercises = exRes.rows as SplitDayExercise[]
+
+  const exercisesByDayId = new Map<string, SplitDayExercise[]>()
+  for (const ex of allExercises) {
+    const list = exercisesByDayId.get(ex.splitDayId)
+    if (list) {
+      list.push(ex)
+    } else {
+      exercisesByDayId.set(ex.splitDayId, [ex])
+    }
+  }
+
+  const daysBySplitId = new Map<string, (TrainingSplitDay & { exercises: SplitDayExercise[] })[]>()
+  for (const day of allDays) {
+    const dayWithEx = {
+      ...day,
+      exercises: exercisesByDayId.get(day.id) ?? [],
+    }
+    const list = daysBySplitId.get(day.splitId)
+    if (list) {
+      list.push(dayWithEx)
+    } else {
+      daysBySplitId.set(day.splitId, [dayWithEx])
+    }
+  }
+
+  return splits.map((s) => ({
+    ...s,
+    days: daysBySplitId.get(s.id) ?? [],
+  }))
 }
+
+async function hydrateSplitDays(
+  splitId: string,
+  exec: typeof pool | PgClient
+): Promise<(TrainingSplitDay & { exercises: SplitDayExercise[] })[]> {
+  const splits = await hydrateSplits([{ id: splitId } as TrainingSplit], exec)
+  return splits[0]?.days ?? []
+}
+
 
 /**
  * Count historical workout logs referencing any exercise of a split.

@@ -111,7 +111,7 @@ export function TemplateForm({
   // Sync form's days value with local state for validation
   const setDaysSynced = (nextDays: TrainingSplitDayInput[]) => {
     setDays(nextDays)
-    form.setValue("days", nextDays, { shouldValidate: true })
+    form.setValue("days", nextDays, { shouldValidate: false })
   }
 
   const form = useForm<TrainingSplitTemplateInput>({
@@ -224,7 +224,7 @@ export function TemplateForm({
               <Input
                 id="templateName"
                 placeholder={t.templates.templateNamePlaceholder}
-                className="rounded-xl border-white/15 bg-white/[0.04] backdrop-blur-md text-xs"
+                className="rounded-xl border-white/15 bg-white/[0.04] text-xs"
                 {...form.register("name")}
               />
               {form.formState.errors.name && (
@@ -247,7 +247,7 @@ export function TemplateForm({
                   )
                 }
               >
-                <SelectTrigger id="templateGoal" className="w-full rounded-xl border-white/15 bg-white/[0.04] backdrop-blur-md text-xs">
+                <SelectTrigger id="templateGoal" className="w-full rounded-xl border-white/15 bg-white/[0.04] text-xs">
                   <SelectValue placeholder={t.templates.selectGoal} />
                 </SelectTrigger>
                 <SelectContent>
@@ -268,7 +268,7 @@ export function TemplateForm({
               <Input
                 id="templateLevel"
                 placeholder={t.templates.levelPlaceholder}
-                className="rounded-xl border-white/15 bg-white/[0.04] backdrop-blur-md text-xs"
+                className="rounded-xl border-white/15 bg-white/[0.04] text-xs"
                 {...form.register("level")}
               />
             </div>
@@ -283,7 +283,7 @@ export function TemplateForm({
                   handleSplitTypeChange(value as SplitType)
                 }
               >
-                <SelectTrigger id="templateSplitType" className="w-full rounded-xl border-white/15 bg-white/[0.04] backdrop-blur-md text-xs">
+                <SelectTrigger id="templateSplitType" className="w-full rounded-xl border-white/15 bg-white/[0.04] text-xs">
                   <SelectValue placeholder={t.templates.selectSplitType} />
                 </SelectTrigger>
                 <SelectContent>
@@ -310,7 +310,7 @@ export function TemplateForm({
                 type="number"
                 min={1}
                 max={7}
-                className="rounded-xl border-white/15 bg-white/[0.04] backdrop-blur-md text-xs font-mono"
+                className="rounded-xl border-white/15 bg-white/[0.04] text-xs font-mono"
                 {...form.register("daysPerWeek", { valueAsNumber: true })}
               />
               {form.formState.errors.daysPerWeek && (
@@ -329,7 +329,7 @@ export function TemplateForm({
               id="templateDescription"
               placeholder={t.templates.descriptionPlaceholder}
               rows={2}
-              className="rounded-xl border-white/15 bg-white/[0.04] backdrop-blur-md text-xs"
+              className="rounded-xl border-white/15 bg-white/[0.04] text-xs"
               {...form.register("description")}
             />
           </div>

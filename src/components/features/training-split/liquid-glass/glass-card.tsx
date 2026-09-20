@@ -104,9 +104,8 @@ export function GlassCard({
       className={cn(
         "relative overflow-hidden rounded-2xl border border-white/15 dark:border-white/10",
         "bg-gradient-to-b from-white/[0.08] via-white/[0.03] to-neutral-950/70",
-        "dark:from-white/[0.05] dark:via-white/[0.02] dark:to-neutral-950/80",
-        "backdrop-blur-2xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.20),inset_0_-1px_1px_rgba(0,0,0,0.25),0_12px_40px_rgba(0,0,0,0.30)]",
-        "transition-all duration-300 transform-gpu",
+        "backdrop-blur-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.20),inset_0_-1px_1px_rgba(0,0,0,0.25),0_12px_40px_rgba(0,0,0,0.30)]",
+        "transition-colors duration-200",
         interactive && [
           "cursor-pointer active:scale-[0.99]",
           config.borderHover,

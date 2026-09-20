@@ -225,7 +225,7 @@ export function TrainingSplitForm({
   ) => {
     const resolved = typeof nextDays === "function" ? nextDays(days) : nextDays
     setDays(resolved)
-    form.setValue("days", resolved, { shouldValidate: true })
+    form.setValue("days", resolved, { shouldValidate: false })
   }
 
   function handleAutoAssign() {
@@ -573,7 +573,7 @@ export function TrainingSplitForm({
                   handleSplitTypeChange(value as SplitType)
                 }
               >
-                <SelectTrigger id="splitType" className="w-full rounded-xl border-white/15 bg-white/[0.04] backdrop-blur-md">
+                <SelectTrigger id="splitType" className="w-full rounded-xl border-white/15 bg-white/[0.04]">
                   <SelectValue placeholder={t.trainingSplit.selectSplitType} />
                 </SelectTrigger>
                 <SelectContent>
@@ -599,7 +599,7 @@ export function TrainingSplitForm({
                 value={status}
                 onValueChange={(value) => form.setValue("status", value as PlanStatus)}
               >
-                <SelectTrigger id="status" className="w-full rounded-xl border-white/15 bg-white/[0.04] backdrop-blur-md">
+                <SelectTrigger id="status" className="w-full rounded-xl border-white/15 bg-white/[0.04]">
                   <SelectValue placeholder={t.trainingSplit.selectStatus} />
                 </SelectTrigger>
                 <SelectContent>
@@ -633,7 +633,7 @@ export function TrainingSplitForm({
                   handleScheduleModeChange(ScheduleMode.FIXED_WEEKDAYS)
                 }
                 className={cn(
-                  "rounded-2xl border p-3.5 text-start transition-all backdrop-blur-md",
+                  "rounded-2xl border p-3.5 text-start transition-colors",
                   scheduleMode === ScheduleMode.FIXED_WEEKDAYS
                     ? "border-brand-400/80 bg-brand-500/15 ring-1 ring-brand-400/40 shadow-glow"
                     : "border-white/10 bg-white/[0.03] hover:border-white/25 hover:bg-white/[0.06]"
@@ -656,7 +656,7 @@ export function TrainingSplitForm({
                   handleScheduleModeChange(ScheduleMode.SEQUENTIAL)
                 }
                 className={cn(
-                  "rounded-2xl border p-3.5 text-start transition-all backdrop-blur-md",
+                  "rounded-2xl border p-3.5 text-start transition-colors",
                   scheduleMode === ScheduleMode.SEQUENTIAL
                     ? "border-brand-400/80 bg-brand-500/15 ring-1 ring-brand-400/40 shadow-glow"
                     : "border-white/10 bg-white/[0.03] hover:border-white/25 hover:bg-white/[0.06]"
@@ -680,7 +680,7 @@ export function TrainingSplitForm({
               id="notes"
               placeholder={t.trainingSplit.splitNotesPlaceholder}
               rows={2}
-              className="rounded-xl border-white/15 bg-white/[0.04] backdrop-blur-md text-xs"
+              className="rounded-xl border-white/15 bg-white/[0.04] text-xs"
               {...form.register("notes")}
             />
             {form.formState.errors.notes && (
