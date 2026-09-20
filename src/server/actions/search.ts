@@ -8,7 +8,7 @@ export type SearchClientResult = {
   fullName: string
   phone: string | null
   status: string
-  goal: string | null
+  goals: string[]
 }
 
 export type SearchTemplateResult = {
@@ -53,7 +53,7 @@ export async function searchCoachWorkspaceAction(
   try {
     const [clientsRes, splitsRes, nutritionRes] = await Promise.all([
       pool.query<SearchClientResult>(
-        `SELECT "id", "fullName", "phone", "status", "goal"
+        `SELECT "id", "fullName", "phone", "status", "goals"
          FROM "Client"
          WHERE "trainerId" = $1
            AND ("fullName" ILIKE $2 OR "phone" ILIKE $2)

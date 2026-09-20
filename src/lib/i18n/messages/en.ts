@@ -1784,6 +1784,8 @@ export const en = {
       mediaReviewedBody: "{coach} left feedback on your submission.",
       checkinTitle: "{name} checked in",
       checkinBody: "Energy {energy}/5 • Mood {mood}/5 • Sleep {sleep}h",
+      workoutStartedTitle: "{name} started a workout 💪",
+      workoutStartedBody: "{name} just started their training session.",
     },
     plan: {
       nutrition: "nutrition plan",

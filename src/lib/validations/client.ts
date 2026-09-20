@@ -20,7 +20,7 @@ export const clientCreateSchema = z.object({
     .union([z.string().min(1), z.literal("")])
     .optional()
     .transform((v) => (v ? new Date(`${v}T00:00:00Z`) : null)),
-  goal: z.nativeEnum(Goal).nullable().optional(),
+  goals: z.array(z.nativeEnum(Goal)).optional().default([]),
   status: z.enum(["INVITED", "PENDING_ASSESSMENT", "ACTIVE", "PAUSED"]),
   coachingMode: z.nativeEnum(CoachingMode).optional(),
   workoutDisplayMode: z.nativeEnum(WorkoutDisplayMode).optional(),

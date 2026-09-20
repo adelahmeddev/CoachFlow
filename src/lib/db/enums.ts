@@ -102,6 +102,7 @@ export const NotificationType = {
   PROGRESS_UPDATE: 'PROGRESS_UPDATE',
   MEDIA_SUBMITTED: 'MEDIA_SUBMITTED',
   CHECKIN_ACTIVITY: 'CHECKIN_ACTIVITY',
+  WORKOUT_STARTED: 'WORKOUT_STARTED',
 } as const
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
 

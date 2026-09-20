@@ -72,7 +72,7 @@ model Client {
   fullName             String?
   birthDate            DateTime?
   phone                String?
-  goal                 Goal?
+  goals                Goal[]                @default([])
   status               ClientStatus          @default(INVITED)
   inviteToken          String?               @unique
   inviteExpiresAt      DateTime?
@@ -94,7 +94,7 @@ model Client {
   conversation         Conversation?
   dailyLogs            DailyLog[]
   exerciseLogs         ExerciseLog[]
-  goals                ClientGoal[]
+  clientGoals          ClientGoal[]
   mealChoices          MealChoice[]
   paymentProofs        PaymentProof[]
   progressMedia        ProgressMedia[]
@@ -106,7 +106,6 @@ model Client {
 
   @@index([trainerId])
   @@index([status])
-  @@index([goal])
 }
 
 model NutritionTemplate {
@@ -665,6 +664,7 @@ enum NotificationType {
   PROGRESS_UPDATE
   MEDIA_SUBMITTED
   CHECKIN_ACTIVITY
+  WORKOUT_STARTED
 }
 
 enum ProgressMediaType {

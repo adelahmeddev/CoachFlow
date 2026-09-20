@@ -8,6 +8,7 @@ import { ChevronRight, Trash2, Flame, Target, Trophy, MessageCircle, Dumbbell, C
 import { toast } from "sonner"
 import { useI18n } from "@/lib/i18n/client"
 import { formatDate, interpolate } from "@/lib/i18n/format"
+import { parseGoals, getGoalLabel } from "@/lib/i18n/labels"
 import { deleteClientAction } from "@/server/actions/clients"
 import type { getTrainerClients } from "@/server/services/client.service"
 import { ClientStatusBadge } from "@/components/features/clients/client-status-badge"
@@ -153,7 +154,7 @@ export function ClientsGrid({ clients }: ClientsGridProps) {
                       )}
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-1">
-                      <ClientGoalBadge goal={client.goal} />
+                      <ClientGoalBadge goals={client.goals} />
                       <ClientStatusBadge status={client.status} />
                     </div>
                   </div>
@@ -190,7 +191,11 @@ export function ClientsGrid({ clients }: ClientsGridProps) {
                     <div className="rounded-xl border bg-card p-2">
                       <Target className="mx-auto size-3.5 text-brand-500 mb-1" aria-hidden="true" />
                       <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{isAr ? "الهدف" : "Goal"}</p>
-                      <p className="mt-0.5 line-clamp-2 break-words text-xs font-medium leading-snug">{client.goal ? t.enums.goals[client.goal as keyof typeof t.enums.goals] ?? client.goal : "—"}</p>
+                      <p className="mt-0.5 line-clamp-2 break-words text-xs font-medium leading-snug">
+                        {parseGoals(client.goals).length > 0
+                          ? parseGoals(client.goals).map((g) => t.enums.goals[g as keyof typeof t.enums.goals] ?? getGoalLabel(g, locale) ?? g).join(", ")
+                          : "—"}
+                      </p>
                     </div>
                     <div className="rounded-xl border bg-card p-2">
                       <Calendar className="mx-auto size-3.5 text-performance-500 mb-1" aria-hidden="true" />

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test"
 import assert from "node:assert/strict"
-import { daysUntilDeadline, goalProgress, isAutoSynced } from "../src/lib/goals"
+import { daysUntilDeadline, goalProgress, isAutoSynced, parseGoals } from "../src/lib/goals"
 
 describe("goalProgress", () => {
   it("tracks weight loss toward target", () => {
@@ -52,3 +52,34 @@ describe("daysUntilDeadline", () => {
     assert.equal(daysUntilDeadline(new Date(NOW - DAY).toISOString(), NOW), -1)
   })
 })
+
+describe("parseGoals", () => {
+  it("handles native arrays", () => {
+    assert.deepEqual(parseGoals(["WEIGHT_LOSS", "MUSCLE_BUILDING"]), ["WEIGHT_LOSS", "MUSCLE_BUILDING"])
+    assert.deepEqual(parseGoals([]), [])
+  })
+
+  it("handles postgres array strings", () => {
+    assert.deepEqual(parseGoals("{WEIGHT_LOSS,MUSCLE_BUILDING}"), ["WEIGHT_LOSS", "MUSCLE_BUILDING"])
+    assert.deepEqual(parseGoals("{WEIGHT_LOSS}"), ["WEIGHT_LOSS"])
+    assert.deepEqual(parseGoals('{"WEIGHT_LOSS","MUSCLE_BUILDING"}'), ["WEIGHT_LOSS", "MUSCLE_BUILDING"])
+    assert.deepEqual(parseGoals("{}"), [])
+  })
+
+  it("handles JSON array strings", () => {
+    assert.deepEqual(parseGoals('["WEIGHT_LOSS", "STRENGTH"]'), ["WEIGHT_LOSS", "STRENGTH"])
+    assert.deepEqual(parseGoals('[]'), [])
+  })
+
+  it("handles single goal strings", () => {
+    assert.deepEqual(parseGoals("WEIGHT_LOSS"), ["WEIGHT_LOSS"])
+  })
+
+  it("handles null, undefined, empty strings", () => {
+    assert.deepEqual(parseGoals(null), [])
+    assert.deepEqual(parseGoals(undefined), [])
+    assert.deepEqual(parseGoals(""), [])
+    assert.deepEqual(parseGoals("   "), [])
+  })
+})
+

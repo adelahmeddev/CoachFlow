@@ -13,6 +13,8 @@ import {
 import {
   getClientStatusLabel,
   getGoalLabel,
+  parseGoals,
+  formatGoalsLabel,
   getPlanStatusLabel,
   getSplitTypeLabel,
   getSubscriptionStatusLabel,
@@ -127,7 +129,7 @@ function ClientInfoCard({ clientId, profile, t, locale }: { clientId: string; pr
             fullName: client.fullName ?? "",
             phone: client.phone ?? "",
             birthDate: birthDateStr,
-            goal: client.goal ?? "",
+            goals: parseGoals((client as unknown as { goals?: unknown }).goals),
             status: client.status,
             coachingMode: (client as unknown as { coachingMode?: string }).coachingMode ?? "ONLINE",
             workoutDisplayMode: (client as unknown as { workoutDisplayMode?: string }).workoutDisplayMode ?? "FULL",
@@ -140,7 +142,7 @@ function ClientInfoCard({ clientId, profile, t, locale }: { clientId: string; pr
           <InfoItem label={t.profile.overview.phone} value={client.phone ?? "—"} />
           <InfoItem label={t.profile.overview.birthDate} value={client.birthDate ? formatDate(client.birthDate, locale) : "—"} />
           <InfoItem label={t.profile.overview.age} value={age !== null ? `${age} ${t.profile.overview.years}` : "—"} />
-          <InfoItem label={t.profile.overview.goal} value={getGoalLabel(client.goal, locale) ?? "—"} />
+          <InfoItem label={t.profile.overview.goal} value={formatGoalsLabel((client as unknown as { goals?: unknown }).goals, locale)} />
           <InfoItem label={t.profile.overview.status} value={getClientStatusLabel(client.status, locale)} badgeVariant={getClientStatusBadgeVariant(client.status)} />
           <InfoItem label={t.profile.overview.basicInfoCompletedLabel} value={client.basicInfoCompletedAt ? formatDate(client.basicInfoCompletedAt, locale) : t.profile.overview.no} />
           <InfoItem label={t.profile.overview.inviteCreated} value={formatDate(client.createdAt, locale)} />

@@ -1,4 +1,4 @@
-﻿import { redirect } from "next/navigation"
+import { redirect } from "next/navigation"
 import { getCurrentSession } from "@/server/auth"
 import { getClientProfile } from "@/server/services/client-portal.service"
 import { pool } from "@/lib/db"
@@ -53,7 +53,7 @@ export default async function ClientProfilePage() {
               fullName: client.fullName ?? "Client",
               phone: client.phone ?? "",
               email: client.email ?? "",
-              goal: client.goal ?? null,
+              goals: client.goals ?? [],
             }}
           />
           <PainFlagsForm

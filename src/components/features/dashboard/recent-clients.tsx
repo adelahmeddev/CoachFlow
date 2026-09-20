@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useI18n } from "@/lib/i18n/client"
-import { getGoalLabel } from "@/lib/i18n/labels"
+import { getGoalLabel, parseGoals } from "@/lib/i18n/labels"
 import type { Goal } from "@/lib/db/enums"
 import { haptics } from "@/lib/haptics"
 
@@ -71,8 +71,10 @@ export function RecentClients({ clients }: { clients: RecentClients }) {
                 <span dir="ltr">{client.phone ?? "—"}</span>
               </TableCell>
               <TableCell className="py-3.5">
-                {client.goal ? (
-                  <Badge variant="outline" className="font-medium">{getGoalLabel(client.goal as Goal, locale)}</Badge>
+                {parseGoals(client.goals).length > 0 ? (
+                  <Badge variant="outline" className="font-medium">
+                    {parseGoals(client.goals).map((g) => getGoalLabel(g, locale)).join(", ")}
+                  </Badge>
                 ) : (
                   <span className="text-muted-foreground">—</span>
                 )}
@@ -139,10 +141,10 @@ export function RecentClientsVisual({ clients }: { clients: RecentClients }) {
                 {client.phone ?? (isAr ? "بدون تليفون" : "no phone")}
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                {client.goal ? (
+                {parseGoals(client.goals).length > 0 ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-brand-500/10 px-2 py-0.5 text-[11px] font-medium text-brand-700 ring-1 ring-brand-500/15 dark:bg-brand-500/15 dark:text-brand-300">
                     <Target className="size-3" aria-hidden="true" />
-                    {getGoalLabel(client.goal as Goal, locale)}
+                    {parseGoals(client.goals).map((g) => getGoalLabel(g, locale)).join(", ")}
                   </span>
                 ) : (
                   <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">—</span>

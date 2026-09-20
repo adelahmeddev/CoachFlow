@@ -1,5 +1,6 @@
 import { pool, generateId, withTransaction, type PgClient } from "@/lib/db"
-import { PlanStatus, ScheduleMode } from "@/lib/db/enums"
+import { PlanStatus, ScheduleMode, Goal } from "@/lib/db/enums"
+import { parseGoals } from "@/lib/goals"
 import type {
   TrainingSplit,
   TrainingSplitDay,
@@ -45,16 +46,18 @@ export async function getOwnedClientForForm(
 ) {
   if (trainerProfileId) {
     const res = await pool.query(
-      `SELECT "id", "fullName", "goal" FROM "Client" WHERE "id" = $1 AND "trainerId" = $2 LIMIT 1`,
+      `SELECT "id", "fullName", "goals" FROM "Client" WHERE "id" = $1 AND "trainerId" = $2 LIMIT 1`,
       [clientId, trainerProfileId]
     )
-    return (res.rows[0] as { id: string; fullName: string | null; goal: string | null } | undefined) ?? null
+    const row = res.rows[0] as { id: string; fullName: string | null; goals: Goal[] } | undefined
+    return row ? { ...row, goals: parseGoals(row.goals) } : null
   }
   const res = await pool.query(
-    `SELECT "id", "fullName", "goal" FROM "Client" WHERE "id" = $1 LIMIT 1`,
+    `SELECT "id", "fullName", "goals" FROM "Client" WHERE "id" = $1 LIMIT 1`,
     [clientId]
   )
-  return (res.rows[0] as { id: string; fullName: string | null; goal: string | null } | undefined) ?? null
+  const row = res.rows[0] as { id: string; fullName: string | null; goals: Goal[] } | undefined
+  return row ? { ...row, goals: parseGoals(row.goals) } : null
 }
 
 async function hydrateSplitDays(

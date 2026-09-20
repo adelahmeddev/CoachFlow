@@ -73,7 +73,7 @@ export default async function EditTrainingSplitPage({
 
   const templates = allTemplates.filter(
     (template) =>
-      (template.goal === null || template.goal === client.goal) &&
+      (template.goal === null || (client.goals && client.goals.includes(template.goal))) &&
       (split.daysPerWeek === 0 ||
         template.daysPerWeek === split.daysPerWeek)
   )

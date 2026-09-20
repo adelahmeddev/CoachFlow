@@ -67,7 +67,7 @@ export default async function NewTrainingSplitPage({
 
   const templates = allTemplates.filter(
     (template) =>
-      template.goal === null || template.goal === client.goal
+      template.goal === null || (client.goals && client.goals.includes(template.goal))
   )
 
   return (

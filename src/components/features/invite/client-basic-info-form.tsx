@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2 } from "lucide-react"
+import { Loader2, Check } from "lucide-react"
 import { submitClientBasicInfoAction } from "@/server/actions/invite"
 import { inviteBasicInfoSchema } from "@/lib/validations/invite"
 import type { Goal } from "@/lib/db/enums"
@@ -18,21 +18,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { useI18n } from "@/lib/i18n/client"
-import { getGoalLabel } from "@/lib/i18n/labels"
+import { MultiGoalPicker } from "@/components/features/goals/multi-goal-picker"
+import { cn } from "@/lib/utils"
+
 
 type FormValues = {
   fullName: string
   birthDate: string
   phone: string
-  goal: Goal
+  goals: Goal[]
 }
 
 export function ClientBasicInfoForm({ token }: { token: string }) {
@@ -40,15 +35,6 @@ export function ClientBasicInfoForm({ token }: { token: string }) {
   const { t, locale } = useI18n()
   const [isPending, setIsPending] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
-
-  const goalOptions = [
-    { value: "WEIGHT_LOSS" as Goal, label: getGoalLabel("WEIGHT_LOSS", locale) },
-    { value: "MUSCLE_BUILDING" as Goal, label: getGoalLabel("MUSCLE_BUILDING", locale) },
-    { value: "STRENGTH" as Goal, label: getGoalLabel("STRENGTH", locale) },
-    { value: "GENERAL_FITNESS" as Goal, label: getGoalLabel("GENERAL_FITNESS", locale) },
-    { value: "WEIGHT_GAIN" as Goal, label: getGoalLabel("WEIGHT_GAIN", locale) },
-    { value: "REHAB" as Goal, label: getGoalLabel("REHAB", locale) },
-  ]
 
   const {
     register,
@@ -62,7 +48,7 @@ export function ClientBasicInfoForm({ token }: { token: string }) {
       fullName: "",
       birthDate: "",
       phone: "",
-      goal: undefined as unknown as Goal,
+      goals: [],
     },
   })
 
@@ -155,32 +141,32 @@ export function ClientBasicInfoForm({ token }: { token: string }) {
           </div>
 
           <div className="grid gap-2">
-            <Label>{t.invite.form.goal}</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-semibold">{t.invite.form.goal} *</Label>
+              <Controller
+                control={control}
+                name="goals"
+                render={({ field }) => (
+                  (field.value?.length ?? 0) > 0 ? (
+                    <span className="text-xs font-semibold text-brand-600 dark:text-brand-400">
+                      {locale === "ar" ? `(تم اختيار ${field.value.length})` : `(${field.value.length} selected)`}
+                    </span>
+                  ) : <span />
+                )}
+              />
+            </div>
             <Controller
               control={control}
-              name="goal"
+              name="goals"
               render={({ field }) => (
-                <Select
-                  value={field.value ?? ""}
-                  onValueChange={field.onChange}
+                <MultiGoalPicker
+                  value={field.value}
+                  onChange={field.onChange}
                   disabled={isPending}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={t.invite.form.selectGoal} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {goalOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label ?? option.value}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  error={errors.goals?.message}
+                />
               )}
             />
-            {errors.goal && (
-              <p className="text-sm text-destructive animate-shake">{errors.goal.message}</p>
-            )}
           </div>
 
           <Button type="submit" className="w-full btn-pop" disabled={isPending}>

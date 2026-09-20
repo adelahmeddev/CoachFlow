@@ -1,6 +1,7 @@
 import { pool } from "@/lib/db"
 import type { BodyComposition, Client, Subscription, TrainingSplit, TrainingSplitDay } from "@/lib/db/types"
 import { pickCurrentSubscription } from "@/server/services/subscription.service"
+import { parseGoals } from "@/lib/goals"
 
 type ClientWithRelations = Awaited<ReturnType<typeof getClientProfile>>
 
@@ -83,7 +84,10 @@ export async function getClientProfile(clientId: string, trainerProfileId?: stri
     null
 
   return {
-    client,
+    client: {
+      ...client,
+      goals: parseGoals(client.goals),
+    },
     latestBodyComposition,
     latestSubscription,
     latestTrainingSplit,

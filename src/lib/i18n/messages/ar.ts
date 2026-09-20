@@ -1786,6 +1786,8 @@ export const ar: Dictionary = {
       mediaReviewedBody: "{coach} ساب ملاحظة على الملفات بتاعتك.",
       checkinTitle: "{name} سجّل",
       checkinBody: "الطاقة {energy}/5 • المزاج {mood}/5 • النوم {sleep} ساعات",
+      workoutStartedTitle: "{name} بدأ التمرين 💪",
+      workoutStartedBody: "{name} بدأ جلسة التدريب للتو.",
     },
     plan: {
       nutrition: "الخطة الغذائية",

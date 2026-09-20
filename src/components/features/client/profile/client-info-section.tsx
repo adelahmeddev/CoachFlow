@@ -4,6 +4,7 @@ import { User } from "lucide-react"
 import type { Goal } from "@/lib/db/enums"
 import { useI18n } from "@/lib/i18n/client"
 import { lookup } from "@/lib/i18n/lookup"
+import { getGoalLabel, parseGoals } from "@/lib/i18n/labels"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export function MyInfoSection({
@@ -14,10 +15,10 @@ export function MyInfoSection({
     fullName: string
     phone: string
     email: string
-    goal: Goal | null
+    goals?: Goal[]
   }
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
 
   return (
     <Card>
@@ -48,7 +49,11 @@ export function MyInfoSection({
           <label className="text-xs text-muted-foreground">
             {lookup(t, "client.profile.goal")}
           </label>
-          <p className="font-medium">{client.goal?.replace(/_/g, " ") ?? "—"}</p>
+          <p className="font-medium">
+            {parseGoals(client.goals).length > 0
+              ? parseGoals(client.goals).map((g) => getGoalLabel(g, locale) ?? g.replace(/_/g, " ")).join(", ")
+              : "—"}
+          </p>
         </div>
       </CardContent>
     </Card>

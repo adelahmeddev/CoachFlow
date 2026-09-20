@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import type { Goal } from "@/lib/db/enums";
+import { parseGoals } from "@/lib/goals";
 
-type ClientState = { id: string; fullName: string; goal: Goal | null };
+type ClientState = { id: string; fullName: string; goals: Goal[] };
 
 export function useClients(trainerId: string) {
   const [clients, setClients] = useState<ClientState[]>([]);
@@ -27,7 +28,7 @@ export function useClients(trainerId: string) {
             setClients(data.clients.map((c: any) => ({
               id: c.id,
               fullName: c.fullName ?? "",
-              goal: c.goal as Goal | null,
+              goals: parseGoals(c.goals),
             })));
           }
         }

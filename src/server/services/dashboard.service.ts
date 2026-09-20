@@ -1,6 +1,7 @@
 import { pool } from "@/lib/db"
-import { ClientStatus } from "@/lib/db/enums"
+import { ClientStatus, Goal } from "@/lib/db/enums"
 import { withCache, toIso } from "@/lib/cache"
+import { parseGoals } from "@/lib/goals"
 
 export async function getDashboardData(trainerProfileId: string) {
   return withCache(
@@ -24,7 +25,7 @@ export async function getDashboardData(trainerProfileId: string) {
         WHERE "trainerId" = $1
       `
       const recentQuery = `
-        SELECT "id", "fullName", "phone", "goal", "status", "createdAt"
+        SELECT "id", "fullName", "phone", "goals", "status", "createdAt"
         FROM "Client"
         WHERE "trainerId" = $1
         ORDER BY "createdAt" DESC
@@ -88,7 +89,7 @@ export async function getDashboardData(trainerProfileId: string) {
         id: string
         fullName: string | null
         phone: string | null
-        goal: string | null
+        goals: Goal[]
         status: ClientStatus
         createdAt: Date
       }[]
@@ -113,6 +114,7 @@ export async function getDashboardData(trainerProfileId: string) {
         },
         recentClients: recentClients.map((client) => ({
           ...client,
+          goals: parseGoals(client.goals),
           createdAt: toIso(client.createdAt)!,
         })),
       }

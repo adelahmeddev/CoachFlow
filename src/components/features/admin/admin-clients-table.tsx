@@ -16,6 +16,7 @@ import { formatDate } from "@/lib/i18n/format"
 import {
   getClientStatusLabel,
   getGoalLabel,
+  parseGoals,
   getSubscriptionStatusLabel,
 } from "@/lib/i18n/labels"
 import {
@@ -85,9 +86,9 @@ export function AdminClientsTable({
               <Badge variant={CLIENT_STATUS_BADGE_VARIANTS[client.status]}>
                 {getClientStatusLabel(client.status, locale)}
               </Badge>
-              {client.goal && (
+              {parseGoals(client.goals).length > 0 && (
                 <Badge variant="outline">
-                  {getGoalLabel(client.goal, locale)}
+                  {parseGoals(client.goals).map((g) => getGoalLabel(g, locale)).join(", ")}
                 </Badge>
               )}
               {client.subscription ? (
@@ -168,9 +169,9 @@ export function AdminClientsTable({
                   {client.trainer?.fullName ?? "—"}
                 </TableCell>
                 <TableCell>
-                  {client.goal ? (
+                  {parseGoals(client.goals).length > 0 ? (
                     <span className="text-sm">
-                      {getGoalLabel(client.goal, locale)}
+                      {parseGoals(client.goals).map((g) => getGoalLabel(g, locale)).join(", ")}
                     </span>
                   ) : (
                     <span className="text-sm text-muted-foreground">—</span>

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { CheckCircle2, Loader2 } from "lucide-react"
+import { CheckCircle2, Check, Loader2 } from "lucide-react"
 import { signIn } from "next-auth/react"
 import { submitJoinClientAction } from "@/server/actions/invite"
 import { joinClientSchema } from "@/lib/validations/invite"
@@ -12,11 +12,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useI18n } from "@/lib/i18n/client"
-import { getGoalLabel } from "@/lib/i18n/labels"
+import { MultiGoalPicker } from "@/components/features/goals/multi-goal-picker"
+import { cn } from "@/lib/utils"
 
-type FormValues = { fullName: string; phone: string; password: string; confirmPassword: string; goal: Goal }
+
+type FormValues = { fullName: string; phone: string; password: string; confirmPassword: string; goals: Goal[] }
 
 export function JoinForm({ slug, trainerName }: { slug: string; trainerName: string }) {
   const { t, locale } = useI18n()
@@ -24,18 +25,9 @@ export function JoinForm({ slug, trainerName }: { slug: string; trainerName: str
   const [serverError, setServerError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  const goalOptions = [
-    { value: "WEIGHT_LOSS" as Goal, label: getGoalLabel("WEIGHT_LOSS", locale) },
-    { value: "MUSCLE_BUILDING" as Goal, label: getGoalLabel("MUSCLE_BUILDING", locale) },
-    { value: "STRENGTH" as Goal, label: getGoalLabel("STRENGTH", locale) },
-    { value: "GENERAL_FITNESS" as Goal, label: getGoalLabel("GENERAL_FITNESS", locale) },
-    { value: "WEIGHT_GAIN" as Goal, label: getGoalLabel("WEIGHT_GAIN", locale) },
-    { value: "REHAB" as Goal, label: getGoalLabel("REHAB", locale) },
-  ]
-
   const { register, handleSubmit, setError, control, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(joinClientSchema),
-    defaultValues: { fullName: "", phone: "", password: "", confirmPassword: "", goal: undefined as unknown as Goal },
+    defaultValues: { fullName: "", phone: "", password: "", confirmPassword: "", goals: [] },
   })
 
   async function onSubmit(values: FormValues) {
@@ -104,18 +96,32 @@ export function JoinForm({ slug, trainerName }: { slug: string; trainerName: str
             {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>}
           </div>
           <div className="grid gap-2">
-            <Label>{t.invite.form.goal} *</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-semibold">{t.invite.form.goal} *</Label>
+              <Controller
+                control={control}
+                name="goals"
+                render={({ field }) => (
+                  (field.value?.length ?? 0) > 0 ? (
+                    <span className="text-xs font-semibold text-brand-600 dark:text-brand-400">
+                      {locale === "ar" ? `(تم اختيار ${field.value.length})` : `(${field.value.length} selected)`}
+                    </span>
+                  ) : <span />
+                )}
+              />
+            </div>
             <Controller
               control={control}
-              name="goal"
+              name="goals"
               render={({ field }) => (
-                <Select value={field.value ?? ""} onValueChange={field.onChange} disabled={isPending}>
-                  <SelectTrigger className="w-full"><SelectValue placeholder={t.invite.form.selectGoal} /></SelectTrigger>
-                  <SelectContent>{goalOptions.map((o) => <SelectItem key={o.value} value={o.value}>{o.label ?? o.value}</SelectItem>)}</SelectContent>
-                </Select>
+                <MultiGoalPicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={isPending}
+                  error={errors.goals?.message}
+                />
               )}
             />
-            {errors.goal && <p className="text-sm text-destructive">{errors.goal.message}</p>}
           </div>
           <p className="text-xs text-muted-foreground">{t.invite.form.assessmentLater ?? "Assessment will be completed later by your coach."}</p>
           <Button type="submit" className="w-full" disabled={isPending}>

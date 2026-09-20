@@ -22,9 +22,7 @@ export const inviteBasicInfoSchema = z.object({
     .string()
     .trim()
     .regex(/^\d{11}$/, "Enter a valid 11-digit phone number"),
-  goal: z.nativeEnum(Goal, {
-    message: "Select a goal",
-  }),
+  goals: z.array(z.nativeEnum(Goal)).min(1, "Select at least one goal"),
 })
 
 const inviteAccountFields = z.object({
@@ -46,9 +44,7 @@ export const joinClientSchema = z
       .string()
       .trim()
       .regex(/^\d{11}$/, "Enter a valid 11-digit phone number"),
-    goal: z.nativeEnum(Goal, {
-      message: "Select a goal",
-    }),
+    goals: z.array(z.nativeEnum(Goal)).min(1, "Select at least one goal"),
     password: z
       .string()
       .min(8, "Password must be at least 8 characters")

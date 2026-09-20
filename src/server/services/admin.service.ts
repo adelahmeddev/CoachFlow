@@ -15,6 +15,7 @@ import {
 } from "@/lib/validations/admin"
 import { pickCurrentSubscription } from "@/server/services/subscription.service"
 import { withCache, toIso } from "@/lib/cache"
+import { parseGoals } from "@/lib/goals"
 
 export async function getAdminDashboardStats() {
   return withCache(
@@ -254,7 +255,7 @@ export async function getAdminClients(params: AdminClientsQuery) {
     idx++
   }
   if (params.goal) {
-    whereParts.push(`c."goal" = $${idx}::"Goal"`)
+    whereParts.push(`$${idx}::"Goal" = ANY(c."goals")`)
     whereParams.push(params.goal)
     idx++
   }
@@ -280,7 +281,7 @@ export async function getAdminClients(params: AdminClientsQuery) {
       id: string
       fullName: string | null
       phone: string | null
-      goal: Goal | null
+      goals: Goal[]
       status: ClientStatus
       birthDate: Date | null
       basicInfoCompletedAt: Date | null
@@ -288,7 +289,7 @@ export async function getAdminClients(params: AdminClientsQuery) {
       trainerId: string | null
       trainerFullName: string | null
     }>(
-      `SELECT c."id", c."fullName", c."phone", c."goal", c."status", c."birthDate", c."basicInfoCompletedAt", c."createdAt",
+      `SELECT c."id", c."fullName", c."phone", c."goals", c."status", c."birthDate", c."basicInfoCompletedAt", c."createdAt",
               tp."id" AS "trainerId", tp."fullName" AS "trainerFullName"
        FROM "Client" c
        LEFT JOIN "TrainerProfile" tp ON tp."id" = c."trainerId"
@@ -304,7 +305,7 @@ export async function getAdminClients(params: AdminClientsQuery) {
     id: r.id,
     fullName: r.fullName,
     phone: r.phone,
-    goal: r.goal,
+    goals: parseGoals(r.goals),
     status: r.status,
     birthDate: r.birthDate,
     basicInfoCompletedAt: r.basicInfoCompletedAt,

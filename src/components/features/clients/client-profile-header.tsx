@@ -14,6 +14,7 @@ import {
   getGoalLabel,
 } from "@/lib/constants"
 import { calcAge } from "@/lib/format"
+import { parseGoals } from "@/lib/goals"
 import { getI18n } from "@/lib/i18n"
 import { getAppUrl } from "@/lib/app-url"
 
@@ -97,9 +98,11 @@ export async function ClientProfileHeader({ profile }: ClientProfileHeaderProps)
                     {name}
                   </h1>
                   <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                    <Badge variant={getGoalBadgeVariant(client.goal)} className="h-5 px-2 text-[11px] font-medium">
-                      {getGoalLabel(client.goal) ?? t.profile.overview.noGoalSet}
-                    </Badge>
+                    {(parseGoals(client.goals).length > 0 ? parseGoals(client.goals) : [null]).map((g, i) => (
+                      <Badge key={i} variant={getGoalBadgeVariant(g)} className="h-5 px-2 text-[11px] font-medium">
+                        {g ? (getGoalLabel(g) ?? g) : t.profile.overview.noGoalSet}
+                      </Badge>
+                    ))}
                     <Badge variant={getClientStatusBadgeVariant(client.status)} className="h-5 px-2 text-[11px]">
                       {getClientStatusLabel(client.status)}
                     </Badge>

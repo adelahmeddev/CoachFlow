@@ -69,7 +69,7 @@ export type Client = {
   fullName: string | null
   birthDate: Date | null
   phone: string | null
-  goal: Goal | null
+  goals: Goal[]
   status: ClientStatus
   inviteToken: string | null
   inviteExpiresAt: Date | null

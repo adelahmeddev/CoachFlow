@@ -139,7 +139,7 @@ export function ClientsTable({ clients }: ClientsTableProps) {
             </div>
 
             <div className="mb-3 flex flex-wrap gap-1.5">
-              <ClientGoalBadge goal={client.goal} />
+              <ClientGoalBadge goals={client.goals} />
               <ClientStatusBadge status={client.status} />
               {client.subscription ? (
                 <SubscriptionBadge
@@ -234,7 +234,7 @@ export function ClientsTable({ clients }: ClientsTableProps) {
                     : "—"}
                 </TableCell>
                 <TableCell className="py-3.5">
-                  <ClientGoalBadge goal={client.goal} />
+                  <ClientGoalBadge goals={client.goals} />
                 </TableCell>
                 <TableCell className="py-3.5">
                   <ClientStatusBadge status={client.status} />

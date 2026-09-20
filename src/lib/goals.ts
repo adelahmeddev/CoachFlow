@@ -6,7 +6,53 @@
  * coach-entered `currentValue`.
  */
 
-import type { GoalType } from "@/lib/db/enums"
+import type { Goal, GoalType } from "@/lib/db/enums"
+
+/**
+ * Safely parses goals from any format (Array, Postgres array string "{A,B}", JSON string, or single string)
+ * into a strongly-typed Goal[] array. Always returns an array, never throws.
+ */
+export function parseGoals(goals: unknown): Goal[] {
+  if (!goals) return []
+  if (Array.isArray(goals)) {
+    return goals
+      .map((g) => (typeof g === "string" ? g.trim() : ""))
+      .filter(Boolean) as Goal[]
+  }
+  if (typeof goals === "string") {
+    const trimmed = goals.trim()
+    if (!trimmed || trimmed === "{}" || trimmed === "[]") return []
+
+    // JSON array string e.g. '["WEIGHT_LOSS"]'
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(trimmed)
+        if (Array.isArray(parsed)) {
+          return parsed
+            .map((g) => (typeof g === "string" ? g.trim() : ""))
+            .filter(Boolean) as Goal[]
+        }
+      } catch {
+        // fallback below
+      }
+    }
+
+    // Postgres array format e.g. "{WEIGHT_LOSS,MUSCLE_BUILDING}"
+    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+      const inner = trimmed.slice(1, -1).trim()
+      if (!inner) return []
+      return inner
+        .split(",")
+        .map((s) => s.trim().replace(/^"|"$/g, "").trim())
+        .filter(Boolean) as Goal[]
+    }
+
+    // Single goal string
+    return [trimmed as Goal]
+  }
+  return []
+}
+
 
 export const AUTO_SYNCED_GOAL_TYPES: GoalType[] = ["WEIGHT", "BODY_FAT", "MUSCLE"]
 

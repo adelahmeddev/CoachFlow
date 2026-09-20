@@ -5,6 +5,7 @@ import {
   type ClientCreateInput,
 } from "@/lib/validations/client"
 import { invalidateDashboard } from "@/lib/cache"
+import { parseGoals } from "@/lib/goals"
 
 export async function createClientManually(
   trainerProfileId: string,
@@ -34,16 +35,17 @@ export async function createClientManually(
   try {
     const id = generateId()
     const now = new Date()
+    const goalsArray = `{${(data.goals ?? []).join(",")}}`
     const res = await pool.query(
-      `INSERT INTO "Client" ("id", "trainerId", "fullName", "phone", "birthDate", "goal", "status", "createdAt", "updatedAt")
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$8) RETURNING "id"`,
+      `INSERT INTO "Client" ("id", "trainerId", "fullName", "phone", "birthDate", "goals", "status", "createdAt", "updatedAt")
+       VALUES ($1,$2,$3,$4,$5,$6::"Goal"[],$7,$8,$8) RETURNING "id"`,
       [
         id,
         trainerProfileId,
         data.fullName,
         data.phone ?? null,
         data.birthDate ?? null,
-        data.goal ?? null,
+        goalsArray,
         data.status,
         now,
       ]
@@ -102,8 +104,8 @@ export async function getTrainerClients(
     paramIdx++
   }
   if (params.goal) {
-    whereClauses.push(`"goal" = $${paramIdx}::"Goal"`)
-    conditions.push(`"goal" = $${paramIdx}::"Goal"`)
+    whereClauses.push(`$${paramIdx}::"Goal" = ANY("goals")`)
+    conditions.push(`$${paramIdx}::"Goal" = ANY("goals")`)
     queryParams.push(params.goal)
     countParams.push(params.goal)
     paramIdx++
@@ -115,7 +117,7 @@ export async function getTrainerClients(
   const [totalRes, clientsRes] = await Promise.all([
     pool.query(`SELECT COUNT(*)::int AS count FROM "Client" WHERE ${countWhereSql}`, countParams),
     pool.query(
-      `SELECT "id", "fullName", "phone", "birthDate", "goal", "status", "basicInfoCompletedAt", "createdAt"
+      `SELECT "id", "fullName", "phone", "birthDate", "goals", "status", "basicInfoCompletedAt", "createdAt"
        FROM "Client" WHERE ${whereSql}
        ORDER BY "createdAt" DESC
        LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
@@ -129,7 +131,7 @@ export async function getTrainerClients(
     fullName: string | null
     phone: string | null
     birthDate: Date | null
-    goal: Goal | null
+    goals: Goal[]
     status: ClientStatus
     basicInfoCompletedAt: Date | null
     createdAt: Date
@@ -165,7 +167,7 @@ export async function getTrainerClients(
   const rows = clients.map((client) => {
     const subs = subscriptionsByClient.get(client.id) ?? []
     const preferred = subs[0] ?? null
-    return { ...client, subscription: preferred }
+    return { ...client, goals: parseGoals(client.goals), subscription: preferred }
   })
 
   return {
@@ -225,6 +227,7 @@ export async function getTrainerClient(
 
   return {
     ...client,
+    goals: parseGoals(client.goals),
     trainer: trainer.rows[0] ?? null,
     bodyCompositions: bodyCompositions.rows,
     subscriptions: subscriptions.rows,

@@ -59,7 +59,8 @@ export interface TemplateRow {
 export interface AssignableClient {
   id: string
   fullName: string
-  goal: Goal | null
+  goals?: Goal[]
+  goal?: Goal | null
 }
 
 export function NutritionTemplatesTable({
@@ -86,7 +87,10 @@ export function NutritionTemplatesTable({
           .toLowerCase()
           .includes(search.toLowerCase())
         const matchesGoal =
-          goalFilter === "ALL" || client.goal === goalFilter
+          goalFilter === "ALL" ||
+          (client.goals
+            ? client.goals.includes(goalFilter as Goal)
+            : client.goal === goalFilter)
         return matchesSearch && matchesGoal
       }),
     [clients, search, goalFilter]
@@ -258,7 +262,7 @@ export function NutritionTemplatesTable({
               <SelectTrigger className="w-full min-h-[44px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">{t.common.all}</SelectItem>
-                {[...new Set(clients.map((c) => c.goal).filter(Boolean))].map((goal) => (
+                {[...new Set(clients.flatMap((c) => (c.goals && c.goals.length > 0 ? c.goals : c.goal ? [c.goal] : [])))].map((goal) => (
                   <SelectItem key={goal as string} value={goal as string}>{goalLabelText(goal as Goal)}</SelectItem>
                 ))}
               </SelectContent>

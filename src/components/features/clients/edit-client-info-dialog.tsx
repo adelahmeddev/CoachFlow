@@ -4,11 +4,14 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm, Controller } from "react-hook-form"
 import { toast } from "sonner"
-import { Loader2, Pencil } from "lucide-react"
+import { Loader2, Pencil, Check } from "lucide-react"
 import { useI18n } from "@/lib/i18n/client"
 import { lookup } from "@/lib/i18n/lookup"
 import { updateClientInfoAction } from "@/server/actions/update-client"
 import type { Goal } from "@/lib/db/enums"
+import { parseGoals } from "@/lib/goals"
+import { MultiGoalPicker } from "@/components/features/goals/multi-goal-picker"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -29,7 +32,7 @@ interface EditClientInfoDialogProps {
     fullName: string
     phone: string
     birthDate: string
-    goal: string
+    goals: Goal[] | unknown
     status: string
     coachingMode: string
     workoutDisplayMode: string
@@ -37,14 +40,6 @@ interface EditClientInfoDialogProps {
   trigger?: React.ReactNode
 }
 
-const GOALS = [
-  { value: "WEIGHT_LOSS" as Goal, labelEn: "Weight Loss", labelAr: "إنقاص الوزن" },
-  { value: "MUSCLE_BUILDING" as Goal, labelEn: "Muscle Building", labelAr: "بناء العضلات" },
-  { value: "STRENGTH" as Goal, labelEn: "Strength", labelAr: "قوة" },
-  { value: "GENERAL_FITNESS" as Goal, labelEn: "General Fitness", labelAr: "لياقة عامة" },
-  { value: "WEIGHT_GAIN" as Goal, labelEn: "Weight Gain", labelAr: "زيادة الوزن" },
-  { value: "REHAB" as Goal, labelEn: "Rehab", labelAr: "تأهيل" },
-]
 
 const STATUSES = [
   { value: "INVITED", labelEn: "Invited", labelAr: "مدعو" },
@@ -57,7 +52,7 @@ type FormValues = {
   fullName: string
   phone: string
   birthDate: string
-  goal: Goal | undefined
+  goals: Goal[]
   status: "INVITED" | "PENDING_ASSESSMENT" | "ACTIVE" | "PAUSED"
   coachingMode: "ONLINE" | "IN_PERSON"
   workoutDisplayMode: "FULL" | "DAY_NAME_ONLY"
@@ -78,7 +73,7 @@ export function EditClientInfoDialog({
       fullName: initial.fullName,
       phone: initial.phone,
       birthDate: initial.birthDate,
-      goal: (initial.goal as Goal) || undefined,
+      goals: parseGoals(initial.goals),
       status: (initial.status as FormValues["status"]) || "ACTIVE",
       coachingMode: (initial.coachingMode as FormValues["coachingMode"]) || "ONLINE",
       workoutDisplayMode: (initial.workoutDisplayMode as FormValues["workoutDisplayMode"]) || "FULL",
@@ -148,24 +143,24 @@ export function EditClientInfoDialog({
               <Label>{isAr ? "تاريخ الميلاد" : "Birth Date"}</Label>
               <Input type="date" {...form.register("birthDate")} />
             </div>
-            <div className="space-y-2">
-              <Label>{isAr ? "الهدف" : "Goal"}</Label>
+            <div className="space-y-2 sm:col-span-2">
+              <div className="flex items-center justify-between">
+                <Label>{isAr ? "الأهداف" : "Goals"}</Label>
+                {(form.watch("goals")?.length ?? 0) > 0 && (
+                  <span className="text-xs font-medium text-brand-600 dark:text-brand-400">
+                    {isAr ? `(تم اختيار ${form.watch("goals").length})` : `(${form.watch("goals").length} selected)`}
+                  </span>
+                )}
+              </div>
               <Controller
                 control={form.control}
-                name="goal"
+                name="goals"
                 render={({ field }) => (
-                  <Select value={field.value || ""} onValueChange={(v) => field.onChange(v || undefined)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={isAr ? "اختر الهدف" : "Select goal"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {GOALS.map((g) => (
-                        <SelectItem key={g.value} value={g.value}>
-                          {isAr ? g.labelAr : g.labelEn}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <MultiGoalPicker
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={isSubmitting}
+                  />
                 )}
               />
             </div>

@@ -155,15 +155,16 @@ export async function submitClientBasicInfo(
     }
   }
 
-  const { fullName, birthDate, phone, goal } = parsed.data as typeof parsed.data & { status?: string }
+  const { fullName, birthDate, phone, goals } = parsed.data as typeof parsed.data & { status?: string }
   const statusValue =
     (parsed.data as unknown as { status?: string }).status != null
       ? STATUS_MAP[(parsed.data as unknown as { status: keyof typeof STATUS_MAP }).status] ?? ClientStatus.PENDING_ASSESSMENT
       : ClientStatus.PENDING_ASSESSMENT
 
+  const goalsArray = `{${(goals as string[]).join(",")}}`
   await pool.query(
-    `UPDATE "Client" SET "fullName" = $1, "birthDate" = $2, "phone" = $3, "goal" = $4::"Goal", "status" = $5::"ClientStatus", "basicInfoCompletedAt" = $6, "updatedAt" = NOW() WHERE "id" = $7`,
-    [fullName, new Date(`${birthDate}T00:00:00Z`), phone, goal as string, statusValue, new Date(), invite.clientId]
+    `UPDATE "Client" SET "fullName" = $1, "birthDate" = $2, "phone" = $3, "goals" = $4::"Goal"[], "status" = $5::"ClientStatus", "basicInfoCompletedAt" = $6, "updatedAt" = NOW() WHERE "id" = $7`,
+    [fullName, new Date(`${birthDate}T00:00:00Z`), phone, goalsArray, statusValue, new Date(), invite.clientId]
   )
 
   return { ok: true }
@@ -230,7 +231,7 @@ export async function submitJoinClient(
       fieldErrors: parsed.error.flatten().fieldErrors,
     }
   }
-  const { fullName, phone, goal, password } = parsed.data
+  const { fullName, phone, goals, password } = parsed.data
   const existing = await pool.query(`SELECT "id" FROM "Client" WHERE "trainerId" = $1 AND "phone" = $2 LIMIT 1`, [trainer.trainerProfileId, phone])
   if (existing.rowCount && existing.rowCount > 0) {
     return { ok: false, error: "A client with this phone number already exists for this trainer.", fieldErrors: { phone: ["Phone already registered"] } }
@@ -246,10 +247,11 @@ export async function submitJoinClient(
          VALUES ($1, $2, $3, $4, $5::"Role", $6, $6)`,
         [userId, phone, phone, passwordHash, "CLIENT", now]
       )
+      const goalsArray = `{${(goals as string[]).join(",")}}`
       const res = await tx.query(
-        `INSERT INTO "Client" ("id", "trainerId", "fullName", "phone", "goal", "status", "basicInfoCompletedAt", "userId", "createdAt", "updatedAt")
-         VALUES ($1, $2, $3, $4, $5::"Goal", $6::"ClientStatus", $7, $8, $9, $9) RETURNING "id"`,
-        [clientId, trainer.trainerProfileId, fullName, phone, goal as string, ClientStatus.PENDING_ASSESSMENT, now, userId, now]
+        `INSERT INTO "Client" ("id", "trainerId", "fullName", "phone", "goals", "status", "basicInfoCompletedAt", "userId", "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, $4, $5::"Goal"[], $6::"ClientStatus", $7, $8, $9, $9) RETURNING "id"`,
+        [clientId, trainer.trainerProfileId, fullName, phone, goalsArray, ClientStatus.PENDING_ASSESSMENT, now, userId, now]
       )
       return res.rows[0] as { id: string }
     })

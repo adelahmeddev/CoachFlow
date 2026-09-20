@@ -2,6 +2,7 @@ import { pool, generateId, withTransaction } from "@/lib/db"
 import { PlanStatus, ScheduleMode, TrainingDayFocus, type WorkoutDisplayMode } from "@/lib/db/enums"
 import type { BodyComposition, DailyLog, ProgressReview, Subscription } from "@/lib/db/types"
 import { withCache } from "@/lib/cache"
+import { parseGoals } from "@/lib/goals"
 import { parseSetData } from "@/lib/calculations/session-progress"
 import { getClientWeekBoard, getDayDetail } from "@/server/services/week.service"
 
@@ -44,7 +45,7 @@ export async function getClientHomeData(clientId: string) {
     fullName: string | null
     phone: string | null
     email: string | null
-    goal: string | null
+    goals: string[]
     status: string
     userId: string | null
   }
@@ -94,7 +95,7 @@ export async function getClientHomeData(clientId: string) {
       fullName: client.fullName,
       phone: client.phone,
       email: client.email,
-      goal: client.goal,
+      goals: parseGoals(client.goals),
       status: client.status,
       streak: dailyLogsRes.rows.length > 0 ? 1 : 0,
     },

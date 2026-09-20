@@ -219,7 +219,8 @@ D:\coach/
 │   │   │   ├── checkin/               # ScalePicker (1-5), mood/sleep/notes, CelebrationBurst
 │   │   │   ├── client/                # CoachHeroSection, MacroCards, CoachSocialFooter + week/BentoWeekMatrix (bento grid) + week/DayDetailSheet (preview drawer)
 │   │   │   ├── clients/               # Coach CRM (ClientsGrid, ClientProfileHeader, SectionNav)
-│   │   │   ├── dashboard/             # NeedsActionSection, StatCard, TodayInGym
+│   │   │   ├── dashboard/             # NeedsActionSection, StatCard, TodayInGym, QuickActionDialog (+)
+│   │   │   ├── search/                # GlobalSearchDialog (Cmd+K command palette)
 │   │   │   ├── goals/                 # GoalCard, InBody auto-sync indicator, GoalForm
 │   │   │   ├── media/                 # MediaGallery, MediaUploadForm, coach feedback dialog
 │   │   │   ├── messages/              # ChatThread, ConversationList, MessageComposer, quick chips
@@ -227,14 +228,25 @@ D:\coach/
 │   │   │   ├── nutrition/             # NutritionBuilder, ClientNutritionView + MacroConcentricRing (calorie HUD) + MealOverviewCard (meal cards) + MealDetailDrawer (main/alternative sheet)
 │   │   │   ├── progress/              # ChartsClient (lazy Recharts), ProgressRing, strength charts
 │   │   │   ├── subscription/          # SubscriptionForm, PaymentProofReview, UseSessionButton
-│   │   │   └── training-split/        # TrainingSplitForm (dynamically loaded), DaysEditor, SafetyWarningDialog
-│   │   ├── layout/                    # app-top-nav.tsx, background-orbs.tsx, ClientBottomNav (unmounted), WelcomeTicker, LanguageSwitcher, ThemeToggle
+│   │   │   └── training-split/        # Liquid Glass Workout Split Builder:
+│   │   │       ├── liquid-glass/      # GlassSheen, GlassCard (dynamic focus backlights), GlassConfirmDialog
+│   │   │       ├── split-starter-hub.tsx      # 4-path non-destructive starter (Presets, Templates, Clones, Scratch)
+│   │   │       ├── template-preview-drawer.tsx # Full template days/exercises inspection before applying
+│   │   │       ├── weekday-strip-selector.tsx  # 1-click visual 7-day scheduler with duplicate auto-swap
+│   │   │       ├── batch-exercise-picker.tsx   # Large 3-column exercise catalog, video demo inspector, queue tray
+│   │   │       ├── live-volume-radar.tsx       # Real-time muscle group set volume & balance telemetry
+│   │   │       ├── floating-builder-dock.tsx   # Sticky floating dock with live stats & primary actions
+│   │   │       ├── days-editor.tsx             # Collapsible day pods + in-day exercise up/down reordering
+│   │   │       ├── training-split-form.tsx     # Safe preset state coordinator & validation engine
+│   │   │       ├── template-form.tsx           # Master template authoring form with Liquid Glass
+│   │   │       └── safety-warning-dialog.tsx   # Medical contraindication conflict solver
+│   │   ├── layout/                    # app-top-nav.tsx, background-orbs.tsx, TrainerBottomNav (Liquid Glass mobile dock), ClientBottomNav (unmounted), WelcomeTicker, LanguageSwitcher, ThemeToggle
 │   │   ├── providers.tsx              # SessionProvider, LocaleProvider, Direction, Toaster
 │   │   └── ui/                        # Radix primitives & custom fitness widgets (FitnessCard, etc.)
 │   │
 │   ├── server/                        # Backend Domain Logic (Server-Only)
 │   │   ├── auth.ts                    # NextAuth configuration, session resolvers, Upstash sliding-window rate limiter
-│   │   ├── actions/                   # 25 Server Action files handling state mutations
+│   │   ├── actions/                   # 26 Server Action files (includes search.ts for unified global search)
 │   │   ├── services/                  # 29 Domain Service files handling business logic & SQL
 │   │   ├── automation/
 │   │   │   └── jobs.ts                # Advisory-locked cron jobs: expiry, milestones, reminders
@@ -748,6 +760,36 @@ flowchart LR
   5. **Progress**: InBody trends, strength progressions, and media submissions.
   6. **Subscription**: Active package terms, remaining PT sessions, and payment receipts.
 
+### 9.4 Global Command Palette & Unified Search (`Cmd+K` / `Ctrl+K`)
+- **Engine (`src/server/actions/search.ts`)**: Server Action `globalSearchAction(query)` executing parallelized, tenant-isolated parameterized SQL queries across 5 core entities:
+  1. **Clients**: matched against `fullName`, `phone`, and `email` (`WHERE "trainerProfileId" = $1 AND ...`).
+  2. **Global & Custom Exercises**: matched against `name`, `nameAr`, `muscleGroup`, and `equipment`.
+  3. **Workout Templates**: matched against `name` and `description` scoped to the authenticated coach.
+  4. **Nutrition Templates**: matched against `name` and `description`.
+  5. **Blog & Transformation Posts**: matched against `title` and `category`.
+- **Command Dialog (`src/components/features/search/global-search-dialog.tsx`)**:
+  - Global keyboard listener (`Meta+K` on macOS, `Ctrl+K` on Windows/Linux).
+  - Liquid Glass modal shell with `backdrop-blur-2xl`, auto-focused input, keyboard arrow navigation, and category filter pills.
+  - Direct routing: selecting an item navigates immediately to the relevant sub-route (e.g. `/clients/[id]?tab=workout` or `/training-split-templates/[id]/edit`).
+
+### 9.5 Quick Action Floating Trigger (`+`)
+- **Implementation (`src/components/features/dashboard/quick-action-dialog.tsx`)**:
+- High-velocity modal launcher accessible from the coach dashboard and mobile navigation.
+- Provides direct 1-click navigation shortcuts to eliminate repetitive multi-step menu traversals:
+  - **Add Client**: instant jump to invite token generator (`/onboarding`).
+  - **New Workout Split**: instant jump to workout split template builder (`/training-split-templates/new`).
+  - **New Nutrition Plan**: instant jump to meal template builder (`/nutrition-templates/new`).
+  - **Compose Message**: instant jump to client conversations hub (`/messages`).
+  - **Publish Educational Post**: instant jump to transformation blog creator (`/blog/new`).
+
+### 9.6 Coach Mobile Liquid Glass Navigation Dock
+- **Implementation (`src/components/layout/trainer-bottom-nav.tsx`)**:
+- Specialized floating bottom dock active on mobile viewports (`md:hidden`) engineered with iOS 26 Liquid Glass design language:
+  - **Glass Material**: `rounded-[2rem] border border-white/10 bg-background/70 shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-2xl supports-[backdrop-filter]:bg-background/55 dark:border-white/5`.
+  - **Core Route Hubs**: Dashboard, Clients CRM, Messages, and More (Drawer opening Settings, Templates, Subscriptions, Blog).
+  - **Central Elevated Action (+)**: Opens the `QuickActionDialog` with glowing brand accent.
+  - **Real-Time Unread Badge**: Subscribed to `useUnreadCount` to display live message badges without polling.
+
 ---
 
 ## 10. Client Onboarding
@@ -877,6 +919,64 @@ If conflicts exist, the UI triggers a `SafetyWarningDialog`, highlighting contra
   - Hero shows live set progress (actual vs target sets from the day detail); completed/other-done tiles use restrained emerald, upcoming tiles clean glass.
 - **`DAY_NAME_ONLY` enforcement** (`Client.workoutDisplayMode`, set by coach in client settings): mode is threaded through `getClientWeekBoard` / `getDayDetail` / `getTodayWorkout` payloads; `getMyDayDetailAction` sanitizes previews to `exercises: []`; bento hero/tiles/sheet and `TodayWorkoutCard` hide counts, set bars, lineups, and start CTAs (sheet shows a day-name-only glass notice); `/workout/today` renders a locked day-name view and `/workout/session` redirects to `/client/week` — execution logging stays fully available in `FULL` mode only. Coach-side `updateClientInfoAction` busts `client:{id}:workout` cache so toggles apply immediately.
 - **Files**: `src/components/features/client/week/bento-week-matrix.tsx` (matrix + `GlassSheen` specular helper), `day-detail-sheet.tsx`, `rest-day-card.tsx`. Obsolete `week-board.tsx` / `day-card.tsx` were removed (focus icon/label maps moved into the matrix).
+
+### 11.6 Liquid Glass Workout Split Builder Architecture
+The Training Split Builder (`src/components/features/training-split/`) has been completely overhauled with a state-of-the-art **iOS 26 Liquid Glass & Glassmorphism design system** and an ergonomic, high-velocity creation workflow.
+
+```mermaid
+flowchart TD
+    Hub[SplitStarterHub] -->|1. Presets PPL, UL, FB, Bro| S[State Coordinator: TrainingSplitForm]
+    Hub -->|2. Template Preview Drawer| S
+    Hub -->|3. Client Split Clone| S
+    Hub -->|4. Blank Canvas| S
+    
+    S --> W[1-Click Visual Weekday Strip]
+    S --> DP[Collapsible Day Pods: DaysEditor]
+    
+    DP --> BP[BatchExercisePicker: 3-Col Grid + Inspector]
+    DP --> RE[In-Day Exercise Reordering]
+    
+    S --> VR[LiveVolumeRadar: Muscle Set Telemetry]
+    S --> DOCK[FloatingBuilderDock: Sticky Actions & Stats]
+    S --> CONFIRM[GlassConfirmDialog: Zero Work Overwrite]
+```
+
+### 11.7 Non-Destructive Split & Template Starter Hub
+- **Component (`src/components/features/training-split/split-starter-hub.tsx`)**:
+  - Houses 4 distinct starting vectors: Curated Presets (PPL 6-Day, Upper/Lower 4-Day, Full Body 3-Day, Bro Split 5-Day), Coach Templates, Client Clones, and Blank Custom Days.
+  - Segmented mode switcher with live counts and collapsible tray for maximum screen conservation.
+- **Template Preview Drawer (`template-preview-drawer.tsx`)**:
+  - Slide-over sheet allowing coaches to inspect the complete day-by-day lineup, target sets, reps, and exercise notes of any template before deciding to apply it.
+- **Safe Switching Protection (`GlassConfirmDialog`)**:
+  - Unlike legacy implementations where changing split types or templates silently destroyed coach progress, the engine detects existing exercises (`hasExistingExercises`).
+  - If exercises are populated, an animated Liquid Glass confirmation modal (`GlassConfirmDialog`) guards the action, preventing accidental work loss.
+  - Completely replaces deprecated browser-blocking `window.confirm()`.
+
+### 11.8 High-Velocity Batch Exercise Catalog & Video Demo Inspector
+- **Component (`src/components/features/training-split/batch-exercise-picker.tsx`)**:
+  - **Viewport-Filling Modal**: Overrides narrow defaults with `sm:max-w-6xl lg:max-w-7xl w-[96vw] h-[92vh]` in deep frosted Liquid Glass (`bg-neutral-950/95 backdrop-blur-3xl border-white/20`).
+  - **Rich Header**: Auto-focused search bar with instant keyword matching across English/Arabic names, equipment, and target muscles.
+  - **Muscle Group Filter Bar**: Horizontal scrollable pill strip with live exercise counts and categorical color dots (Chest, Back, Quads, Hamstrings, Glutes, Shoulders, Arms, Core, Cardio).
+  - **3-Column Exercise Card Grid**: Interactive glass cards displaying bilingual titles, muscle badges, equipment tags, default volume pills (`3 × 10 · 90s`), and custom checkbox indicators with spring feedback.
+  - **Master-Detail Desktop Inspector**:
+    - **Video Mode**: Embedded YouTube demonstration player with exercise technique guides and target muscle metadata.
+    - **Selected Tray Mode**: Itemized queue selected exercises with one-click deletion and live total planned set counter (`~M Planned Sets`).
+  - **Bulk Insertion**: One-click "Add (N) to Day X" instantly inserts all chosen movements with pre-configured default sets and rest timers.
+
+### 11.9 Visual 7-Day Weekday Scheduling Matrix & Auto-Swap
+- **Component (`src/components/features/training-split/weekday-strip-selector.tsx`)**:
+  - Replaces cumbersome `<Select>` dropdowns on each day card with an interactive horizontal 7-day pill strip (`Sat` through `Fri`).
+  - **Smart Duplicate Resolution**: If a coach taps a weekday already claimed by another workout day, the system executes an automated two-way swap, maintaining a conflict-free weekly schedule with zero friction.
+
+### 11.10 Real-Time Weekly Volume Radar & Floating Action Dock
+- **Live Volume Radar (`src/components/features/training-split/live-volume-radar.tsx`)**:
+  - Real-time client-side telemetry aggregating total planned sets across every muscle group.
+  - Renders color-coded badges indicating weekly set volume (e.g., Chest: 14 sets, Back: 16 sets, Legs: 18 sets) to ensure balanced hypertrophy programming.
+- **Floating Builder Dock (`src/components/features/training-split/floating-builder-dock.tsx`)**:
+  - Pinned floating glass dock at the bottom of the viewport with hairline specular highlight (`GlassSheen`).
+  - Houses real-time telemetry metrics (Days count, Total exercises, Safety conflict indicator) and sticky primary Save / Discard buttons, eliminating the need to scroll to the page bottom.
+- **Template Form Alignment**:
+  - The master template editor (`/training-split-templates/new` and edit) utilizes the identical `DaysEditor`, `LiveVolumeRadar`, and `GlassCard` primitives for unified coach ergonomics.
 
 ---
 
@@ -1546,6 +1646,28 @@ The client portal (`/client/(portal)/*`) is engineered specifically for mobile v
 - **`ClientBottomNav`**: defined but currently unmounted — not rendered on any route.
 - **Viewport Metas**: Configured with `viewport-fit=cover` and safe-area padding for iOS notch and home-indicator integration.
 
+### 25.4 iOS 26 Liquid Glass Design System Specification
+CoachFlow pioneers an advanced **iOS 26 Liquid Glass design language**, providing tactile depth, dynamic refraction, and luminous visual feedback across workout builders, navigation bars, and modals:
+
+1. **Material Architecture (`GlassCard`)**:
+   - Multi-layered frosted glass composite: `backdrop-blur-2xl bg-gradient-to-b from-white/[0.08] via-white/[0.03] to-neutral-950/70 border border-white/15 dark:border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.20),inset_0_-1px_1px_rgba(0,0,0,0.25),0_12px_40px_rgba(0,0,0,0.30)]`.
+   - GPU hardware acceleration enabled via `transform-gpu` to preserve consistent 60/120fps scrolling.
+2. **Specular Light Engine (`GlassSheen`)**:
+   - A static, zero-runtime-cost specular lighting primitive (`src/components/features/training-split/liquid-glass/glass-sheen.tsx`).
+   - Injects a top-edge hairline gradient (`via-white/40`) and soft corner specular glints (`blur-2xl`) simulating natural optical refraction without WebGL overhead.
+3. **Dynamic Workout Focus Backlights**:
+   - Workout day pods dynamically project ambient backlights reflecting their training focus:
+     - **PUSH**: Amber / Orange radial emission (`rgba(245,158,11,0.18)`).
+     - **PULL**: Sky / Cobalt radial emission (`rgba(56,189,248,0.18)`).
+     - **LEGS**: Violet / Purple radial emission (`rgba(168,85,247,0.18)`).
+     - **UPPER**: Indigo / Blue radial emission (`rgba(99,102,241,0.18)`).
+     - **LOWER**: Teal / Emerald radial emission (`rgba(20,184,166,0.18)`).
+     - **CARDIO & MOBILITY**: Rose & Emerald radial emissions.
+4. **Floating Action Docks**:
+   - Screen-pinned translucent docks (`FloatingBuilderDock` and `TrainerBottomNav`) providing elevated controls with backdrop blur (`backdrop-blur-2xl`), live telemetry counters, and glowing primary action triggers.
+5. **Non-Blocking Glass Modals**:
+   - Modals (`GlassConfirmDialog`, `BatchExercisePicker`, `GlobalSearchDialog`) employ floating rounded-3xl glass containers, replacing native browser alerts and narrow dialogs with spacious, responsive canvases.
+
 ---
 
 ## 26. Current Feature Inventory
@@ -1605,12 +1727,21 @@ The client portal (`/client/(portal)/*`) is engineered specifically for mobile v
 | **Database**| Read Replica Query Routing | ✅ Implemented | SYSTEM | `replicaPool` / `replicaQuery` in `src/lib/db.ts` |
 | **CI/CD**   | Automated CI Quality Pipeline | ✅ Implemented | SYSTEM | `.github/workflows/ci.yml` (typecheck, lint, test, build) |
 | **Testing** | Calculation Unit Test Suite | ✅ Implemented | SYSTEM | `tests/pure-calculations.test.ts` (98 tests across 33 suites) |
+| **Search**  | Global Command Palette (`Cmd+K`) & Multi-Entity Search | ✅ Implemented | COACH | `src/server/actions/search.ts`, `src/components/features/search/global-search-dialog.tsx` |
+| **Coach**   | Quick Action Floating Trigger (`+`) | ✅ Implemented | COACH | `src/components/features/dashboard/quick-action-dialog.tsx` |
+| **Coach**   | Mobile Liquid Glass Navigation Dock | ✅ Implemented | COACH | `src/components/layout/trainer-bottom-nav.tsx` |
+| **Coach**   | Liquid Glass Workout Split Builder | ✅ Implemented | COACH | `src/components/features/training-split/` (`DaysEditor`, `GlassCard`, `GlassSheen`, `FloatingBuilderDock`) |
+| **Coach**   | Non-Destructive Starter Hub & Template Preview | ✅ Implemented | COACH | `split-starter-hub.tsx`, `template-preview-drawer.tsx` |
+| **Coach**   | Large Formatted Batch Exercise Catalog | ✅ Implemented | COACH | `batch-exercise-picker.tsx` (3-col grid, YouTube inspector, queue tray) |
+| **Coach**   | 1-Click Visual 7-Day Weekday Scheduler | ✅ Implemented | COACH | `weekday-strip-selector.tsx` (with auto-swap) |
+| **Coach**   | Live Weekly Muscle Volume Radar | ✅ Implemented | COACH | `live-volume-radar.tsx` (client-side telemetry) |
+| **Coach**   | In-Day Exercise Up/Down Reordering | ✅ Implemented | COACH | `days-editor.tsx` (`handleMoveExercise`) |
 
 ---
 
 ## 27. Technical Debt & Audit Resolutions
 
-All 10 audited technical debt items across P0, P1, and P2 classifications have been **systematically resolved and verified**.
+All 14 audited technical debt and ergonomics items across P0, P1, and P2 classifications have been **systematically resolved and verified**.
 
 ### P0 — Critical Production & Scalability Blockers
 1. **In-Memory SSE Message Bus (`message-bus.ts`)**:
@@ -1626,7 +1757,7 @@ All 10 audited technical debt items across P0, P1, and P2 classifications have b
    - *Status*: ✅ **RESOLVED**
    - *Implementation*: Deprecated and removed in-memory unread caches. Replaced with direct parameterized PostgreSQL queries (`COUNT(*) FILTER (WHERE "readAt" IS NULL)`) taking full advantage of the compound index `@@index([conversationId, createdAt])`, guaranteeing zero cache drift across all instances.
 
-### P1 — High-Priority Enhancements
+### P1 — High-Priority Enhancements & Workflow Ergonomics
 1. **Single-Process Rate Limiter (`src/server/auth.ts`)**:
    - *Original Issue*: Login lockout counters were stored in local process memory, allowing distributed brute-force attacks across serverless instances to bypass lockout rules.
    - *Status*: ✅ **RESOLVED**
@@ -1635,25 +1766,41 @@ All 10 audited technical debt items across P0, P1, and P2 classifications have b
    - *Original Issue*: `next.config.ts` emitted no CSP headers, increasing vulnerability to script injection escalation.
    - *Status*: ✅ **RESOLVED**
    - *Implementation*: Added strict CSP and HTTP security headers (`Content-Security-Policy`, `Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`) in `next.config.ts`.
-3. **Decommissioned Option Groups Column (`MealItem.groupNumber`)**:
+3. **Destructive Split Type Switching & Accidental Work Loss**:
+   - *Original Issue*: Changing split type in `TrainingSplitForm` instantly wiped all existing days and exercises without confirmation.
+   - *Status*: ✅ **RESOLVED**
+   - *Implementation*: Built `SplitStarterHub` with `GlassConfirmDialog` guarding preset changes when custom exercises are populated, preventing accidental data loss.
+4. **Synchronous Blocking `window.confirm()` in React**:
+   - *Original Issue*: Re-running weekday auto-assign triggered native browser `window.confirm()`, pausing the JS main thread and failing on mobile WebViews.
+   - *Status*: ✅ **RESOLVED**
+   - *Implementation*: Completely excised `window.confirm()`. Replaced with non-blocking Radix-based `GlassConfirmDialog` with animated backdrop blur.
+5. **Decommissioned Option Groups Column (`MealItem.groupNumber`)**:
    - *Original Issue*: The legacy "Option Groups" column remained in the schema defaulting to `1`.
    - *Status*: ✅ **RESOLVED**
    - *Implementation*: Created migration `prisma/migrations/20260914100000_drop_meal_item_group_number` dropping `groupNumber` from `MealItem`. Pruned the property across `prisma/schema.prisma`, nutrition builder UI, meal detail drawer, validation schemas, and database services.
-4. **Missing CI/CD Workflow**:
+6. **Missing CI/CD Workflow**:
    - *Original Issue*: No automated quality control existed to validate pull requests.
    - *Status*: ✅ **RESOLVED**
    - *Implementation*: Created `.github/workflows/ci.yml` running TypeScript typecheck (`tsc --noEmit`), ESLint, unit testing (`tsx --test`), and Next.js Turbopack build on every push and pull request.
 
-### P2 — Moderate Maintenance Items
-1. **Unused `dexie` Dependency**:
+### P2 — Moderate Maintenance & Coach Quality of Life
+1. **In-Day Exercise Order Immutability**:
+   - *Original Issue*: Coaches could not reorder exercises within a day; adjusting sequence required deleting and re-entering movements.
+   - *Status*: ✅ **RESOLVED**
+   - *Implementation*: Added `handleMoveExercise` with Up/Down buttons in `DaysEditor` enabling instant exercise reordering within any day pod.
+2. **Repetitive 6-Click Single-Exercise Addition**:
+   - *Original Issue*: Adding an exercise required 6 sequential clicks per movement with no batch selection or muscle group category filters.
+   - *Status*: ✅ **RESOLVED**
+   - *Implementation*: Created large formatted `BatchExercisePicker` with 3-column card grid, muscle group filters with counts, YouTube video demo inspector, selected queue tray, and 1-click bulk insertion.
+3. **Unused `dexie` Dependency**:
    - *Original Issue*: `dexie 4.4.5` was installed in `package.json` and referenced in `src/lib/idb.ts`, but no features used client-side IndexedDB sync.
    - *Status*: ✅ **RESOLVED**
    - *Implementation*: Uninstalled `dexie` package, cleaned up `package.json` and lockfile, and excised unused offline wrappers.
-2. **Missing Unit Test Suite for Calculation Libraries**:
+4. **Missing Unit Test Suite for Calculation Libraries**:
    - *Original Issue*: Pure mathematical algorithms lacked unit test coverage.
    - *Status*: ✅ **RESOLVED**
    - *Implementation*: Created `tests/pure-calculations.test.ts` utilizing Node's native test runner (`tsx --test`). Contains 98 automated unit tests across 33 test suites verifying week schedule generators, streak calculators, exercise safety medical conflict detection, and goal progress mathematics.
-3. **Repository Cleanliness**:
+5. **Repository Cleanliness**:
    - *Original Issue*: Ephemeral debug files (`temp.tsx`, `trace.cjs`, `diff.txt`) remained in the repository root.
    - *Status*: ✅ **RESOLVED**
    - *Implementation*: Deleted temporary artifacts, updated `.gitignore` to ignore local trace scripts and diff logs, and documented all new optional environment variables in `.env.example`.

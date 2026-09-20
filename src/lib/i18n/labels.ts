@@ -43,11 +43,21 @@ export function getRoleLabel(role: Role, locale: Locale): string {
   return getDictionary(locale).enums.role[role.toLowerCase() as keyof typeof en.enums.role]
 }
 
-export function getGoalLabel(goal: Goal | null | undefined, locale: Locale): string | null {
+import { parseGoals } from "@/lib/goals"
+export { parseGoals }
+
+export function getGoalLabel(goal: Goal | string | null | undefined, locale: Locale): string | null {
   if (!goal) return null
   const dict = getDictionary(locale).enums.goals as Record<string, string>
-  return lookupEnum(dict, goal) ?? goal
+  return lookupEnum(dict, goal as string) ?? (typeof goal === "string" ? goal.replace(/_/g, " ") : null)
 }
+
+export function formatGoalsLabel(goals: unknown, locale: Locale): string {
+  const parsed = parseGoals(goals)
+  if (parsed.length === 0) return "—"
+  return parsed.map((g) => getGoalLabel(g, locale) ?? g).join(", ")
+}
+
 
 export function getClientStatusLabel(status: ClientStatus, locale: Locale): string {
   const dict = getDictionary(locale).enums.clientStatus as Record<string, string>

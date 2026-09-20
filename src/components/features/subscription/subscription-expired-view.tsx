@@ -1,9 +1,13 @@
-import { AlertTriangle, Clock, CreditCard } from "lucide-react"
+"use client"
+
+import { useState } from "react"
+import { AlertTriangle, Clock, CreditCard, LogOut, Loader2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import type { CoachSubscriptionStatus } from "@/lib/db/enums"
 import Link from "next/link"
+import { signOut } from "next-auth/react"
 
 interface Props {
   status: CoachSubscriptionStatus | null
@@ -12,6 +16,7 @@ interface Props {
 }
 
 export function SubscriptionExpiredView({ status, daysRemaining }: Props) {
+  const [isSigningOut, setIsSigningOut] = useState(false)
   const isSuspended = status === "SUSPENDED"
   const isExpired = status === "EXPIRED"
 
@@ -30,6 +35,11 @@ export function SubscriptionExpiredView({ status, daysRemaining }: Props) {
   } else if (!status) {
     title = "No Active Subscription"
     description = "You don't have an active subscription yet. The admin will create it after payment."
+  }
+
+  async function handleSignOut() {
+    setIsSigningOut(true)
+    await signOut({ callbackUrl: "/login" })
   }
 
   return (
@@ -67,8 +77,17 @@ export function SubscriptionExpiredView({ status, daysRemaining }: Props) {
             <Button asChild>
               <Link href="/subscription">View Subscription</Link>
             </Button>
-            <Button variant="outline" asChild>
-              <Link href="/signout">Sign Out</Link>
+            <Button
+              variant="outline"
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+            >
+              {isSigningOut ? (
+                <Loader2 className="size-4 animate-spin me-1.5" />
+              ) : (
+                <LogOut className="size-4 me-1.5" />
+              )}
+              Sign Out
             </Button>
           </div>
         </CardContent>

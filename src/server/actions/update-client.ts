@@ -46,14 +46,15 @@ export async function updateClientInfoAction(
     }
   }
 
-  const { fullName, phone, birthDate, goal, status, coachingMode, workoutDisplayMode } = parsed.data
+  const { fullName, phone, birthDate, goals, status, coachingMode, workoutDisplayMode } = parsed.data
 
+  const goalsArray = `{${(goals ?? []).join(",")}}`
   await pool.query(
     `UPDATE "Client" SET
       "fullName" = $1,
       "phone" = $2,
       "birthDate" = $3,
-      "goal" = $4::"Goal",
+      "goals" = $4::"Goal"[],
       "status" = $5::"ClientStatus",
       "coachingMode" = $6::"CoachingMode",
       "workoutDisplayMode" = $7::"WorkoutDisplayMode",
@@ -63,7 +64,7 @@ export async function updateClientInfoAction(
       fullName,
       phone ?? null,
       birthDate ?? null,
-      goal ?? null,
+      goalsArray,
       status,
       coachingMode ?? 'ONLINE',
       workoutDisplayMode ?? 'FULL',

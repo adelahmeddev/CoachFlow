@@ -6,6 +6,7 @@ import { invalidate } from "@/lib/cache"
 import { getCurrentSession } from "@/server/auth"
 import { PlanStatus } from "@/lib/db/enums"
 import { getDayDetail } from "@/server/services/week.service"
+import { notifySafe, getRecipientPair } from "@/server/services/notification.service"
 
 async function invalidateClientWorkoutTags(clientId: string) {
   const clientRes = await pool.query(`SELECT "trainerId" FROM "Client" WHERE "id"=$1 LIMIT 1`, [clientId])
@@ -230,8 +231,25 @@ export async function saveExerciseLogAction(
         [id, clientId, splitDayExerciseId, now, actualSets, actualReps, actualWeightKg, rpe, notes, now]
       )
     }
+
+    // Notify trainer that this client started a workout — once per client per day.
+    const todayStr = now.toISOString().slice(0, 10) // "YYYY-MM-DD"
+    const dedupeKey = `workout-started:${clientId}:${todayStr}`
+    const pair = await getRecipientPair(clientId)
+    if (pair?.trainerUserId) {
+      await notifySafe({
+        userId: pair.trainerUserId,
+        type: "WORKOUT_STARTED",
+        titleKey: "workoutStartedTitle",
+        bodyKey: "workoutStartedBody",
+        params: { name: pair.clientName ?? "" },
+        link: `/clients/${clientId}`,
+        dedupeKey,
+      })
+    }
   }
 
   await invalidateClientWorkoutTags(clientId)
   return { ok: true }
 }
+
