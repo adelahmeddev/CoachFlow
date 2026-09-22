@@ -515,83 +515,6 @@ export function NutritionBuilder({
         </CardContent>
       </Card>
 
-      {/* Supplement definitions (FIXED) */}
-      <Card>
-        <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardTitle>{n.supplementsDefinitions}</CardTitle>
-          <Badge variant="secondary">{n.fixedSection}</Badge>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {supplementDefs.map((def, index) => (
-            <div key={index} className="rounded-xl border p-3 space-y-3">
-              <div className="space-y-1.5">
-                <Label>{n.supplementName}</Label>
-                <Input value={isAr ? (def.nameAr ?? "") : def.name} onChange={(e) => setSupplementDefs(supplementDefs.map((d, i) => (i === index ? { ...d, ...(isAr ? { nameAr: e.target.value } : { name: e.target.value }) } : d)))} className="min-h-[44px]" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>{n.definition}</Label>
-                <Textarea rows={2} value={isAr ? (def.definitionAr ?? "") : (def.definition ?? "")} onChange={(e) => setSupplementDefs(supplementDefs.map((d, i) => (i === index ? { ...d, ...(isAr ? { definitionAr: e.target.value } : { definition: e.target.value }) } : d)))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>{n.importance}</Label>
-                <Textarea rows={2} value={isAr ? (def.importanceAr ?? "") : (def.importance ?? "")} onChange={(e) => setSupplementDefs(supplementDefs.map((d, i) => (i === index ? { ...d, ...(isAr ? { importanceAr: e.target.value } : { importance: e.target.value }) } : d)))} />
-              </div>
-              <div className="flex justify-end">
-                <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => setSupplementDefs(supplementDefs.filter((_, i) => i !== index))}>
-                  <Trash2 className="size-4" />{n.remove}
-                </Button>
-              </div>
-            </div>
-          ))}
-          <Button type="button" variant="outline" size="sm" onClick={() => setSupplementDefs([...supplementDefs, isAr ? { name: "", nameAr: "", definition: null, definitionAr: "", importance: null, importanceAr: "" } : { name: "", nameAr: null, definition: "", definitionAr: null, importance: "", importanceAr: null }])}>
-            <Plus className="size-4" />{n.supplementName}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Substitutes (FIXED) */}
-      <Card>
-        <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardTitle>{n.substitutes}</CardTitle>
-          <Badge variant="secondary">{n.fixedSection}</Badge>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {CATEGORY_ORDER.map((category) => {
-            const group = groups.find((g) => g.category === category)
-            if (!group) return null
-            const groupIndex = groups.indexOf(group)
-            return (
-              <div key={category} className="rounded-xl border p-3 space-y-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline">{category}</Badge>
-                  <Input value={group.caloriesLabel ?? ""} onChange={(e) => setGroups(groups.map((g, i) => (i === groupIndex ? { ...g, caloriesLabel: e.target.value } : g)))} placeholder={n.caloriesLabelLabel} className="h-9 w-auto flex-1 min-w-[160px]" />
-                </div>
-                <div className="space-y-2">
-                  {group.items.map((item, itemIndex) => (
-                    <div key={itemIndex} className="flex flex-wrap items-center gap-2">
-                      <Input value={isAr ? (item.nameAr ?? "") : item.name} onChange={(e) => setGroups(groups.map((g, i) => (i === groupIndex ? { ...g, items: g.items.map((it, j) => (j === itemIndex ? { ...it, ...(isAr ? { nameAr: e.target.value } : { name: e.target.value }) } : it)) } : g)))} placeholder={n.substituteItem} className="min-w-[140px] flex-1 min-h-[44px]" />
-                      <Input type="number" inputMode="decimal" value={item.amount ?? ""} onChange={(e) => setGroups(groups.map((g, i) => (i === groupIndex ? { ...g, items: g.items.map((it, j) => (j === itemIndex ? { ...it, amount: numOrNull(e.target.value) } : it)) } : g)))} placeholder={n.quantity} className="w-24 min-h-[44px]" />
-                      <Select value={item.unit} onValueChange={(v) => setGroups(groups.map((g, i) => (i === groupIndex ? { ...g, items: g.items.map((it, j) => (j === itemIndex ? { ...it, unit: v as QuantityUnit } : it)) } : g)))}>
-                        <SelectTrigger className="h-11 w-auto min-w-[110px]"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {UNIT_OPTIONS.map((u) => (<SelectItem key={u} value={u}>{unitLabel(u)}</SelectItem>))}
-                        </SelectContent>
-                      </Select>
-                      <Button type="button" variant="ghost" size="icon-sm" aria-label={n.remove} className="size-10" onClick={() => setGroups(groups.map((g, i) => (i === groupIndex ? { ...g, items: g.items.filter((_, j) => j !== itemIndex) } : g)))}>
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-                <Button type="button" variant="outline" size="sm" onClick={() => setGroups(groups.map((g, i) => (i === groupIndex ? { ...g, items: [...g.items, { name: "", nameAr: null, amount: null, unit: "G" as QuantityUnit }] } : g)))}>
-                  <Plus className="size-4" />{n.addItem}
-                </Button>
-              </div>
-            )
-          })}
-        </CardContent>
-      </Card>
-
       {/* Meals & Snacks */}
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
@@ -701,6 +624,83 @@ export function NutritionBuilder({
                   </div>
                </div>
              )
+          })}
+        </CardContent>
+      </Card>
+
+      {/* Supplement definitions (FIXED) */}
+      <Card>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
+          <CardTitle>{n.supplementsDefinitions}</CardTitle>
+          <Badge variant="secondary">{n.fixedSection}</Badge>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {supplementDefs.map((def, index) => (
+            <div key={index} className="rounded-xl border p-3 space-y-3">
+              <div className="space-y-1.5">
+                <Label>{n.supplementName}</Label>
+                <Input value={isAr ? (def.nameAr ?? "") : def.name} onChange={(e) => setSupplementDefs(supplementDefs.map((d, i) => (i === index ? { ...d, ...(isAr ? { nameAr: e.target.value } : { name: e.target.value }) } : d)))} className="min-h-[44px]" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{n.definition}</Label>
+                <Textarea rows={2} value={isAr ? (def.definitionAr ?? "") : (def.definition ?? "")} onChange={(e) => setSupplementDefs(supplementDefs.map((d, i) => (i === index ? { ...d, ...(isAr ? { definitionAr: e.target.value } : { definition: e.target.value }) } : d)))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{n.importance}</Label>
+                <Textarea rows={2} value={isAr ? (def.importanceAr ?? "") : (def.importance ?? "")} onChange={(e) => setSupplementDefs(supplementDefs.map((d, i) => (i === index ? { ...d, ...(isAr ? { importanceAr: e.target.value } : { importance: e.target.value }) } : d)))} />
+              </div>
+              <div className="flex justify-end">
+                <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => setSupplementDefs(supplementDefs.filter((_, i) => i !== index))}>
+                  <Trash2 className="size-4" />{n.remove}
+                </Button>
+              </div>
+            </div>
+          ))}
+          <Button type="button" variant="outline" size="sm" onClick={() => setSupplementDefs([...supplementDefs, isAr ? { name: "", nameAr: "", definition: null, definitionAr: "", importance: null, importanceAr: "" } : { name: "", nameAr: null, definition: "", definitionAr: null, importance: "", importanceAr: null }])}>
+            <Plus className="size-4" />{n.supplementName}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Substitutes (FIXED) */}
+      <Card>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
+          <CardTitle>{n.substitutes}</CardTitle>
+          <Badge variant="secondary">{n.fixedSection}</Badge>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {CATEGORY_ORDER.map((category) => {
+            const group = groups.find((g) => g.category === category)
+            if (!group) return null
+            const groupIndex = groups.indexOf(group)
+            return (
+              <div key={category} className="rounded-xl border p-3 space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline">{category}</Badge>
+                  <Input value={group.caloriesLabel ?? ""} onChange={(e) => setGroups(groups.map((g, i) => (i === groupIndex ? { ...g, caloriesLabel: e.target.value } : g)))} placeholder={n.caloriesLabelLabel} className="h-9 w-auto flex-1 min-w-[160px]" />
+                </div>
+                <div className="space-y-2">
+                  {group.items.map((item, itemIndex) => (
+                    <div key={itemIndex} className="flex flex-wrap items-center gap-2">
+                      <Input value={isAr ? (item.nameAr ?? "") : item.name} onChange={(e) => setGroups(groups.map((g, i) => (i === groupIndex ? { ...g, items: g.items.map((it, j) => (j === itemIndex ? { ...it, ...(isAr ? { nameAr: e.target.value } : { name: e.target.value }) } : it)) } : g)))} placeholder={n.substituteItem} className="min-w-[140px] flex-1 min-h-[44px]" />
+                      <Input type="number" inputMode="decimal" value={item.amount ?? ""} onChange={(e) => setGroups(groups.map((g, i) => (i === groupIndex ? { ...g, items: g.items.map((it, j) => (j === itemIndex ? { ...it, amount: numOrNull(e.target.value) } : it)) } : g)))} placeholder={n.quantity} className="w-24 min-h-[44px]" />
+                      <Select value={item.unit} onValueChange={(v) => setGroups(groups.map((g, i) => (i === groupIndex ? { ...g, items: g.items.map((it, j) => (j === itemIndex ? { ...it, unit: v as QuantityUnit } : it)) } : g)))}>
+                        <SelectTrigger className="h-11 w-auto min-w-[110px]"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {UNIT_OPTIONS.map((u) => (<SelectItem key={u} value={u}>{unitLabel(u)}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                      <Button type="button" variant="ghost" size="icon-sm" aria-label={n.remove} className="size-10" onClick={() => setGroups(groups.map((g, i) => (i === groupIndex ? { ...g, items: g.items.filter((_, j) => j !== itemIndex) } : g)))}>
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={() => setGroups(groups.map((g, i) => (i === groupIndex ? { ...g, items: [...g.items, { name: "", nameAr: null, amount: null, unit: "G" as QuantityUnit }] } : g)))}>
+                  <Plus className="size-4" />{n.addItem}
+                </Button>
+              </div>
+            )
           })}
         </CardContent>
       </Card>
