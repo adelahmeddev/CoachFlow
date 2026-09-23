@@ -122,17 +122,24 @@ export function AppTopNav({
 
   useEffect(() => {
     let cancelled = false
+    let id: NodeJS.Timeout | undefined
     const fetchCount = () => {
       if (document.visibilityState !== "visible") return
       fetch("/api/notifications/unread-count", { credentials: "include", cache: "no-store" as RequestCache })
-        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((r) => {
+          if (r.status === 401) {
+            if (id) clearInterval(id)
+            return Promise.reject("unauthorized")
+          }
+          return r.ok ? r.json() : Promise.reject()
+        })
         .then((data) => {
           if (!cancelled) setNotifCount(data.count ?? 0)
         })
         .catch(() => {})
     }
     fetchCount()
-    const id = setInterval(fetchCount, 60000)
+    id = setInterval(fetchCount, 60000)
     const handler = () => fetchCount()
     const visHandler = () => {
       if (document.visibilityState === "visible") fetchCount()
@@ -190,7 +197,6 @@ export function AppTopNav({
       matchPrefixes: ["/subscription-plans", "/subscription", "/blog"],
       subItems: [
         { label: isAr ? "خطط الاشتراك" : "Plans", href: "/subscription-plans", icon: Crown },
-        { label: isAr ? "اشتراكي" : "My Membership", href: "/subscription", icon: CreditCard },
         { label: isAr ? "المقالات" : "Blog", href: "/blog", icon: Newspaper },
       ],
     },

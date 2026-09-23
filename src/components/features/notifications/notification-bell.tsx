@@ -13,20 +13,27 @@ export function NotificationBell({ href }: { href: string }) {
 
   useEffect(() => {
     let cancelled = false
+    let id: NodeJS.Timeout | undefined
     const fetchCount = () => {
       if (document.visibilityState !== "visible") return
       fetch("/api/notifications/unread-count", {
         credentials: "include",
         cache: "no-store" as RequestCache,
       })
-        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((r) => {
+          if (r.status === 401) {
+            if (id) clearInterval(id)
+            return Promise.reject("unauthorized")
+          }
+          return r.ok ? r.json() : Promise.reject()
+        })
         .then((data) => {
           if (!cancelled) setCount(data.count ?? 0)
         })
         .catch(() => {})
     }
     fetchCount()
-    const id = setInterval(fetchCount, 60000)
+    id = setInterval(fetchCount, 60000)
     
     const markHandler = (e: Event) => {
       if (e instanceof CustomEvent && e.detail && typeof e.detail.count === "number") {

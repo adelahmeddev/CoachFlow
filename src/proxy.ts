@@ -47,6 +47,25 @@ function getHomeForRole(role: Role | undefined) {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  const hasAnySessionCookie =
+    request.cookies.has("__Secure-next-auth.session-token") ||
+    request.cookies.has("next-auth.session-token");
+
+  // Fast path: if no session cookie exists, avoid expensive JWT decryption entirely
+  if (!hasAnySessionCookie) {
+    if (
+      isPath(pathname, TRAINER_PATHS) ||
+      pathname.startsWith("/admin") ||
+      pathname === "/"
+    ) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    if (isPath(pathname, CLIENT_PATHS)) {
+      return NextResponse.redirect(new URL("/client/login", request.url));
+    }
+    return NextResponse.next();
+  }
+
   let token: Record<string, unknown> | null = null
   try {
     token = (await getToken({
@@ -77,11 +96,6 @@ export async function proxy(request: NextRequest) {
     token = null
   }
 
-  // If a session cookie exists but token is null/invalid (e.g. old secret, decryption failed, missing role),
-  // clear both possible cookies to break redirect loops — browser will get clean session
-  const hasAnySessionCookie =
-    request.cookies.has("__Secure-next-auth.session-token") ||
-    request.cookies.has("next-auth.session-token")
   const isTokenInvalid = !token || !((token as Record<string, unknown>).role as string | undefined)
   if (hasAnySessionCookie && isTokenInvalid) {
     // Allow login pages to render without redirect loop, but clear cookies

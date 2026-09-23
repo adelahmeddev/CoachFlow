@@ -15,9 +15,14 @@ export function useUnreadCount(role: "COACH" | "CLIENT", id: string | undefined)
     
     let cancelled = false;
 
+    let intervalId: NodeJS.Timeout | undefined;
     async function fetchCount() {
       try {
         const resp = await fetch('/api/messages/unread-count', { credentials: 'include' });
+        if (resp.status === 401) {
+          if (intervalId) clearInterval(intervalId);
+          return;
+        }
         if (resp.ok) {
           const data = await resp.json();
           if (!cancelled) setCount(data.count as number);
@@ -30,11 +35,11 @@ export function useUnreadCount(role: "COACH" | "CLIENT", id: string | undefined)
     }
     
     fetchCount();
-    const interval = setInterval(fetchCount, 60_000);
+    intervalId = setInterval(fetchCount, 60_000);
     
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      if (intervalId) clearInterval(intervalId);
     };
   }, [role, id]);
 
