@@ -50,11 +50,27 @@ export async function getClientHomeData(clientId: string) {
     userId: string | null
   }
 
-  const [dailyLogsRes, progressReviewsRes, subscriptionsRes, bodyCompRes, exerciseLogsRes] = await Promise.all([
+  const [
+    dailyLogsRes,
+    progressReviewsRes,
+    subscriptionsRes,
+    bodyCompRes,
+    totalWorkoutsRes,
+    exerciseLogsRes,
+  ] = await Promise.all([
     pool.query(`SELECT * FROM "DailyLog" WHERE "clientId" = $1 ORDER BY "date" DESC LIMIT 1`, [clientId]),
     pool.query(`SELECT * FROM "ProgressReview" WHERE "clientId" = $1 ORDER BY "reviewDate" DESC`, [clientId]),
     pool.query(`SELECT * FROM "Subscription" WHERE "clientId" = $1 ORDER BY "createdAt" DESC LIMIT 1`, [clientId]),
     pool.query(`SELECT * FROM "BodyComposition" WHERE "clientId" = $1 ORDER BY "date" ASC`, [clientId]),
+    pool.query(
+      `SELECT COUNT(*)::int AS count
+       FROM "ExerciseLog" el
+       JOIN "SplitDayExercise" sde ON el."splitDayExerciseId" = sde."id"
+       JOIN "TrainingSplitDay" tsd ON sde."splitDayId" = tsd."id"
+       JOIN "TrainingSplit" ts ON tsd."splitId" = ts."id"
+       WHERE ts."clientId" = $1`,
+      [clientId]
+    ),
     pool.query(
       `SELECT el.*, sde."exerciseName", sde."targetSets", sde."targetReps", sde."targetWeightKg"
        FROM "ExerciseLog" el
@@ -62,7 +78,8 @@ export async function getClientHomeData(clientId: string) {
        JOIN "TrainingSplitDay" tsd ON sde."splitDayId" = tsd."id"
        JOIN "TrainingSplit" ts ON tsd."splitId" = ts."id"
        WHERE ts."clientId" = $1
-       ORDER BY el."date" DESC`,
+       ORDER BY el."date" DESC
+       LIMIT 20`,
       [clientId]
     ),
   ])
@@ -88,6 +105,8 @@ export async function getClientHomeData(clientId: string) {
     progressReviews[0]?.adherencePct != null
       ? `${progressReviews[0].adherencePct}%`
       : null
+
+  const totalWorkouts = (totalWorkoutsRes.rows[0] as { count: number } | undefined)?.count ?? exerciseLogs.length
 
   return {
     client: {
@@ -116,9 +135,9 @@ export async function getClientHomeData(clientId: string) {
     progress: {
       currentWeight,
       weightChange,
-      totalWorkouts: exerciseLogs.length,
+      totalWorkouts,
       latestAdherence,
-      sessionHistory: exerciseLogs.slice(0, 20),
+      sessionHistory: exerciseLogs,
     },
   }
 }

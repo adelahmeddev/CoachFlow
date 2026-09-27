@@ -18,13 +18,13 @@ export function BackgroundOrbs({
   }
 
   return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none -z-50 bg-background">
+    <div className="fixed inset-0 overflow-hidden pointer-events-none -z-50 bg-background [contain:strict]">
       {/* 1. Brand Orb (Top Left) */}
       <motion.div
         animate={{ x: [0, 30, -20, 0], y: [0, -40, 20, 0], scale: [1, 1.1, 0.9, 1] }}
         transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
         className={cn(
-          "absolute top-[5%] left-[10%] w-[28rem] h-[28rem] rounded-full blur-[140px] motion-reduce:transform-none",
+          "absolute top-[5%] left-[10%] w-[28rem] h-[28rem] rounded-full blur-[80px] sm:blur-[120px] will-change-transform motion-reduce:transform-none",
           density === "dense" ? "bg-brand-500/20 dark:bg-brand-500/15" : "bg-brand-500/15 dark:bg-brand-500/10"
         )}
       />
@@ -33,32 +33,32 @@ export function BackgroundOrbs({
       <motion.div
         animate={{ x: [0, -40, 30, 0], y: [0, 30, -30, 0], scale: [1, 1.2, 0.8, 1] }}
         transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-        className="absolute bottom-[10%] right-[5%] w-[36rem] h-[36rem] bg-energy-500/10 dark:bg-energy-500/5 rounded-full blur-[140px] motion-reduce:transform-none"
+        className="absolute bottom-[10%] right-[5%] w-[36rem] h-[36rem] bg-energy-500/10 dark:bg-energy-500/5 rounded-full blur-[80px] sm:blur-[120px] will-change-transform motion-reduce:transform-none"
       />
 
       {/* 3. Muscle Orb (Center Left) */}
       <motion.div
         animate={{ x: [0, 20, -40, 0], y: [0, 40, -20, 0], scale: [1, 0.9, 1.1, 1] }}
         transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-        className="absolute top-[35%] left-[30%] w-[24rem] h-[24rem] bg-muscle-500/10 dark:bg-muscle-500/8 rounded-full blur-[120px] motion-reduce:transform-none"
+        className="absolute top-[35%] left-[30%] w-[24rem] h-[24rem] bg-muscle-500/10 dark:bg-muscle-500/8 rounded-full blur-[70px] sm:blur-[100px] will-change-transform motion-reduce:transform-none"
       />
 
       {/* 4. Performance / Teal Orb (Top Right) */}
       <motion.div
         animate={{ x: [0, -20, 20, 0], y: [0, -30, 30, 0], scale: [1, 1.05, 0.95, 1] }}
         transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
-        className="absolute top-[15%] right-[25%] w-[20rem] h-[20rem] bg-performance-500/8 dark:bg-performance-500/5 rounded-full blur-[100px] motion-reduce:transform-none"
+        className="absolute top-[15%] right-[25%] w-[20rem] h-[20rem] bg-performance-500/8 dark:bg-performance-500/5 rounded-full blur-[60px] sm:blur-[90px] will-change-transform motion-reduce:transform-none"
       />
 
       {/* 5. Brand Secondary / Glow (Bottom Left) */}
       <motion.div
         animate={{ x: [0, 25, -25, 0], y: [0, 25, -25, 0], scale: [1, 1.15, 0.85, 1] }}
         transition={{ duration: 17, repeat: Infinity, ease: "linear" }}
-        className="absolute bottom-[20%] left-[15%] w-[26rem] h-[26rem] bg-brand-400/8 dark:bg-brand-400/5 rounded-full blur-[130px] motion-reduce:transform-none"
+        className="absolute bottom-[20%] left-[15%] w-[26rem] h-[26rem] bg-brand-400/8 dark:bg-brand-400/5 rounded-full blur-[70px] sm:blur-[100px] will-change-transform motion-reduce:transform-none"
       />
       
       {/* Subtle Noise / Mesh Overlay for physical glass texture */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.03)_100%)] dark:bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)] opacity-80" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.03)_100%)] dark:bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)] opacity-80 pointer-events-none" />
     </div>
   );
 }
