@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { Loader2, SlidersHorizontal, Calendar } from "lucide-react"
 import { useI18n } from "@/lib/i18n/client"
-import { getGoalLabel } from "@/lib/i18n/labels"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -31,7 +30,7 @@ import {
   createTrainingSplitTemplateAction,
   updateTrainingSplitTemplateAction,
 } from "@/server/actions/training-split-template"
-import { Goal, SplitType } from "@/lib/db/enums"
+import { SplitType } from "@/lib/db/enums"
 import type { ExerciseOption } from "@/lib/exercise-safety"
 import { GlassCard } from "./liquid-glass/glass-card"
 import { LiveVolumeRadar } from "./live-volume-radar"
@@ -41,8 +40,8 @@ interface TemplateFormProps {
   template?: {
     id: string
     name: string
-    goal: Goal | null
-    level: string | null
+    goal?: unknown
+    level?: string | null
     splitType: SplitType
     daysPerWeek: number
     description: string | null
@@ -62,15 +61,6 @@ interface TemplateFormProps {
     }[]
   }
 }
-
-const GOAL_OPTIONS: Goal[] = [
-  Goal.WEIGHT_LOSS,
-  Goal.MUSCLE_BUILDING,
-  Goal.STRENGTH,
-  Goal.GENERAL_FITNESS,
-  Goal.WEIGHT_GAIN,
-  Goal.REHAB,
-]
 
 function templateDaysToState(
   template: TemplateFormProps["template"]
@@ -100,7 +90,7 @@ export function TemplateForm({
   template,
 }: TemplateFormProps) {
   const router = useRouter()
-  const { t, locale } = useI18n()
+  const { t } = useI18n()
   const isEdit = Boolean(template)
   const [serverError, setServerError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -118,8 +108,6 @@ export function TemplateForm({
     resolver: zodResolver(trainingSplitTemplateSchema) as Resolver<TrainingSplitTemplateInput>,
     defaultValues: {
       name: template?.name ?? "",
-      goal: template?.goal ?? undefined,
-      level: template?.level ?? "",
       splitType: template?.splitType ?? SplitType.FULL_BODY,
       daysPerWeek: template?.daysPerWeek ?? 3,
       description: template?.description ?? "",
@@ -140,8 +128,6 @@ export function TemplateForm({
     const values = form.getValues()
     const payload: TrainingSplitTemplateInput = {
       name: values.name,
-      goal: values.goal ?? null,
-      level: values.level?.trim() || null,
       splitType: values.splitType,
       daysPerWeek: values.daysPerWeek,
       description: values.description?.trim() || null,
@@ -164,8 +150,6 @@ export function TemplateForm({
                 form.setError(
                   field as
                     | "name"
-                    | "goal"
-                    | "level"
                     | "splitType"
                     | "daysPerWeek"
                     | "description",
@@ -216,7 +200,7 @@ export function TemplateForm({
         </div>
 
         <div className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-1.5">
               <Label htmlFor="templateName" className="text-xs font-semibold">
                 {t.templates.templateName}
@@ -232,45 +216,6 @@ export function TemplateForm({
                   {form.formState.errors.name.message}
                 </p>
               )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="templateGoal" className="text-xs font-semibold">
-                {t.templates.goal}
-              </Label>
-              <Select
-                value={form.watch("goal") ?? "none"}
-                onValueChange={(value) =>
-                  form.setValue(
-                    "goal",
-                    value === "none" ? null : (value as Goal)
-                  )
-                }
-              >
-                <SelectTrigger id="templateGoal" className="w-full rounded-xl border-white/15 bg-white/[0.04] text-xs">
-                  <SelectValue placeholder={t.templates.selectGoal} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{t.templates.noGoal}</SelectItem>
-                  {GOAL_OPTIONS.map((goal) => (
-                    <SelectItem key={goal} value={goal}>
-                      {getGoalLabel(goal, locale)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="templateLevel" className="text-xs font-semibold">
-                {t.templates.level}
-              </Label>
-              <Input
-                id="templateLevel"
-                placeholder={t.templates.levelPlaceholder}
-                className="rounded-xl border-white/15 bg-white/[0.04] text-xs"
-                {...form.register("level")}
-              />
             </div>
 
             <div className="space-y-1.5">

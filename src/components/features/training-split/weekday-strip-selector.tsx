@@ -66,10 +66,8 @@ export function WeekdayStripSelector({
           const isClaimedByOther = claimedBy !== undefined
           const dayLabel = lookup(t, `trainingSplit.weekdays.${weekday}`)
 
-          // Short label (first 3 chars or localized)
-          const shortLabel = isAr
-            ? dayLabel.slice(0, 3)
-            : weekday
+          // Proper day label (full localized name in Arabic, 3-char code in English)
+          const label = isAr ? dayLabel : weekday
 
           return (
             <button
@@ -79,11 +77,13 @@ export function WeekdayStripSelector({
               onClick={() => handleClick(weekday)}
               title={
                 isClaimedByOther
-                  ? `${dayLabel} (Used by Day ${claimedBy + 1} - click to swap)`
+                  ? isAr
+                    ? `${dayLabel} (${t.trainingSplit.dayPrefix} ${claimedBy + 1} - اضغط للتبديل)`
+                    : `${dayLabel} (Used by Day ${claimedBy + 1} - click to swap)`
                   : dayLabel
               }
               className={cn(
-                "relative flex-1 min-w-9 h-8.5 rounded-xl text-xs font-semibold transition-all duration-200",
+                "relative flex-1 min-w-[3.25rem] sm:min-w-9 h-8.5 px-1.5 rounded-xl text-xs font-semibold transition-all duration-200 whitespace-nowrap",
                 "flex flex-col items-center justify-center border",
                 isCurrent &&
                   "border-brand-400/80 bg-brand-500 text-white shadow-glow ring-1 ring-brand-400/50 scale-[1.03] z-10",
@@ -95,7 +95,7 @@ export function WeekdayStripSelector({
                   "border-white/15 bg-white/[0.05] text-foreground/85 hover:border-white/30 hover:bg-white/[0.10] active:scale-95"
               )}
             >
-              <span>{shortLabel}</span>
+              <span>{label}</span>
               {isClaimedByOther && !isCurrent && (
                 <span className="absolute -bottom-0.5 size-1 rounded-full bg-amber-400/70" />
               )}

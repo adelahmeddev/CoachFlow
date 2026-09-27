@@ -70,8 +70,8 @@ interface TrainingSplitFormProps {
   templates: {
     id: string
     name: string
-    goal: Goal | null
-    level: string | null
+    goal?: Goal | null
+    level?: string | null
     splitType: SplitType
     daysPerWeek: number
     description: string | null

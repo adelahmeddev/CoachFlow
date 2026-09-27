@@ -519,14 +519,9 @@ export function NutritionBuilder({
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle>{n.meals}</CardTitle>
-          <div className="flex gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => addMeal(MealKind.MEAL)}>
-              <Plus className="size-4" />{n.addMeal}
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => addMeal(MealKind.SNACK)}>
-              <Plus className="size-4" />{n.addSnack}
-            </Button>
-          </div>
+          <Badge variant="outline" className="text-xs">
+            {meals.filter((m) => !m.isSpare).length}
+          </Badge>
         </CardHeader>
         <CardContent className="space-y-4">
           {meals.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">{n.meals}: 0</p>}
@@ -625,6 +620,29 @@ export function NutritionBuilder({
                </div>
              )
           })}
+
+          <div className="flex flex-wrap items-center gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => addMeal(MealKind.MEAL)}
+            >
+              <Plus className="size-4" />
+              <span>{n.addMeal}</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => addMeal(MealKind.SNACK)}
+            >
+              <Plus className="size-4" />
+              <span>{n.addSnack}</span>
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

@@ -65,10 +65,7 @@ export default async function NewTrainingSplitPage({
     notFound()
   }
 
-  const templates = allTemplates.filter(
-    (template) =>
-      template.goal === null || (client.goals && client.goals.includes(template.goal))
-  )
+  const templates = allTemplates
 
   return (
     <div className="space-y-6">

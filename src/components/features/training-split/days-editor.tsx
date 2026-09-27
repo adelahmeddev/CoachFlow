@@ -425,6 +425,15 @@ export function DaysEditor({
                   {t.trainingSplit.dayPrefix} {index + 1}
                 </Badge>
 
+                {isFixed && day.weekday && (
+                  <Badge
+                    variant="outline"
+                    className="h-7 px-2.5 font-semibold border-brand-400/30 bg-brand-500/10 text-brand-300"
+                  >
+                    {lookup(t, `trainingSplit.weekdays.${day.weekday}`)}
+                  </Badge>
+                )}
+
                 <div className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.04] px-2.5 py-1 text-xs">
                   <FocusIcon className="size-3.5 text-brand-300" />
                   <span className="font-semibold text-foreground/90">
