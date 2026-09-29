@@ -17,9 +17,9 @@ export default function ClientLoginPage() {
       </div>
       <main className="relative z-10 w-full max-w-md px-2 sm:px-0 flex flex-col items-center gap-4 sm:gap-6">
         <div className="flex flex-col items-center gap-4 sm:gap-6">
-          <BrandLogo variant="full" height={96} width={96} priority className="shadow-medium ring-1 ring-brand-500/20" alt="Coach Flow" />
+          <BrandLogo variant="full" height={96} width={96} priority className="shadow-medium ring-1 ring-brand-500/20" alt="Coach Nanoush" />
           <h1 className="text-2xl font-heading font-extrabold tracking-tight text-foreground sm:text-3xl">
-            Coach Flow
+            Coach Nanoush
           </h1>
         </div>
         <div>
