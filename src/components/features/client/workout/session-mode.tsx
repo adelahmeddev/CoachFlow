@@ -533,18 +533,19 @@ export function SessionMode({
         ) : null}
 
         <div className="rounded-2xl border bg-card p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-xs font-medium text-muted-foreground">
+          <div className="mb-2 flex items-center gap-2 px-[7px] text-xs font-medium text-muted-foreground">
+            <span className="w-11 shrink-0 text-center">
               {t.client.workout.sets}
-            </p>
-            <div className="flex items-center gap-3 pe-1 text-[11px] text-muted-foreground">
-              <span className="w-[76px] text-center">
-                {t.client.workout.weight} (kg)
+            </span>
+            <span className="flex-1 text-center">
+              {t.client.workout.weight}{" "}
+              <span className="text-[10px] opacity-75" dir="ltr">
+                (kg)
               </span>
-              <span className="w-[64px] text-center">
-                {t.client.workout.reps}
-              </span>
-            </div>
+            </span>
+            <span className="flex-1 text-center">
+              {t.client.workout.reps}
+            </span>
           </div>
           <div className="space-y-2">
             {ticks.map((checked, setIdx) => (
@@ -562,7 +563,7 @@ export function SessionMode({
                   aria-pressed={checked}
                   onClick={() => handleToggleSet(setIdx)}
                   className={cn(
-                    "flex size-10 shrink-0 items-center justify-center rounded-lg border text-sm font-medium transition-colors",
+                    "flex size-11 shrink-0 items-center justify-center rounded-lg border text-sm font-medium transition-colors",
                     checked
                       ? "border-emerald-600 bg-emerald-600 text-white"
                       : "bg-background hover:bg-accent"
@@ -573,7 +574,7 @@ export function SessionMode({
                 <Input
                   type="number"
                   inputMode="decimal"
-                  className="min-h-[44px] w-[76px] text-center"
+                  className="h-11 flex-1 min-w-0 text-center"
                   value={forms[current.id]?.sets[setIdx]?.weightKg ?? ""}
                   onChange={(e) =>
                     handleSetFieldChange(current.id, setIdx, {
@@ -588,7 +589,7 @@ export function SessionMode({
                 <Input
                   type="number"
                   inputMode="numeric"
-                  className="min-h-[44px] w-[64px] text-center"
+                  className="h-11 flex-1 min-w-0 text-center"
                   value={forms[current.id]?.sets[setIdx]?.reps ?? ""}
                   onChange={(e) =>
                     handleSetFieldChange(current.id, setIdx, {
