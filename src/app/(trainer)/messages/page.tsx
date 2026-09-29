@@ -7,7 +7,7 @@ import { getI18n } from "@/lib/i18n"
 export default async function MessagesPage() {
   const session = await getCurrentSession()
   const trainerId = session?.user.trainerProfileId
-  const { t } = await getI18n()
+  const { t, locale } = await getI18n()
   if (!trainerId) return null
   const { conversations } = await listConversationsForTrainer(trainerId)
 
@@ -25,7 +25,7 @@ export default async function MessagesPage() {
         <div>
           <h2 className="text-base font-bold tracking-tight">{t.client.messages.selectConversation}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{t.client.messages.selectConversationDesc}</p>
-          <p className="mt-2 text-xs text-muted-foreground">اختر بطل من القائمة وابدأ المحادثة 💬</p>
+          <p className="mt-2 text-xs text-muted-foreground">{locale === "ar" ? "اختر بطل من القائمة وابدأ المحادثة 💬" : "Select an athlete from the list to start chatting 💬"}</p>
         </div>
       </div>
     </>

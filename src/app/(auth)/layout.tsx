@@ -2,8 +2,11 @@
 
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { BrandLogo } from "@/components/brand/brand-logo";
+import { useI18n } from "@/lib/i18n/client";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
+  const { locale } = useI18n();
+  const isAr = locale === "ar";
   return (
     <div className="relative flex min-h-dvh items-center justify-center overflow-x-hidden bg-background p-4 sm:p-6">
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
@@ -19,7 +22,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               Coach Nanoush
             </h1>
             <p className="text-sm font-medium text-muted-foreground">
-              نظام إدارة المدرب الشخصي
+              {isAr ? "نظام إدارة المدرب الشخصي" : "Personal Coach Management System"}
             </p>
           </div>
         </div>

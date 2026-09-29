@@ -2,12 +2,15 @@ import type { Metadata } from "next";
 import { AuthCard, ClientAuthFooter } from "@/components/features/auth/auth-card";
 import { LoginForm } from "@/components/features/auth/login-form";
 import { BrandLogo } from "@/components/brand/brand-logo";
+import { getI18n } from "@/lib/i18n";
 
 export const metadata: Metadata = {
   title: "Login",
 };
 
-export default function ClientLoginPage() {
+export default async function ClientLoginPage() {
+  const { locale } = await getI18n();
+  const isAr = locale === "ar";
   return (
     <div className="min-h-screen flex min-h-[480px] items-center justify-center overflow-x-hidden overflow-y-auto bg-gradient-to-br from-background via-brand-50/30 to-brand-100/20 dark:from-background dark:via-brand-900/10 dark:to-brand-900/5 p-4 sm:p-6">
       <div className="absolute inset-0 texture-halftone pointer-events-none" aria-hidden="true" />
@@ -24,15 +27,15 @@ export default function ClientLoginPage() {
         </div>
         <div>
           <AuthCard
-            title="مرحبًا بعودتك"
-            description="سجّل الدخول باسم المستخدم أو رقم الهاتف أو البريد الإلكتروني."
+            title={isAr ? "مرحبًا بعودتك" : "Welcome back"}
+            description={isAr ? "سجّل الدخول باسم المستخدم أو رقم الهاتف أو البريد الإلكتروني." : "Sign in with your username, phone number, or email."}
             footer={<ClientAuthFooter />}
           >
             <LoginForm callbackUrl="/client/home" />
           </AuthCard>
         </div>
         <p className="mt-4 text-center text-sm sm:text-base text-muted-foreground font-medium">
-          نظام إدارة المدرب الشخصي
+          {isAr ? "نظام إدارة المدرب الشخصي" : "Personal Coach Management System"}
         </p>
       </main>
     </div>

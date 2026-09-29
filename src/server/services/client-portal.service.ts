@@ -210,7 +210,7 @@ async function getTodayWorkoutUncached(
   }
 
   const exRes = await pool.query(
-    `SELECT sde.*, e."name" AS "ex_name", e."youtubeUrl" AS "ex_youtube"
+    `SELECT sde.*, e."name" AS "ex_name", e."nameAr" AS "ex_name_ar", e."youtubeUrl" AS "ex_youtube"
      FROM "SplitDayExercise" sde
      LEFT JOIN "Exercise" e ON sde."exerciseId" = e."id"
      WHERE sde."splitDayId" = $1 ORDER BY sde."order" ASC`,
@@ -220,6 +220,7 @@ async function getTodayWorkoutUncached(
   const exercises = (exRes.rows as Array<Record<string, unknown>>).map((ex) => ({
     id: ex.id as string,
     exerciseName: (ex.exerciseName as string) || (ex.ex_name as string) || "Exercise",
+    exerciseNameAr: (ex.ex_name_ar as string) || null,
     sets: (ex.targetSets as number | null) ?? 3,
     reps: (ex.targetReps as number | null) ?? 10,
     targetWeight: (ex.targetWeightKg as number | null) ?? null,

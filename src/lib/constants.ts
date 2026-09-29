@@ -92,15 +92,15 @@ export const BODY_COMPOSITION_SOURCE_LABELS: Record<BodyCompositionSource, strin
 }
 
 export const BODY_COMPOSITION_FIELD_LABELS: Record<string, string> = {
-  weightKg: "الوزن (كجم) | WEIGHT (KG)",
-  muscleMassKg: "الكتلة العضلية (كجم) | MUSCLE MASS (KG)",
-  bodyFatKg: "كتلة الدهون (كجم) | BODY FAT (KG)",
-  bodyWaterPct: "ماء الجسم (%) | BODY WATER (%)",
-  fatControlKg: "التحكم في الدهون (كجم) | FAT CONTROL (KG)",
-  bmrKcal: "معدل الأيض الأساسي (سعرة) | BMR (KCAL)",
-  fitnessScore: "نقاط اللياقة | FITNESS SCORE",
-  waistHipRatio: "نسبة الخصر للورك | WAIST-HIP RATIO",
-  visceralFatLevel: "مستوى الدهون الحشوية | VISCERAL FAT LEVEL",
+  weightKg: "Weight (kg)",
+  muscleMassKg: "Muscle Mass (kg)",
+  bodyFatKg: "Body Fat (kg)",
+  bodyWaterPct: "Body Water (%)",
+  fatControlKg: "Fat Control (kg)",
+  bmrKcal: "BMR (kcal)",
+  fitnessScore: "Fitness Score",
+  waistHipRatio: "Waist-to-Hip Ratio",
+  visceralFatLevel: "Visceral Fat Level",
 }
 
 // ─── Options (label+value pairs for selects) ─────────────────────────────────

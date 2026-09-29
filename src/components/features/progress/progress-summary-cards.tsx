@@ -3,6 +3,7 @@ import type { BodyComposition, ProgressReview } from "@/lib/db/types"
 import { formatDate } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { ProgressRing } from "@/components/ui/progress-ring"
+import { useI18n } from "@/lib/i18n/client"
 
 interface ProgressSummaryCardsProps {
   baseline: BodyComposition | null
@@ -32,6 +33,8 @@ export function ProgressSummaryCards({
   latest,
   reviews,
 }: ProgressSummaryCardsProps) {
+  const { locale } = useI18n()
+  const isAr = locale === "ar"
   const currentWeight = latest?.weightKg ?? null
   const baselineWeight = baseline?.weightKg ?? null
   const weightChange =
@@ -45,40 +48,36 @@ export function ProgressSummaryCards({
 
   const cards = [
     {
-      label: "الوزن الحالي",
-      enLabel: "Current Weight",
+      label: isAr ? "الوزن الحالي" : "Current Weight",
       value: currentWeight !== null ? `${formatNumber(currentWeight)} kg` : "—",
       icon: Scale,
       variant: "brand" as const,
-      sub: baselineWeight !== null ? `بدأ من ${formatNumber(baselineWeight)} kg` : "بداية الرحلة",
+      sub: baselineWeight !== null ? (isAr ? `بدأ من ${formatNumber(baselineWeight)} kg` : `Started at ${formatNumber(baselineWeight)} kg`) : (isAr ? "بداية الرحلة" : "Journey start"),
     },
     {
-      label: "تغيّر الوزن",
-      enLabel: "Weight Change",
+      label: isAr ? "تغيّر الوزن" : "Weight Change",
       value: weightChange === null ? "—" : `${weightChange > 0 ? "+" : ""}${formatNumber(weightChange)} kg`,
       icon: weightChange !== null ? (weightChange > 0 ? TrendingUp : weightChange < 0 ? TrendingDown : Minus) : Scale,
       variant: weightChange !== null ? (weightChange < 0 ? "performance" as const : weightChange > 0 ? "muscle" as const : "brand" as const) : "brand" as const,
-      sub: weightChange !== null ? (weightChange < 0 ? "نزول ممتاز" : weightChange > 0 ? "زيادة" : "ثابت") : "—",
+      sub: weightChange !== null ? (weightChange < 0 ? (isAr ? "نزول ممتاز" : "Great loss") : weightChange > 0 ? (isAr ? "زيادة" : "Increase") : (isAr ? "ثابت" : "Stable")) : "—",
       isDelta: true,
       weightChange,
     },
     {
-      label: "الالتزام",
-      enLabel: "Adherence",
+      label: isAr ? "الالتزام" : "Adherence",
       value: adherence !== null ? `${formatNumber(adherence, 0)}%` : "—",
       icon: Target,
       variant: "performance" as const,
-      sub: adherence !== null ? (adherence >= 80 ? "ممتاز" : adherence >= 60 ? "كويس" : "شد حيلك") : "—",
+      sub: adherence !== null ? (adherence >= 80 ? (isAr ? "ممتاز" : "Excellent") : adherence >= 60 ? (isAr ? "كويس" : "Good") : (isAr ? "شد حيلك" : "Keep pushing")) : "—",
       showRing: adherence !== null,
       ringValue: adherence ?? 0,
     },
     {
-      label: "المتابعة الجاية",
-      enLabel: "Next Check-in",
+      label: isAr ? "المتابعة الجاية" : "Next Check-in",
       value: nextReAssessment ? formatDate(nextReAssessment) : "—",
       icon: CalendarCheck2,
       variant: "energy" as const,
-      sub: nextReAssessment ? "جهز المتابعة" : "حدد ميعاد",
+      sub: nextReAssessment ? (isAr ? "جهز المتابعة" : "Prepare review") : (isAr ? "حدد ميعاد" : "Schedule date"),
     },
   ]
 
@@ -113,7 +112,6 @@ export function ProgressSummaryCards({
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-bold uppercase tracking-widest break-words text-muted-foreground">{c.label}</p>
-              <p className="text-xs break-words text-muted-foreground/70">{c.enLabel}</p>
             </div>
             {c.showRing && c.ringValue !== undefined && (
               <ProgressRing value={c.ringValue} size={44} strokeWidth={4} variant={c.variant} showValue={false} className="shrink-0" />

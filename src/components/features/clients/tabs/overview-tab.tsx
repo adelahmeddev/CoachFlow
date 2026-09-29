@@ -175,24 +175,24 @@ function InBodyCard({ clientId, profile, t, locale }: { clientId: string; profil
     <Card>
       <CardHeader className="flex-row items-start justify-between space-y-0">
         <div>
-          <CardTitle>Latest InBody</CardTitle>
-          <CardDescription>InBody — آخر تحليل</CardDescription>
+          <CardTitle>{t.bodyComposition.title}</CardTitle>
+          <CardDescription>{t.bodyComposition.lastAnalysis}</CardDescription>
         </div>
         {bc ? <Badge variant="secondary">InBody</Badge> : null}
       </CardHeader>
       {bc ? (
         <CardContent>
           <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-            <InfoItem label="التاريخ | Date" value={formatDate(bc.date as Date, locale)} />
-            <InfoItem label="الوزن (كجم) | WEIGHT (KG)" value={bc.weightKg != null ? `${bc.weightKg} kg` : "—"} />
-            <InfoItem label="الكتلة العضلية (كجم) | MUSCLE MASS (KG)" value={bc.muscleMassKg != null ? `${bc.muscleMassKg} kg` : "—"} />
-            <InfoItem label="دهون الجسم (كجم) | BODY FAT (KG)" value={bc.bodyFatKg != null ? `${bc.bodyFatKg} kg` : "—"} />
-            <InfoItem label="نسبة المياه بالجسم % | BODY WATER %" value={bc.bodyWaterPct != null ? `${bc.bodyWaterPct} %` : "—"} />
-            <InfoItem label="التحكم في الدهون (كجم) | FAT CONTROL (KG)" value={bc.fatControlKg != null ? `${bc.fatControlKg} kg` : "—"} />
-            <InfoItem label="معدل الأيض الأساسي | BMR" value={bc.bmrKcal != null ? `${Math.round(bc.bmrKcal)} kcal` : "—"} />
-            <InfoItem label="مؤشر اللياقة | FITNESS SCORE" value={bc.fitnessScore != null ? String(bc.fitnessScore) : "—"} />
-            <InfoItem label="نسبة الخصر للأرداف | WAIST-HIP RATIO" value={bc.waistHipRatio != null ? String(bc.waistHipRatio) : "—"} />
-            <InfoItem label="مستوى الدهون الحشوية | VISCERAL FAT LEVEL" value={bc.visceralFatLevel != null ? String(bc.visceralFatLevel) : "—"} />
+            <InfoItem label={t.bodyComposition.dateLabel} value={formatDate(bc.date as Date, locale)} />
+            <InfoItem label={t.bodyComposition.fields.weightKg} value={bc.weightKg != null ? `${bc.weightKg} kg` : "—"} />
+            <InfoItem label={t.bodyComposition.fields.muscleMassKg} value={bc.muscleMassKg != null ? `${bc.muscleMassKg} kg` : "—"} />
+            <InfoItem label={t.bodyComposition.fields.bodyFatKg} value={bc.bodyFatKg != null ? `${bc.bodyFatKg} kg` : "—"} />
+            <InfoItem label={t.bodyComposition.fields.bodyWaterPct} value={bc.bodyWaterPct != null ? `${bc.bodyWaterPct} %` : "—"} />
+            <InfoItem label={t.bodyComposition.fields.fatControlKg} value={bc.fatControlKg != null ? `${bc.fatControlKg} kg` : "—"} />
+            <InfoItem label={t.bodyComposition.fields.bmrKcal} value={bc.bmrKcal != null ? `${Math.round(bc.bmrKcal)} kcal` : "—"} />
+            <InfoItem label={t.bodyComposition.fields.fitnessScore} value={bc.fitnessScore != null ? String(bc.fitnessScore) : "—"} />
+            <InfoItem label={t.bodyComposition.fields.waistHipRatio} value={bc.waistHipRatio != null ? String(bc.waistHipRatio) : "—"} />
+            <InfoItem label={t.bodyComposition.fields.visceralFatLevel} value={bc.visceralFatLevel != null ? String(bc.visceralFatLevel) : "—"} />
             {bc.notes ? <InfoItem label={t.profile.overview.trainerNotesLabel} value={truncate(bc.notes, 80)} span /> : null}
           </dl>
         </CardContent>

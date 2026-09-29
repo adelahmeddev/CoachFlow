@@ -30,7 +30,7 @@ export function MessageComposer({
   onSent,
   onFailed,
 }: Props) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const router = useRouter()
   const [internalBody, setInternalBody] = useState("")
   const [isPending, startTransition] = useTransition()
@@ -106,7 +106,7 @@ export function MessageComposer({
         </button>
       </div>
       <div className="mt-2 hidden sm:flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-        {["تمام يا كوتش", "تم", "محتاج تعديل؟", "برافو!"].map((q) => (
+        {(locale === "ar" ? ["تمام يا كوتش", "تم", "محتاج تعديل؟", "برافو!"] : ["Got it coach!", "Done", "Need changes?", "Bravo!"]).map((q) => (
           <button
             key={q}
             type="button"

@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { getDayFocusLabel } from "@/lib/i18n/labels"
 
 interface ActionItem {
   id: string
@@ -87,10 +88,10 @@ export function DashboardActionCard({ client, data }: DashboardActionCardProps) 
         : (isAr ? "لا تمرين مجدول اليوم" : "No Workout Scheduled Today"),
       description: hasWorkoutToday
         ? isDayNameOnly
-          ? (isAr ? `تركيز اليوم: ${data.todayWorkout.day?.focus || "تمرين كامل"}` : `Today's Focus: ${data.todayWorkout.day?.focus || "Full Body"}`)
+          ? (isAr ? `تركيز اليوم: ${getDayFocusLabel(data.todayWorkout.day?.focus as any, locale) || "تمرين كامل"}` : `Today's Focus: ${getDayFocusLabel(data.todayWorkout.day?.focus as any, locale) || "Full Body"}`)
           : (isAr 
-            ? `تركيز: ${data.todayWorkout.day?.focus || "تمرين كامل"} · ${data.todayWorkout.exercises?.length || 0} تمارين`
-            : `Focus: ${data.todayWorkout.day?.focus || "Full Body"} · ${data.todayWorkout.exercises?.length || 0} exercises`)
+            ? `تركيز: ${getDayFocusLabel(data.todayWorkout.day?.focus as any, locale) || "تمرين كامل"} · ${data.todayWorkout.exercises?.length || 0} تمارين`
+            : `Focus: ${getDayFocusLabel(data.todayWorkout.day?.focus as any, locale) || "Full Body"} · ${data.todayWorkout.exercises?.length || 0} exercises`)
         : (isAr ? "تواصل مع مدربك لجدولة تمرين" : "Contact your coach to schedule a workout"),
       icon: Dumbbell,
       color: "from-brand-500 to-energy-500",
@@ -175,8 +176,8 @@ export function DashboardActionCard({ client, data }: DashboardActionCardProps) 
           <p className="mt-2 text-white/90 max-w-xl mx-auto text-sm sm:text-base leading-relaxed">
             {hasWorkoutToStart 
               ? (isAr 
-                  ? `تمارين ${data.todayWorkout.day?.focus || "اليوم"} جاهزة — ابدأ الآن!`
-                  : `Today's ${data.todayWorkout.day?.focus || "workout"} is ready — let's go!`)
+                  ? `تمارين ${getDayFocusLabel(data.todayWorkout.day?.focus as any, locale) || "اليوم"} جاهزة — ابدأ الآن!`
+                  : `Today's ${getDayFocusLabel(data.todayWorkout.day?.focus as any, locale) || "workout"} is ready — let's go!`)
               : (streak > 0 
                   ? (isAr 
                       ? `سلسلة ${streak} أيام — استمر في العزيمة!`

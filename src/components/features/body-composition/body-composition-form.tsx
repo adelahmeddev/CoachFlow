@@ -90,7 +90,7 @@ export function BodyCompositionForm({ clientId, entry, onSuccess, onCancel }: Pr
       <CardContent>
         <form onSubmit={form.handleSubmit(onSubmit as never)} className="space-y-4">
           <div>
-            <Label htmlFor="date">{isAr ? "التاريخ | Date" : "Date"} *</Label>
+            <Label htmlFor="date">{isAr ? "التاريخ" : "Date"} *</Label>
             <Input id="date" type="date" {...form.register("date")} disabled={isPending} />
             {form.formState.errors.date && <p className="text-xs text-destructive mt-1">{String(form.formState.errors.date.message)}</p>}
           </div>
@@ -98,7 +98,7 @@ export function BodyCompositionForm({ clientId, entry, onSuccess, onCancel }: Pr
           <div className="grid gap-3 sm:grid-cols-2">
             {FIELD_CONFIG.map((f) => (
               <div key={f.key}>
-                <Label htmlFor={f.key}>{isAr ? `${f.labelAr} | ${f.labelEn}` : `${f.labelEn} | ${f.labelAr}`}</Label>
+                <Label htmlFor={f.key}>{isAr ? f.labelAr : f.labelEn}</Label>
                 <Input
                   id={f.key}
                   type="number"
@@ -112,7 +112,7 @@ export function BodyCompositionForm({ clientId, entry, onSuccess, onCancel }: Pr
           </div>
 
           <div>
-            <Label htmlFor="notes">{isAr ? "ملاحظات | Notes" : "Notes"}</Label>
+            <Label htmlFor="notes">{isAr ? "ملاحظات" : "Notes"}</Label>
             <Textarea id="notes" placeholder={isAr ? "ملاحظات اختيارية" : "Optional notes"} {...form.register("notes")} disabled={isPending} />
           </div>
 

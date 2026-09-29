@@ -10,7 +10,7 @@ export async function ClientsEmptyState({
 }: {
   variant: "no-clients" | "no-results"
 }) {
-  const { t } = await getI18n()
+  const { t, locale } = await getI18n()
 
   if (variant === "no-results") {
     return (
@@ -55,7 +55,7 @@ export async function ClientsEmptyState({
           <p className="text-sm leading-relaxed text-muted-foreground">
             {t.clients.noClientsDescription}
           </p>
-          <p className="text-xs text-muted-foreground/70">ابدأ بدعوة أول بطل — هتشوف الفرق</p>
+          <p className="text-xs text-muted-foreground/70">{locale === "ar" ? "ابدأ بدعوة أول بطل — هتشوف الفرق" : "Invite your first athlete to get started"}</p>
         </div>
         <div className="flex flex-wrap justify-center gap-3">
           <Button asChild className="rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 gap-2">

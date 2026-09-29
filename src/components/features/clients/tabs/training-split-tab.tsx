@@ -13,7 +13,8 @@ interface TrainingSplitTabProps {
 }
 
 export async function TrainingSplitTab({ clientId }: TrainingSplitTabProps) {
-  const { t } = await getI18n()
+  const { t, locale } = await getI18n()
+  const isAr = locale === "ar"
   const session = await getCurrentSession()
   if (
     !session?.user ||
@@ -38,9 +39,8 @@ export async function TrainingSplitTab({ clientId }: TrainingSplitTabProps) {
     return (
       <div className="space-y-6">
         <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-center">
-          <p className="text-sm font-semibold text-destructive">فشل تحميل البرنامج التدريبي — انتهت مهلة الاتصال</p>
-          <p className="mt-1 text-xs text-muted-foreground">قد تكون قاعدة البيانات في وضع الاستيقاظ (Neon cold start). حاول تحديث الصفحة بعد ثوان.</p>
-          <p className="mt-2 text-xs text-muted-foreground">TrainingSplit timeout — DB pooled connection. Retry in a few seconds.</p>
+          <p className="text-sm font-semibold text-destructive">{isAr ? "فشل تحميل البرنامج التدريبي — انتهت مهلة الاتصال" : "Failed to load training split — connection timed out"}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{isAr ? "قد تكون قاعدة البيانات في وضع الاستيقاظ (Neon cold start). حاول تحديث الصفحة بعد ثوان." : "The database may be waking up (Neon cold start). Please refresh in a few seconds."}</p>
         </div>
       </div>
     )

@@ -40,8 +40,8 @@ export async function BodyCompositionTab({ clientId }: BodyCompositionTabProps) 
       {!isAdmin && (
         <Card>
           <CardHeader>
-            <CardTitle>تكوين الجسم | InBody — إضافة تحليل</CardTitle>
-            <CardDescription>Body composition tracking — add new InBody entry</CardDescription>
+            <CardTitle>{t.bodyComposition.addAnalysisTitle}</CardTitle>
+            <CardDescription>{t.bodyComposition.addAnalysisDesc}</CardDescription>
           </CardHeader>
           <CardContent>
             <BodyCompositionForm clientId={clientId} />
@@ -53,8 +53,8 @@ export async function BodyCompositionTab({ clientId }: BodyCompositionTabProps) 
 
       <Card>
         <CardHeader>
-          <CardTitle>InBody History — السجل</CardTitle>
-          <CardDescription>آخر تحاليل InBody — sorted by date</CardDescription>
+          <CardTitle>{t.bodyComposition.historyTitle}</CardTitle>
+          <CardDescription>{t.bodyComposition.historySubtitle}</CardDescription>
         </CardHeader>
         <CardContent>
           <BodyCompositionHistory clientId={clientId} entries={bodyCompositions as never} canEdit={canEdit} canDelete={canDelete} />
@@ -62,7 +62,7 @@ export async function BodyCompositionTab({ clientId }: BodyCompositionTabProps) 
       </Card>
 
       {isAdmin && bodyCompositions.length === 0 && (
-        <p className="text-sm text-muted-foreground py-4 text-center">No InBody records yet.</p>
+        <p className="text-sm text-muted-foreground py-4 text-center">{t.bodyComposition.history.empty}</p>
       )}
     </div>
   )

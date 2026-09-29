@@ -39,7 +39,7 @@ export async function BodyCompositionComparison({ entries }: { entries: Entry[] 
     return (
       <Card>
         <CardContent className="py-8 text-center text-sm text-muted-foreground">
-          {entries.length === 0 ? "No data for comparison" : "Need at least 2 InBody records for comparison"}
+          {entries.length === 0 ? t.bodyComposition.noDataComparison : t.bodyComposition.needTwoRecords}
         </CardContent>
       </Card>
     )
@@ -50,17 +50,17 @@ export async function BodyCompositionComparison({ entries }: { entries: Entry[] 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">المقارنة — آخر تحليلين | Latest 2 Comparison</CardTitle>
+        <CardTitle className="text-base">{t.bodyComposition.comparisonTitle}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-muted-foreground">
-                <th className="py-2 text-start font-medium">المقياس | Metric</th>
+                <th className="py-2 text-start font-medium">{t.bodyComposition.metric}</th>
                 <th className="py-2 text-start font-medium">{formatDate(previous.date as never, locale)}</th>
                 <th className="py-2 text-start font-medium">{formatDate(latest.date as never, locale)}</th>
-                <th className="py-2 text-start font-medium">التغيير | Change</th>
+                <th className="py-2 text-start font-medium">{t.bodyComposition.change}</th>
               </tr>
             </thead>
             <tbody>
@@ -78,7 +78,7 @@ export async function BodyCompositionComparison({ entries }: { entries: Entry[] 
                 }
                 return (
                   <tr key={f.key} className="border-b last:border-0">
-                    <td className="py-2 font-medium">{f.labelAr} | {f.labelEn}</td>
+                    <td className="py-2 font-medium">{locale === "ar" ? f.labelAr : f.labelEn}</td>
                     <td className="py-2">{prev ?? "—"} {prev != null ? f.unit : ""}</td>
                     <td className="py-2">{curr ?? "—"} {curr != null ? f.unit : ""}</td>
                     <td className={`py-2 font-medium ${color}`}>{deltaLabel(d)} {d != null ? f.unit : ""}</td>

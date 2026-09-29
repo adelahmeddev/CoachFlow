@@ -251,7 +251,7 @@ export async function getDayDetail(
 
   const exercisesRes = await pool.query(
     `SELECT sde."id", sde."splitDayId", sde."order", sde."exerciseId", sde."exerciseName", sde."targetSets", sde."targetReps", sde."targetWeightKg", sde."restSeconds", sde."notes", sde."videoUrl",
-            e."name" AS "exercise_name", e."youtubeUrl" AS "exercise_youtubeUrl"
+            e."name" AS "exercise_name", e."nameAr" AS "exercise_name_ar", e."youtubeUrl" AS "exercise_youtubeUrl"
      FROM "SplitDayExercise" sde
      LEFT JOIN "Exercise" e ON e."id" = sde."exerciseId"
      WHERE sde."splitDayId" = $1
@@ -271,6 +271,7 @@ export async function getDayDetail(
     notes: string | null
     videoUrl: string | null
     exercise_name: string | null
+    exercise_name_ar: string | null
     exercise_youtubeUrl: string | null
   }>
 
@@ -322,6 +323,7 @@ export async function getDayDetail(
     return {
       id: ex.id,
       exerciseName: ex.exerciseName || ex.exercise_name || "Exercise",
+      exerciseNameAr: ex.exercise_name_ar ?? null,
       targetSets: ex.targetSets,
       targetReps: ex.targetReps,
       targetWeightKg: ex.targetWeightKg,

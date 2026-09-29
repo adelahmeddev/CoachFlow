@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation"
+import { getI18n } from "@/lib/i18n"
 import type { ReactNode } from "react"
 import { getCurrentSession } from "@/server/auth"
 import { getClientProfile } from "@/server/services/client-profile.service"
@@ -38,6 +39,7 @@ export default async function ClientProfilePage({
   const { tab } = await searchParams
   const activeTab = parseClientProfileTab(tab) ?? DEFAULT_CLIENT_PROFILE_TAB
 
+  const { locale } = await getI18n()
   const trainerProfileId =
     session.user.role === "SUPER_ADMIN" ? undefined : session.user.trainerProfileId
 
@@ -51,8 +53,8 @@ export default async function ClientProfilePage({
     return (
       <div className="space-y-6">
         <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-center">
-          <p className="text-sm font-semibold text-destructive">فشل تحميل بيانات العميل — انتهت مهلة الاتصال</p>
-          <p className="mt-1 text-xs text-muted-foreground">تأكد من الاتصال أو حاول تحديث الصفحة. قد تكون قاعدة البيانات في وضع الاستيقاظ (Neon cold start).</p>
+          <p className="text-sm font-semibold text-destructive">{locale === "ar" ? "فشل تحميل بيانات العميل — انتهت مهلة الاتصال" : "Failed to load client data — connection timed out"}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{locale === "ar" ? "تأكد من الاتصال أو حاول تحديث الصفحة. قد تكون قاعدة البيانات في وضع الاستيقاظ (Neon cold start)." : "Check your connection or refresh the page. Database may be in cold start."}</p>
           <p className="mt-3 text-xs text-muted-foreground">ClientProfile timeout — DB pooled connection cold start. Retry in a few seconds.</p>
         </div>
       </div>

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { LayoutDashboard, ClipboardCheck, Dumbbell, Apple, TrendingUp, Package, Target, Camera, type LucideIcon } from "lucide-react"
 import { motion } from "@/components/motion"
 import { haptics } from "@/lib/haptics"
+import { useI18n } from "@/lib/i18n/client"
 
 export type SectionKey = "overview" | "body-composition" | "training-split" | "nutrition" | "progress" | "goals" | "media" | "subscription"
 
@@ -29,6 +30,7 @@ interface SectionNavProps {
 }
 
 export function SectionNav({ clientId, active, onChange, badges }: SectionNavProps) {
+  const { locale } = useI18n()
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
@@ -69,7 +71,7 @@ export function SectionNav({ clientId, active, onChange, badges }: SectionNavPro
               >
                 <Icon className="size-3.5" aria-hidden="true" />
               </span>
-              <span className="whitespace-nowrap text-sm font-semibold tracking-tight">{meta.label}</span>
+              <span className="whitespace-nowrap text-sm font-semibold tracking-tight">{locale === "en" ? meta.labelEn : meta.label}</span>
               {badge !== undefined && badge !== null && badge !== 0 && badge !== "" ? (
                 <span
                   className={cn(

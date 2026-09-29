@@ -41,15 +41,15 @@ export function PainFlagsForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">الآلام | Pain Flags</CardTitle>
+        <CardTitle className="text-base">{t.bodyComposition.painFlagsTitle}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
           {[
-            { key: "neckPain" as const, label: "ألم الرقبة | Neck Pain" },
-            { key: "shoulderPain" as const, label: "ألم الكتف | Shoulder Pain" },
-            { key: "backPain" as const, label: "ألم الظهر | Back Pain" },
-            { key: "kneePain" as const, label: "ألم الركبة | Knee Pain" },
+            { key: "neckPain" as const, label: t.bodyComposition.painFlags.neckPain },
+            { key: "shoulderPain" as const, label: t.bodyComposition.painFlags.shoulderPain },
+            { key: "backPain" as const, label: t.bodyComposition.painFlags.backPain },
+            { key: "kneePain" as const, label: t.bodyComposition.painFlags.kneePain },
           ].map((item) => (
             <label key={item.key} className="flex items-center gap-2 rounded-lg border p-3 cursor-pointer hover:bg-accent">
               <Checkbox checked={flags[item.key]} onCheckedChange={() => toggle(item.key)} />

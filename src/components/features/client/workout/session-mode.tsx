@@ -90,7 +90,7 @@ export function SessionMode({
   workout: TodayWorkoutResult
   lastTime: Record<string, SessionLastTime>
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const router = useRouter()
   const s = t.client.workout.session
 
@@ -452,7 +452,7 @@ export function SessionMode({
       <div className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-4">
         <div className="rounded-2xl border bg-card p-4">
           <h1 className="text-lg font-semibold leading-snug">
-            {current.exerciseName}
+            {locale === "ar" && (current as any).exerciseNameAr ? (current as any).exerciseNameAr : current.exerciseName}
           </h1>
           <div className="mt-3 grid grid-cols-3 gap-2 text-center text-sm">
             <div className="rounded-lg border p-2">

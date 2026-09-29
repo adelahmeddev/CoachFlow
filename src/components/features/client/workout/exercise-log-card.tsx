@@ -20,6 +20,7 @@ interface ExerciseLogCardProps {
   exercise: {
     id: string
     exerciseName: string
+    exerciseNameAr?: string | null
     sets: number
     reps: number
     targetWeight: number | null
@@ -51,10 +52,10 @@ export function ExerciseLogCard({
   onSave,
   onSkip,
 }: ExerciseLogCardProps) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const [showVideo, setShowVideo] = useState(false)
   const videoUrl = exercise.videoUrl ?? exercise.youtubeUrl
-  const isAr = (t as unknown as Record<string, unknown>)?.client ? true : false
+  const isAr = locale === "ar"
 
   return (
     <div
@@ -94,7 +95,7 @@ export function ExerciseLogCard({
             {done ? <Check className="size-5 stroke-[3]" /> : <Dumbbell className="size-5" />}
           </motion.span>
           <div className="min-w-0 flex-1">
-            <p className="line-clamp-2 break-words text-sm font-bold leading-snug tracking-tight">{exercise.exerciseName}</p>
+            <p className="line-clamp-2 break-words text-sm font-bold leading-snug tracking-tight">{isAr && exercise.exerciseNameAr ? exercise.exerciseNameAr : exercise.exerciseName}</p>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
               <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium">
                 <Repeat className="size-3 text-muted-foreground" />

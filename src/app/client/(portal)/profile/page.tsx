@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import { getI18n } from "@/lib/i18n"
 import { getCurrentSession } from "@/server/auth"
 import { getClientProfile } from "@/server/services/client-portal.service"
 import { pool } from "@/lib/db"
@@ -19,6 +20,8 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export default async function ClientProfilePage() {
+  const { t, locale } = await getI18n()
+  const isAr = locale === "ar"
   const session = await getCurrentSession()
   const clientId = session?.user.clientProfileId
 
@@ -40,11 +43,11 @@ export default async function ClientProfilePage() {
     <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-8">
       <Tabs defaultValue="info">
         <TabsList className="!h-auto flex-wrap">
-          <TabsTrigger value="info">My Info</TabsTrigger>
-          <TabsTrigger value="inbody">تكوين الجسم | InBody</TabsTrigger>
-          <TabsTrigger value="goals">My Goals</TabsTrigger>
-          <TabsTrigger value="subscription">My Subscription</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="info">{isAr ? "بياناتي" : "My Info"}</TabsTrigger>
+          <TabsTrigger value="inbody">{isAr ? "تكوين الجسم" : "Body Composition"}</TabsTrigger>
+          <TabsTrigger value="goals">{isAr ? "أهدافي" : "My Goals"}</TabsTrigger>
+          <TabsTrigger value="subscription">{isAr ? "اشتراكي" : "My Subscription"}</TabsTrigger>
+          <TabsTrigger value="settings">{isAr ? "الإعدادات" : "Settings"}</TabsTrigger>
         </TabsList>
         <TabsContent value="info" className="space-y-6">
           <MyInfoSection

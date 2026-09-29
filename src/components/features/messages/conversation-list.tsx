@@ -22,7 +22,7 @@ export function ConversationList({
 }: {
   conversations: ConversationRow[]
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const pathname = usePathname()
   const [q, setQ] = useState("")
 
@@ -39,7 +39,7 @@ export function ConversationList({
     <div className="flex h-full flex-col bg-card">
       <div className="border-b bg-card px-4 py-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold tracking-tight">الرسائل</h2>
+          <h2 className="text-base font-bold tracking-tight">{t.nav.messages}</h2>
           <span className="inline-flex items-center rounded-full bg-brand-500 px-2.5 py-1 text-xs font-bold text-white shadow-soft">
             {conversations.length}
           </span>
@@ -63,8 +63,8 @@ export function ConversationList({
               <MessageSquare className="size-5" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-sm font-semibold">No conversations</p>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">ابدأ محادثة مع بطل من ملفه</p>
+              <p className="text-sm font-semibold">{t.client.messages.noMessages}</p>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{locale === "ar" ? "ابدأ محادثة مع بطل من ملفه" : "Start a conversation from an athlete profile"}</p>
             </div>
           </div>
         ) : (

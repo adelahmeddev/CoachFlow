@@ -34,7 +34,8 @@ export function LoginForm({
     () => false
   );
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const isAr = locale === "ar";
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -55,11 +56,11 @@ export function LoginForm({
 
       if (result?.error) {
         if (result.error === "TOO_MANY_ATTEMPTS") {
-          toast.error("محاولات خاطئة كثيرة. برجاء المحاولة بعد ١٥ دقيقة.");
+          toast.error(isAr ? "محاولات خاطئة كثيرة. برجاء المحاولة بعد ١٥ دقيقة." : "Too many attempts. Please try again after 15 minutes.");
         } else if (result.error.includes("ACCOUNT_SUSPENDED")) {
-          toast.error("تم تعليق الحساب. برجاء التواصل مع الإدارة.");
+          toast.error(isAr ? "تم تعليق الحساب. برجاء التواصل مع الإدارة." : "Account suspended. Please contact support.");
         } else {
-          toast.error("بيانات الدخول غير صحيحة. حاول مرة أخرى.");
+          toast.error(isAr ? "بيانات الدخول غير صحيحة. حاول مرة أخرى." : "Invalid credentials. Please try again.");
         }
         setIsPending(false);
         return;
@@ -77,7 +78,7 @@ export function LoginForm({
       router.push(redirectUrl);
       router.refresh();
     } catch {
-      toast.error("حدث خطأ ما. حاول مرة أخرى.");
+      toast.error(isAr ? "حدث خطأ ما. حاول مرة أخرى." : "Something went wrong. Please try again.");
       setIsPending(false);
     }
   }
@@ -97,10 +98,10 @@ export function LoginForm({
           name="identifier"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>اسم المستخدم أو رقم الهاتف أو البريد الإلكتروني</FormLabel>
+              <FormLabel>{isAr ? "اسم المستخدم أو رقم الهاتف أو البريد الإلكتروني" : "Username, phone number, or email"}</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="coach.karim أو 01000000000 أو you@example.com…"
+                  placeholder={isAr ? "coach.karim أو 01000000000 أو you@example.com…" : "coach.karim, 01000000000, or you@example.com…"}
                   autoComplete="username"
                   spellCheck={false}
                   disabled={isPending}
@@ -133,7 +134,7 @@ export function LoginForm({
                     size="icon-sm"
                     className="absolute end-1 top-1/2 size-7 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                     onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+                    aria-label={showPassword ? (isAr ? "إخفاء كلمة المرور" : "Hide password") : (isAr ? "إظهار كلمة المرور" : "Show password")}
                   >
                     {showPassword ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
                   </Button>
@@ -147,10 +148,10 @@ export function LoginForm({
           {isPending ? (
             <>
               <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-              جارٍ تسجيل الدخول…
+              {isAr ? "جارٍ تسجيل الدخول…" : "Signing in…"}
             </>
           ) : (
-            "تسجيل الدخول"
+            isAr ? "تسجيل الدخول" : "Sign in"
           )}
         </Button>
       </form>

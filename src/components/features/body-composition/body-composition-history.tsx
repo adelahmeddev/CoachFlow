@@ -99,15 +99,15 @@ export function BodyCompositionHistory({
             </CardHeader>
             <CardContent>
               <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
-                <div><dt className="text-xs text-muted-foreground">الوزن | WEIGHT</dt><dd className="font-medium">{bc.weightKg ?? "—"} {bc.weightKg != null ? "kg" : ""}</dd></div>
-                <div><dt className="text-xs text-muted-foreground">العضلات | MUSCLE</dt><dd className="font-medium">{bc.muscleMassKg ?? "—"} {bc.muscleMassKg != null ? "kg" : ""}</dd></div>
-                <div><dt className="text-xs text-muted-foreground">الدهون | FAT</dt><dd className="font-medium">{bc.bodyFatKg ?? "—"} {bc.bodyFatKg != null ? "kg" : ""}</dd></div>
-                <div><dt className="text-xs text-muted-foreground">المياه % | WATER %</dt><dd className="font-medium">{bc.bodyWaterPct ?? "—"}</dd></div>
-                <div><dt className="text-xs text-muted-foreground">التحكم دهون | FAT CTRL</dt><dd className="font-medium">{bc.fatControlKg ?? "—"}</dd></div>
-                <div><dt className="text-xs text-muted-foreground">BMR</dt><dd className="font-medium">{bc.bmrKcal ?? "—"}</dd></div>
-                <div><dt className="text-xs text-muted-foreground">Fitness Score</dt><dd className="font-medium">{bc.fitnessScore ?? "—"}</dd></div>
-                <div><dt className="text-xs text-muted-foreground">WHR</dt><dd className="font-medium">{bc.waistHipRatio ?? "—"}</dd></div>
-                <div><dt className="text-xs text-muted-foreground">Visceral Fat</dt><dd className="font-medium">{bc.visceralFatLevel ?? "—"}</dd></div>
+                <div><dt className="text-xs text-muted-foreground">{t.bodyComposition.fields.weightKg}</dt><dd className="font-medium">{bc.weightKg ?? "—"} {bc.weightKg != null ? "kg" : ""}</dd></div>
+                <div><dt className="text-xs text-muted-foreground">{t.bodyComposition.fields.muscleMassKg}</dt><dd className="font-medium">{bc.muscleMassKg ?? "—"} {bc.muscleMassKg != null ? "kg" : ""}</dd></div>
+                <div><dt className="text-xs text-muted-foreground">{t.bodyComposition.fields.bodyFatKg}</dt><dd className="font-medium">{bc.bodyFatKg ?? "—"} {bc.bodyFatKg != null ? "kg" : ""}</dd></div>
+                <div><dt className="text-xs text-muted-foreground">{t.bodyComposition.fields.bodyWaterPct}</dt><dd className="font-medium">{bc.bodyWaterPct ?? "—"}</dd></div>
+                <div><dt className="text-xs text-muted-foreground">{t.bodyComposition.fields.fatControlKg}</dt><dd className="font-medium">{bc.fatControlKg ?? "—"}</dd></div>
+                <div><dt className="text-xs text-muted-foreground">{t.bodyComposition.fields.bmrKcal}</dt><dd className="font-medium">{bc.bmrKcal ?? "—"}</dd></div>
+                <div><dt className="text-xs text-muted-foreground">{t.bodyComposition.fields.fitnessScore}</dt><dd className="font-medium">{bc.fitnessScore ?? "—"}</dd></div>
+                <div><dt className="text-xs text-muted-foreground">{t.bodyComposition.fields.waistHipRatio}</dt><dd className="font-medium">{bc.waistHipRatio ?? "—"}</dd></div>
+                <div><dt className="text-xs text-muted-foreground">{t.bodyComposition.fields.visceralFatLevel}</dt><dd className="font-medium">{bc.visceralFatLevel ?? "—"}</dd></div>
               </dl>
               {bc.notes && <p className="mt-2 text-xs text-muted-foreground line-clamp-2">{bc.notes}</p>}
             </CardContent>

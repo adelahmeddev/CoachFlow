@@ -287,9 +287,8 @@ export function ChatThread({
 
           {messages.length === 0 ? (
             <div className="rounded-2xl border border-dashed bg-card py-16 text-center">
-              <p className="text-base font-semibold">No messages yet</p>
-              <p className="mt-1 text-sm text-muted-foreground">{t.client.messages.noMessages}</p>
-              <p className="mt-1 text-xs text-muted-foreground">ابدأ محادثة خفيفة مع البطل</p>
+              <p className="text-base font-semibold">{t.client.messages.noMessages}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{locale === "ar" ? "ابدأ محادثة خفيفة مع البطل" : "Send a message to get started"}</p>
             </div>
           ) : (
             grouped.map(([day, msgs]) => (
