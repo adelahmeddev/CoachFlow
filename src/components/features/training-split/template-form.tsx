@@ -24,7 +24,7 @@ import {
   type TrainingSplitTemplateInput,
 } from "@/lib/validations/training-split-template"
 import type { TrainingSplitDayInput } from "@/lib/validations/training-split"
-import { SPLIT_TYPE_OPTIONS } from "@/lib/constants"
+import { SPLIT_TYPE_OPTIONS, SPLIT_TYPE_DEFAULT_TEMPLATES } from "@/lib/constants"
 import { DaysEditor, toExerciseDraft } from "@/components/features/training-split/days-editor"
 import {
   createTrainingSplitTemplateAction,
@@ -111,6 +111,14 @@ export function TemplateForm({
       splitType: template?.splitType ?? SplitType.FULL_BODY,
       daysPerWeek: template?.daysPerWeek ?? 3,
       description: template?.description ?? "",
+      days: template
+        ? templateDaysToState(template)
+        : SPLIT_TYPE_DEFAULT_TEMPLATES[SplitType.FULL_BODY].days.map((focus) => ({
+            focus,
+            customFocus: "",
+            notes: "",
+            exercises: [],
+          })),
     },
   })
 
@@ -180,11 +188,20 @@ export function TemplateForm({
     }
   }
 
-  return (
-    <form
-      onSubmit={form.handleSubmit(() => onSubmit())}
-      className="space-y-6"
-    >
+      function onInvalid(errors: any) {
+        const firstError = Object.values(errors).flat()[0] as any
+        if (firstError && firstError.message) {
+          toast.error(firstError.message)
+        } else {
+          toast.error(t.toasts.invalidTrainingDays)
+        }
+      }
+
+      return (
+        <form
+          onSubmit={form.handleSubmit(onSubmit, onInvalid)}
+          className="space-y-6"
+        >
       {serverError && (
         <Alert variant="destructive">
           <AlertDescription>{serverError}</AlertDescription>
