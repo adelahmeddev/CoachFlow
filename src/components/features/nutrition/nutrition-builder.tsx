@@ -35,7 +35,7 @@ import {
   SUBSTITUTE_GROUPS_SEED,
 } from "@/lib/nutrition-fixed"
 
-/* ------------------------------------------------------------------ */
+import { createNutritionTemplateAction, updateNutritionTemplateAction, savePlanContentAction } from "@/server/actions/nutrition"
 /* TYPES                                                               */
 /* ------------------------------------------------------------------ */
 
@@ -298,8 +298,7 @@ export function NutritionBuilder({
           })),
       }
 
-      const { createNutritionTemplateAction, updateNutritionTemplateAction, savePlanContentAction } =
-        await import("@/server/actions/nutrition")
+
 
       let result: SubmitResult
       if (mode === "template" && templateId) {
