@@ -161,6 +161,7 @@ export type TrainingSplit = {
   id: string
   clientId: string
   splitType: SplitType
+  customSplitName: string | null
   daysPerWeek: number
   scheduleMode: ScheduleMode
   notes: string | null
@@ -261,6 +262,7 @@ export type TrainingSplitTemplate = {
   goal: Goal | null
   level: string | null
   splitType: SplitType
+  customSplitName: string | null
   daysPerWeek: number
   description: string | null
   isGlobal: boolean

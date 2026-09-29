@@ -21,6 +21,7 @@ export interface TemplatePreviewData {
   id: string
   name: string
   splitType: SplitType
+  customSplitName?: string | null
   daysPerWeek: number
   description?: string | null
   days: {
@@ -82,7 +83,9 @@ export function TemplatePreviewDrawer({
               {template.daysPerWeek} {t.trainingSplit.activeDays}
             </Badge>
             <Badge variant="secondary" className="bg-white/10 text-white">
-              {lookup(t, `trainingSplit.splitTypes.${template.splitType.toLowerCase()}`) ?? template.splitType}
+              {template.splitType === "CUSTOM" && template.customSplitName
+                ? template.customSplitName
+                : lookup(t, `trainingSplit.splitTypes.${template.splitType.toLowerCase()}`) ?? template.splitType}
             </Badge>
           </div>
           <SheetTitle className="text-xl font-bold pt-1">{template.name}</SheetTitle>

@@ -33,27 +33,44 @@ const templateDaySchema = z
     }
   })
 
-export const trainingSplitTemplateSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, "Template name is required")
-    .max(120),
-  goal: z.nativeEnum(Goal).nullable().optional(),
-  level: z
-    .union([z.string().trim().max(60), z.literal(""), z.literal(null)])
-    .optional(),
-  splitType: z.nativeEnum(SplitType),
-  daysPerWeek: z.number().int().min(1).max(7),
-  description: z
-    .union([
-      z.string().trim().max(1000),
-      z.literal(""),
-      z.literal(null),
-    ])
-    .optional(),
-  days: z.array(templateDaySchema).min(1).max(7),
-})
+export const trainingSplitTemplateSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(1, "Template name is required")
+      .max(120),
+    goal: z.nativeEnum(Goal).nullable().optional(),
+    level: z
+      .union([z.string().trim().max(60), z.literal(""), z.literal(null)])
+      .optional(),
+    splitType: z.nativeEnum(SplitType),
+    customSplitName: z
+      .union([
+        z.string().trim().max(80, "Custom split name cannot exceed 80 characters"),
+        z.literal(""),
+        z.literal(null),
+      ])
+      .optional(),
+    daysPerWeek: z.number().int().min(1).max(7),
+    description: z
+      .union([
+        z.string().trim().max(1000),
+        z.literal(""),
+        z.literal(null),
+      ])
+      .optional(),
+    days: z.array(templateDaySchema).min(1).max(7),
+  })
+  .superRefine((data, ctx) => {
+    if (data.splitType === SplitType.CUSTOM && !data.customSplitName?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["customSplitName"],
+        message: "Custom split name is required when split type is Custom",
+      })
+    }
+  })
 
 export type TemplateDayInput = z.infer<typeof templateDaySchema>
 export type TrainingSplitTemplateInput = z.infer<

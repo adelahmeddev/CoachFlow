@@ -32,6 +32,7 @@ import {
 } from "@/server/actions/training-split-template"
 import { SplitType } from "@/lib/db/enums"
 import type { ExerciseOption } from "@/lib/exercise-safety"
+import { cn } from "@/lib/utils"
 import { GlassCard } from "./liquid-glass/glass-card"
 import { LiveVolumeRadar } from "./live-volume-radar"
 
@@ -43,6 +44,7 @@ interface TemplateFormProps {
     goal?: unknown
     level?: string | null
     splitType: SplitType
+    customSplitName?: string | null
     daysPerWeek: number
     description: string | null
     days: {
@@ -109,6 +111,7 @@ export function TemplateForm({
     defaultValues: {
       name: template?.name ?? "",
       splitType: template?.splitType ?? SplitType.FULL_BODY,
+      customSplitName: template?.customSplitName ?? "",
       daysPerWeek: template?.daysPerWeek ?? 3,
       description: template?.description ?? "",
       days: template
@@ -124,6 +127,10 @@ export function TemplateForm({
 
   function handleSplitTypeChange(value: SplitType) {
     form.setValue("splitType", value, { shouldValidate: false })
+    if (value !== SplitType.CUSTOM) {
+      form.setValue("customSplitName", "", { shouldValidate: false })
+      form.clearErrors("customSplitName")
+    }
     form.setValue("daysPerWeek", days.length || 3, {
       shouldValidate: false,
     })
@@ -137,6 +144,10 @@ export function TemplateForm({
     const payload: TrainingSplitTemplateInput = {
       name: values.name,
       splitType: values.splitType,
+      customSplitName:
+        values.splitType === SplitType.CUSTOM
+          ? values.customSplitName?.trim() || null
+          : null,
       daysPerWeek: values.daysPerWeek,
       description: values.description?.trim() || null,
       days,
@@ -159,6 +170,7 @@ export function TemplateForm({
                   field as
                     | "name"
                     | "splitType"
+                    | "customSplitName"
                     | "daysPerWeek"
                     | "description",
                   { type: "server", message: errors[0] }
@@ -197,6 +209,9 @@ export function TemplateForm({
         }
       }
 
+      const splitType = form.watch("splitType")
+      const isCustom = splitType === SplitType.CUSTOM
+
       return (
         <form
           onSubmit={form.handleSubmit(onSubmit, onInvalid)}
@@ -217,7 +232,14 @@ export function TemplateForm({
         </div>
 
         <div className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div
+            className={cn(
+              "grid gap-4",
+              isCustom
+                ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-4"
+                : "grid-cols-1 md:grid-cols-3"
+            )}
+          >
             <div className="space-y-1.5">
               <Label htmlFor="templateName" className="text-xs font-semibold">
                 {t.templates.templateName}
@@ -240,7 +262,7 @@ export function TemplateForm({
                 {t.templates.splitType}
               </Label>
               <Select
-                value={form.watch("splitType")}
+                value={splitType}
                 onValueChange={(value) =>
                   handleSplitTypeChange(value as SplitType)
                 }
@@ -262,6 +284,25 @@ export function TemplateForm({
                 </p>
               )}
             </div>
+
+            {isCustom && (
+              <div className="space-y-1.5">
+                <Label htmlFor="templateCustomSplitName" className="text-xs font-semibold">
+                  {t.templates.customSplitName}
+                </Label>
+                <Input
+                  id="templateCustomSplitName"
+                  placeholder={t.templates.customSplitNamePlaceholder}
+                  className="rounded-xl border-white/15 bg-white/[0.04] text-xs"
+                  {...form.register("customSplitName")}
+                />
+                {form.formState.errors.customSplitName && (
+                  <p className="text-xs text-destructive">
+                    {form.formState.errors.customSplitName.message}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label htmlFor="templateDays" className="text-xs font-semibold">

@@ -35,6 +35,7 @@ export interface TemplateRow {
   goal: Goal | null
   level: string | null
   splitType: SplitType
+  customSplitName?: string | null
   daysPerWeek: number
   description: string | null
   isGlobal: boolean
@@ -86,7 +87,7 @@ function TemplateCard({
             <Badge variant="outline">{template.level}</Badge>
           ) : null}
           <Badge variant="outline">
-            {getSplitTypeLabel(template.splitType, locale)}
+            {getSplitTypeLabel(template.splitType, locale, template.customSplitName)}
           </Badge>
           <Badge variant="outline">
             {template.daysPerWeek} {t.templates.daysShort}

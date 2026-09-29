@@ -211,8 +211,9 @@ model ClientNutritionPlan {
 model TrainingSplit {
   id           String             @id @default(cuid())
   clientId     String
-  splitType    SplitType
-  daysPerWeek  Int
+  splitType       SplitType
+  customSplitName String?
+  daysPerWeek     Int
   scheduleMode ScheduleMode       @default(FIXED_WEEKDAYS)
   notes        String?
   status       PlanStatus         @default(ACTIVE)
@@ -343,6 +344,7 @@ model TrainingSplitTemplate {
   goal           Goal?
   level          String?
   splitType      SplitType
+  customSplitName String?
   daysPerWeek    Int
   description    String?
   isGlobal       Boolean                    @default(false)

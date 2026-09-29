@@ -258,7 +258,10 @@ export function getSubscriptionStatusLabel(status: SubscriptionStatus): string {
   return SUBSCRIPTION_STATUS_LABELS[status]
 }
 
-export function getSplitTypeLabel(type: SplitType): string {
+export function getSplitTypeLabel(type: SplitType, customSplitName?: string | null): string {
+  if (type === SplitType.CUSTOM && customSplitName?.trim()) {
+    return customSplitName.trim()
+  }
   return SPLIT_TYPE_LABELS[type]
 }
 

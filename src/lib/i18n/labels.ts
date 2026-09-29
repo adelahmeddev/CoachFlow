@@ -109,7 +109,14 @@ export function getPlanStatusLabel(status: PlanStatus, locale: Locale): string {
   return lookupEnum(dict, status) ?? status
 }
 
-export function getSplitTypeLabel(type: SplitType, locale: Locale): string {
+export function getSplitTypeLabel(
+  type: SplitType,
+  locale: Locale,
+  customSplitName?: string | null
+): string {
+  if (type === "CUSTOM" && customSplitName?.trim()) {
+    return customSplitName.trim()
+  }
   const dict = getDictionary(locale).trainingSplit.splitTypes as Record<string, string>
   return lookupEnum(dict, type) ?? type
 }

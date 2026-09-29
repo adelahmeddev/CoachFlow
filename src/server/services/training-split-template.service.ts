@@ -10,6 +10,7 @@ import {
   toNumberOrNull,
 } from "@/lib/validations/exercise"
 import { withCache } from "@/lib/cache"
+import { SplitType } from "@/lib/db/enums"
 
 type TemplateWithDays = TrainingSplitTemplate & {
   days: (TrainingSplitTemplateDay & { exercises: TemplateDayExercise[] })[]
@@ -143,9 +144,14 @@ export async function createTrainingSplitTemplate(
 ) {
   return withTransaction(async (tx) => {
     const templateId = generateId()
+    const customSplitName =
+      data.splitType === SplitType.CUSTOM
+        ? data.customSplitName?.trim() || null
+        : null
+
     await tx.query(
-      `INSERT INTO "TrainingSplitTemplate" ("id", "trainerId", "name", "goal", "level", "splitType", "daysPerWeek", "description", "isGlobal", "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, $4::"Goal", $5, $6::"SplitType", $7, $8, $9, NOW(), NOW())`,
+      `INSERT INTO "TrainingSplitTemplate" ("id", "trainerId", "name", "goal", "level", "splitType", "customSplitName", "daysPerWeek", "description", "isGlobal", "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, $4::"Goal", $5, $6::"SplitType", $7, $8, $9, $10, NOW(), NOW())`,
       [
         templateId,
         trainerProfileId,
@@ -153,6 +159,7 @@ export async function createTrainingSplitTemplate(
         data.goal ?? null,
         data.level?.trim() || null,
         data.splitType,
+        customSplitName,
         data.daysPerWeek,
         data.description?.trim() || null,
         false,
@@ -211,13 +218,19 @@ export async function updateTrainingSplitTemplate(
   if (!checkRes.rows[0]) return null
 
   return withTransaction(async (tx) => {
+    const customSplitName =
+      data.splitType === SplitType.CUSTOM
+        ? data.customSplitName?.trim() || null
+        : null
+
     const updatedRes = await tx.query<TrainingSplitTemplate>(
-      `UPDATE "TrainingSplitTemplate" SET "name" = $1, "goal" = $2::"Goal", "level" = $3, "splitType" = $4::"SplitType", "daysPerWeek" = $5, "description" = $6, "updatedAt" = NOW() WHERE "id" = $7 RETURNING *`,
+      `UPDATE "TrainingSplitTemplate" SET "name" = $1, "goal" = $2::"Goal", "level" = $3, "splitType" = $4::"SplitType", "customSplitName" = $5, "daysPerWeek" = $6, "description" = $7, "updatedAt" = NOW() WHERE "id" = $8 RETURNING *`,
       [
         data.name.trim(),
         data.goal ?? null,
         data.level?.trim() || null,
         data.splitType,
+        customSplitName,
         data.daysPerWeek,
         data.description?.trim() || null,
         templateId,
@@ -286,8 +299,8 @@ export async function duplicateTrainingSplitTemplate(
   return withTransaction(async (tx) => {
     const newTemplateId = generateId()
     await tx.query(
-      `INSERT INTO "TrainingSplitTemplate" ("id", "trainerId", "name", "goal", "level", "splitType", "daysPerWeek", "description", "isGlobal", "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, $4::"Goal", $5, $6::"SplitType", $7, $8, $9, NOW(), NOW())`,
+      `INSERT INTO "TrainingSplitTemplate" ("id", "trainerId", "name", "goal", "level", "splitType", "customSplitName", "daysPerWeek", "description", "isGlobal", "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, $4::"Goal", $5, $6::"SplitType", $7, $8, $9, $10, NOW(), NOW())`,
       [
         newTemplateId,
         trainerProfileId,
@@ -295,6 +308,7 @@ export async function duplicateTrainingSplitTemplate(
         template.goal,
         template.level,
         template.splitType,
+        template.customSplitName ?? null,
         template.daysPerWeek,
         template.description,
         false,

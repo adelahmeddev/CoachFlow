@@ -226,7 +226,7 @@ export function SplitStarterHub({
                         </Badge>
                       </div>
                       <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                        {template.days.length} Days · {lookup(t, `trainingSplit.splitTypes.${template.splitType.toLowerCase()}`) ?? template.splitType}
+                        {template.days.length} Days · {template.splitType === "CUSTOM" && template.customSplitName ? template.customSplitName : (lookup(t, `trainingSplit.splitTypes.${template.splitType.toLowerCase()}`) ?? template.splitType)}
                       </p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
