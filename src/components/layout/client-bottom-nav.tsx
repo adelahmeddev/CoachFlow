@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils"
 import { useI18n } from "@/lib/i18n/client"
 import type { Dictionary } from "@/lib/i18n/messages/en"
 
+import type { WorkoutDisplayMode } from "@/lib/db/enums"
+
 type BottomNavItem = {
   key: string
   labelKey: string
@@ -35,9 +37,17 @@ function lookup(t: Dictionary, path: string): string {
     }, t as unknown) as string
 }
 
-export function ClientBottomNav() {
+export function ClientBottomNav({
+  workoutDisplayMode,
+}: {
+  workoutDisplayMode?: WorkoutDisplayMode
+} = {}) {
   const { t } = useI18n()
   const pathname = usePathname()
+  const isDayNameOnly = workoutDisplayMode === "DAY_NAME_ONLY"
+  const navItems = isDayNameOnly
+    ? CLIENT_BOTTOM_NAV_ITEMS.filter((item) => item.key !== "workout")
+    : CLIENT_BOTTOM_NAV_ITEMS
   const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
@@ -61,7 +71,7 @@ export function ClientBottomNav() {
   return (
     <nav className="fixed inset-x-3 bottom-4 z-50 rounded-[2rem] border border-white/10 bg-background/60 shadow-[0_4px_30px_rgba(0,0,0,0.03)] backdrop-blur-xl supports-[backdrop-filter]:bg-background/45 dark:border-white/5 dark:shadow-[0_4px_30px_rgba(0,0,0,0.2)]" aria-label={t.common.openNavigation ?? "Main navigation"}>
       <div className="mx-auto flex h-[64px] max-w-7xl items-center justify-around gap-1 px-2">
-        {CLIENT_BOTTOM_NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const isActive =
             pathname === item.href || pathname.startsWith(`${item.href}/`)
           const isMessages = item.key === "messages"

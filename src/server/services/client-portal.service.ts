@@ -161,7 +161,14 @@ async function getTodayWorkoutUncached(
     boardData.board.find((entry) => entry.status === "CURRENT") ??
     null
 
-  const workoutDisplayMode = boardData.workoutDisplayMode
+  const modeRes = await pool.query(
+    `SELECT "workoutDisplayMode" FROM "Client" WHERE "id" = $1 LIMIT 1`,
+    [clientId]
+  )
+  const workoutDisplayMode: WorkoutDisplayMode =
+    (modeRes.rows[0] as { workoutDisplayMode: WorkoutDisplayMode | null } | undefined)?.workoutDisplayMode ??
+    boardData.workoutDisplayMode ??
+    "FULL"
 
   if (!activeEntry?.dayId) {
     const nextTraining = boardData.board.find(

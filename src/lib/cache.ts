@@ -1,4 +1,4 @@
-import { unstable_cache, updateTag } from "next/cache"
+import { unstable_cache, updateTag, revalidateTag } from "next/cache"
 
 type Serializable = string | number | boolean | null
 
@@ -36,12 +36,23 @@ export function withCache<TResult>(
 
 export function invalidate(tags: string[]) {
   for (const tag of tags) {
-    updateTag(tag)
+    try {
+      revalidateTag(tag, "max")
+    } catch {}
+    try {
+      updateTag(tag)
+    } catch {}
   }
 }
 
 export function invalidateDashboard(trainerProfileId: string) {
-  updateTag(`trainer:${trainerProfileId}:dashboard`)
+  const tag = `trainer:${trainerProfileId}:dashboard`
+  try {
+    revalidateTag(tag, "max")
+  } catch {}
+  try {
+    updateTag(tag)
+  } catch {}
 }
 
 export function toIso(value: Date | null | undefined): string | null {

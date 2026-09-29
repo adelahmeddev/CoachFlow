@@ -70,7 +70,8 @@ export function DashboardActionCard({ client, data }: DashboardActionCardProps) 
   const totalWorkouts = data.progress.totalWorkouts
   const weightChange = data.progress.weightChange
 
-  const hasWorkoutToStart = hasWorkoutToday && data.todayWorkout?.status !== "DONE"
+  const isDayNameOnly = (data.todayWorkout as { workoutDisplayMode?: string })?.workoutDisplayMode === "DAY_NAME_ONLY"
+  const hasWorkoutToStart = hasWorkoutToday && data.todayWorkout?.status !== "DONE" && !isDayNameOnly
   const hasCheckinDue = data.latestTrainerNotes || (streak > 0 && streak % 7 === 0)
   const hasMealsToLog = true // Would come from nutrition data
   const hydrationTarget = 3000 // ml - would come from user settings
@@ -80,20 +81,24 @@ export function DashboardActionCard({ client, data }: DashboardActionCardProps) 
     {
       id: "start-workout",
       label: hasWorkoutToday 
-        ? (isAr ? "بدء تمرين اليوم" : "Start Today's Workout")
+        ? isDayNameOnly
+          ? (isAr ? "عرض جدول الأسبوع" : "View Weekly Schedule")
+          : (isAr ? "بدء تمرين اليوم" : "Start Today's Workout")
         : (isAr ? "لا تمرين مجدول اليوم" : "No Workout Scheduled Today"),
       description: hasWorkoutToday
-        ? (isAr 
+        ? isDayNameOnly
+          ? (isAr ? `تركيز اليوم: ${data.todayWorkout.day?.focus || "تمرين كامل"}` : `Today's Focus: ${data.todayWorkout.day?.focus || "Full Body"}`)
+          : (isAr 
             ? `تركيز: ${data.todayWorkout.day?.focus || "تمرين كامل"} · ${data.todayWorkout.exercises?.length || 0} تمارين`
             : `Focus: ${data.todayWorkout.day?.focus || "Full Body"} · ${data.todayWorkout.exercises?.length || 0} exercises`)
         : (isAr ? "تواصل مع مدربك لجدولة تمرين" : "Contact your coach to schedule a workout"),
       icon: Dumbbell,
       color: "from-brand-500 to-energy-500",
-      href: hasWorkoutToday ? `/client/workout/today?dayId=${data.todayWorkout.day?.id}` : "/client/week",
+      href: hasWorkoutToday && !isDayNameOnly ? `/client/workout/today?dayId=${data.todayWorkout.day?.id}` : "/client/week",
       variant: hasWorkoutToStart ? "primary" : "secondary",
       badge: hasWorkoutToStart ? (isAr ? "جاهز" : "Ready") : undefined,
       badgeColor: "bg-emerald-500",
-      disabled: !hasWorkoutToStart,
+      disabled: !hasWorkoutToStart && !isDayNameOnly,
     },
     {
       id: "check-in",

@@ -73,6 +73,10 @@ export async function updateClientInfoAction(
   )
 
   revalidatePath(`/clients/${clientId}`)
+  revalidatePath("/client/workout/today")
+  revalidatePath("/client/home")
+  revalidatePath("/client/week")
+  revalidatePath("/client/workout/session")
   // Bust workout payloads too so a display-mode toggle applies immediately.
   invalidate([`client:${clientId}:profile`, `client:${clientId}:workout`])
   return { ok: true }

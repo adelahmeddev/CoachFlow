@@ -37,8 +37,8 @@ export default async function ClientPortalLayout({
   }
 
   // Client record deleted by trainer (soft keep-user case) -> user exists but client link missing
-  const clientRes = await pool.query(`SELECT "id", "trainerId", "fullName" FROM "Client" WHERE "userId" = $1 LIMIT 1`, [session.user.id])
-  const client = clientRes.rows[0] as { id: string; trainerId: string; fullName: string | null } | undefined
+  const clientRes = await pool.query(`SELECT "id", "trainerId", "fullName", "workoutDisplayMode" FROM "Client" WHERE "userId" = $1 LIMIT 1`, [session.user.id])
+  const client = clientRes.rows[0] as { id: string; trainerId: string; fullName: string | null; workoutDisplayMode: import("@/lib/db/enums").WorkoutDisplayMode | null } | undefined
 
   if (!client) {
     return <NoLongerSubscribedCard />
@@ -64,6 +64,7 @@ export default async function ClientPortalLayout({
           name={session.user.name ?? "Client"}
           role={session.user.role}
           homeHref="/client/home"
+          workoutDisplayMode={client.workoutDisplayMode ?? "FULL"}
           ticker={<WelcomeTicker clientName={client.fullName ?? session.user.name ?? "Client"} streak={streak} waterLiters={waterLiters} />}
         />
         <main id="main-content" tabIndex={-1} className="outline-none">

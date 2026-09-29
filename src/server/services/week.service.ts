@@ -347,8 +347,8 @@ export async function getDayDetail(
     status,
     dateKey: entry?.dateKey ?? null,
     weekday: entry?.weekday ?? day.weekday ?? null,
-    exercises: clientExercises,
-    totalVolume: totalVolume > 0 ? totalVolume : null,
+    exercises: workoutDisplayMode === "DAY_NAME_ONLY" ? [] : clientExercises,
+    totalVolume: workoutDisplayMode === "DAY_NAME_ONLY" ? null : (totalVolume > 0 ? totalVolume : null),
     workoutDisplayMode,
   }
 }

@@ -26,7 +26,7 @@ import {
   Bell,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
-import type { Role } from "@/lib/db/enums"
+import type { Role, WorkoutDisplayMode } from "@/lib/db/enums"
 import { cn } from "@/lib/utils"
 import { useI18n } from "@/lib/i18n/client"
 import { ROLE_LABELS } from "@/lib/constants"
@@ -105,12 +105,14 @@ export function AppTopNav({
   role,
   homeHref,
   ticker,
+  workoutDisplayMode,
 }: {
   name: string
   role: Role
   homeHref: string
   /** Optional strip pinned to the bottom of the sticky header (e.g. client welcome ticker) */
   ticker?: React.ReactNode
+  workoutDisplayMode?: WorkoutDisplayMode
 }) {
   const pathname = usePathname()
   const { t, locale } = useI18n()
@@ -233,6 +235,8 @@ export function AppTopNav({
     },
   ]
 
+  const isDayNameOnly = workoutDisplayMode === "DAY_NAME_ONLY"
+
   const clientCategories: NavCategory[] = [
     {
       key: "home",
@@ -246,11 +250,13 @@ export function AppTopNav({
       label: isAr ? "التدريب" : "Training",
       href: "/client/week",
       icon: Dumbbell,
-      matchPrefixes: ["/client/week", "/client/workout"],
-      subItems: [
-        { label: isAr ? "جدول الأسبوع" : "Weekly Schedule", href: "/client/week", icon: CalendarDays },
-        { label: isAr ? "تمرين اليوم" : "Today's Workout", href: "/client/workout/today", icon: Dumbbell },
-      ],
+      matchPrefixes: isDayNameOnly ? ["/client/week"] : ["/client/week", "/client/workout"],
+      subItems: isDayNameOnly
+        ? undefined
+        : [
+            { label: isAr ? "جدول الأسبوع" : "Weekly Schedule", href: "/client/week", icon: CalendarDays },
+            { label: isAr ? "تمرين اليوم" : "Today's Workout", href: "/client/workout/today", icon: Dumbbell },
+          ],
     },
     {
       key: "nutrition",
