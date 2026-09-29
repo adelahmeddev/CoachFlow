@@ -37,7 +37,7 @@ export default async function JoinPage({ params }: { params: Promise<{ slug: str
       <div className="relative flex min-h-screen items-center justify-center bg-muted/30 p-4">
         <div className="absolute top-4 end-4"><LanguageSwitcher /></div>
         <div className="flex w-full max-w-lg flex-col items-center gap-4">
-          <BrandLogo height={76} width={76} priority className="mb-2 shadow-soft ring-1 ring-black/5" alt="Coach Flow" />
+          <BrandLogo height={76} width={76} priority className="mb-2 shadow-soft ring-1 ring-black/5" alt="Nanoush" />
           <JoinForm slug={slug} trainerName={trainer.trainerName} />
         </div>
       </div>

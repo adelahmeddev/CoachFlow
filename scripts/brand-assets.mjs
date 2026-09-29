@@ -217,8 +217,8 @@ async function composeOG(fullMarkPath, outputPath) {
 
 // -------- Manifest --------
 const manifest = {
-  name: "Coach Flow",
-  short_name: "Coach Flow",
+  name: "Nanoush",
+  short_name: "Nanoush",
   description: "نظام إدارة المدرب الشخصي",
   start_url: "/",
   display: "standalone",

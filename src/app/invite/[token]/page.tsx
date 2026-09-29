@@ -25,7 +25,7 @@ export default async function InvitePage({
     ? await getBrandingForClient(result.clientId)
     : null
   const branding = {
-    brandName: inviteBranding?.brandName ?? "Coach Flow",
+    brandName: inviteBranding?.brandName ?? "Nanoush",
     logoUrl: inviteBranding?.logoUrl ?? null,
     avatarUrl: inviteBranding?.avatarUrl ?? null,
     primaryColor: inviteBranding?.primaryColor ?? "#961112",

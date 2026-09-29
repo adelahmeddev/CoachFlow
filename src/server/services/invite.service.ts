@@ -1,14 +1,16 @@
 import { nanoid } from "nanoid"
 import { randomBytes } from "crypto"
 import { pool, generateId, withTransaction, isUniqueViolation, isForeignKeyViolation } from "@/lib/db"
-import { ClientStatus, Goal } from "@/lib/db/enums"
+import { ClientStatus, Goal, BodyCompositionSource } from "@/lib/db/enums"
 import {
   inviteBasicInfoSchema,
   inviteAccountSchema,
   joinClientSchema,
+  type ClientInBodyInput,
 } from "@/lib/validations/invite"
 import { hashPassword } from "@/lib/auth"
 import { invalidateDashboard } from "@/lib/cache"
+import { createBodyComposition } from "@/server/services/body-composition.service"
 
 const DEFAULT_INVITE_EXPIRY_DAYS = 7
 
@@ -137,6 +139,22 @@ export type SubmitInviteResult =
   | { ok: true }
   | { ok: false; error: string; fieldErrors?: Record<string, string[]> }
 
+function hasInBodyMeasurements(inbody?: ClientInBodyInput | null): boolean {
+  if (!inbody) return false
+  return (
+    inbody.weightKg != null ||
+    inbody.muscleMassKg != null ||
+    inbody.bodyFatKg != null ||
+    inbody.bodyWaterPct != null ||
+    inbody.fatControlKg != null ||
+    inbody.bmrKcal != null ||
+    inbody.fitnessScore != null ||
+    inbody.waistHipRatio != null ||
+    inbody.visceralFatLevel != null ||
+    (typeof inbody.notes === "string" && inbody.notes.trim().length > 0)
+  )
+}
+
 export async function submitClientBasicInfo(
   token: string,
   input: unknown
@@ -155,7 +173,7 @@ export async function submitClientBasicInfo(
     }
   }
 
-  const { fullName, birthDate, phone, goals } = parsed.data as typeof parsed.data & { status?: string }
+  const { fullName, birthDate, phone, goals, inbody } = parsed.data as typeof parsed.data & { status?: string }
   const statusValue =
     (parsed.data as unknown as { status?: string }).status != null
       ? STATUS_MAP[(parsed.data as unknown as { status: keyof typeof STATUS_MAP }).status] ?? ClientStatus.PENDING_ASSESSMENT
@@ -166,6 +184,23 @@ export async function submitClientBasicInfo(
     `UPDATE "Client" SET "fullName" = $1, "birthDate" = $2, "phone" = $3, "goals" = $4::"Goal"[], "status" = $5::"ClientStatus", "basicInfoCompletedAt" = $6, "updatedAt" = NOW() WHERE "id" = $7`,
     [fullName, new Date(`${birthDate}T00:00:00Z`), phone, goalsArray, statusValue, new Date(), invite.clientId]
   )
+
+  if (hasInBodyMeasurements(inbody)) {
+    await createBodyComposition(invite.clientId, {
+      date: new Date(),
+      source: BodyCompositionSource.CLIENT,
+      weightKg: inbody!.weightKg ?? null,
+      muscleMassKg: inbody!.muscleMassKg ?? null,
+      bodyFatKg: inbody!.bodyFatKg ?? null,
+      bodyWaterPct: inbody!.bodyWaterPct ?? null,
+      fatControlKg: inbody!.fatControlKg ?? null,
+      bmrKcal: inbody!.bmrKcal ?? null,
+      fitnessScore: inbody!.fitnessScore ?? null,
+      waistHipRatio: inbody!.waistHipRatio ?? null,
+      visceralFatLevel: inbody!.visceralFatLevel ?? null,
+      notes: inbody!.notes ?? null,
+    })
+  }
 
   return { ok: true }
 }
@@ -231,7 +266,7 @@ export async function submitJoinClient(
       fieldErrors: parsed.error.flatten().fieldErrors,
     }
   }
-  const { fullName, phone, goals, password } = parsed.data
+  const { fullName, phone, goals, password, inbody } = parsed.data
   const existing = await pool.query(`SELECT "id" FROM "Client" WHERE "trainerId" = $1 AND "phone" = $2 LIMIT 1`, [trainer.trainerProfileId, phone])
   if (existing.rowCount && existing.rowCount > 0) {
     return { ok: false, error: "A client with this phone number already exists for this trainer.", fieldErrors: { phone: ["Phone already registered"] } }
@@ -255,6 +290,24 @@ export async function submitJoinClient(
       )
       return res.rows[0] as { id: string }
     })
+
+    if (hasInBodyMeasurements(inbody)) {
+      await createBodyComposition(client.id, {
+        date: new Date(),
+        source: BodyCompositionSource.CLIENT,
+        weightKg: inbody!.weightKg ?? null,
+        muscleMassKg: inbody!.muscleMassKg ?? null,
+        bodyFatKg: inbody!.bodyFatKg ?? null,
+        bodyWaterPct: inbody!.bodyWaterPct ?? null,
+        fatControlKg: inbody!.fatControlKg ?? null,
+        bmrKcal: inbody!.bmrKcal ?? null,
+        fitnessScore: inbody!.fitnessScore ?? null,
+        waistHipRatio: inbody!.waistHipRatio ?? null,
+        visceralFatLevel: inbody!.visceralFatLevel ?? null,
+        notes: inbody!.notes ?? null,
+      })
+    }
+
     invalidateDashboard(trainer.trainerProfileId)
     return { ok: true, clientId: client.id }
   } catch (error) {

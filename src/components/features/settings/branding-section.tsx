@@ -31,7 +31,11 @@ export function BrandingSection() {
   const [editorOpen, setEditorOpen] = useState(false)
   const [pickedSrc, setPickedSrc] = useState<string | null>(null)
   const [existingSrc, setExistingSrc] = useState<string | null>(null)
-  const [brandName, setBrandName] = useState(branding.brandName === "Coach Flow" ? "" : branding.brandName)
+  const [brandName, setBrandName] = useState(
+    branding.brandName === "Coach Flow" || branding.brandName === "CoachFlow" || branding.brandName === "Nanoush"
+      ? ""
+      : branding.brandName
+  )
   const [primaryColor, setPrimaryColor] = useState(branding.primaryColor)
   const [whatsapp, setWhatsapp] = useState(branding.whatsappUrl ?? "")
   const [instagram, setInstagram] = useState(branding.instagramUrl ?? "")
@@ -167,7 +171,7 @@ export function BrandingSection() {
                 className="h-full w-full object-contain p-1.5"
               />
             ) : (
-              <img src="/brand/logo.png" alt="Coach Flow" className="h-full w-full object-contain" />
+              <img src="/brand/logo.png" alt="Nanoush" className="h-full w-full object-contain" />
             )}
           </div>
           <Button

@@ -243,6 +243,22 @@ export const en = {
       title: "Information Submitted",
       description: "Your information has been sent to your trainer.",
     },
+    inbody: {
+      sectionTitle: "InBody & Body Measurements (Optional)",
+      sectionDescription: "If you have a recent InBody or scale reading, you can share it to help tailor your plan.",
+      toggleButton: "Add InBody / Measurements",
+      weightKg: "Weight (kg)",
+      muscleMassKg: "Muscle Mass (kg)",
+      bodyFatKg: "Body Fat (kg)",
+      bodyWaterPct: "Body Water (%)",
+      fatControlKg: "Fat Control (kg)",
+      bmrKcal: "BMR (kcal)",
+      visceralFatLevel: "Visceral Fat Level",
+      fitnessScore: "Fitness Score",
+      waistHipRatio: "Waist-Hip Ratio",
+      notes: "Notes",
+      notesPlaceholder: "Any notes about your measurements...",
+    },
   },
 
   clients: {

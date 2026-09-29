@@ -14,10 +14,19 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useI18n } from "@/lib/i18n/client"
 import { MultiGoalPicker } from "@/components/features/goals/multi-goal-picker"
+import { ClientInBodySection } from "@/components/features/invite/client-inbody-section"
+import type { ClientInBodyInput } from "@/lib/validations/invite"
 import { cn } from "@/lib/utils"
 
 
-type FormValues = { fullName: string; phone: string; password: string; confirmPassword: string; goals: Goal[] }
+type FormValues = {
+  fullName: string
+  phone: string
+  password: string
+  confirmPassword: string
+  goals: Goal[]
+  inbody?: ClientInBodyInput
+}
 
 export function JoinForm({ slug, trainerName }: { slug: string; trainerName: string }) {
   const { t, locale } = useI18n()
@@ -26,7 +35,7 @@ export function JoinForm({ slug, trainerName }: { slug: string; trainerName: str
   const [success, setSuccess] = useState(false)
 
   const { register, handleSubmit, setError, control, formState: { errors } } = useForm<FormValues>({
-    resolver: zodResolver(joinClientSchema),
+    resolver: zodResolver(joinClientSchema) as never,
     defaultValues: { fullName: "", phone: "", password: "", confirmPassword: "", goals: [] },
   })
 
@@ -123,7 +132,12 @@ export function JoinForm({ slug, trainerName }: { slug: string; trainerName: str
               )}
             />
           </div>
-          <p className="text-xs text-muted-foreground">{t.invite.form.assessmentLater ?? "Assessment will be completed later by your coach."}</p>
+
+          <ClientInBodySection
+            register={register}
+            errors={errors}
+            disabled={isPending}
+          />
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending && <Loader2 className="animate-spin" />}
             {t.invite.form.submitButton}

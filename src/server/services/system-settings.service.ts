@@ -3,9 +3,9 @@ import type { WhatsAppTemplatesInput } from "@/lib/validations/admin"
 
 export const DEFAULT_WHATSAPP_TEMPLATES: WhatsAppTemplatesInput = {
   reminderTemplate:
-    "أهلاً كوتش {coach_name}، بنفكرك إن اشتراكك في منصة CoachFlow ينتهي خلال {days_left} يوم (بتاريخ {end_date}). لتجديد اشتراكك وضمان استمرار الخدمة لمتدربيك، يسعدنا تواصلك معنا.",
+    "أهلاً كوتش {coach_name}، بنفكرك إن اشتراكك في منصة Nanoush ينتهي خلال {days_left} يوم (بتاريخ {end_date}). لتجديد اشتراكك وضمان استمرار الخدمة لمتدربيك، يسعدنا تواصلك معنا.",
   followupTemplate:
-    "أهلاً كوتش {coach_name}، بنتمنى تكون بأفضل حال. حابين نطمن على متابعتك لمتدربيك على CoachFlow ونعرف لو محتاج أي دعم بخصوص باقتك الحالية.",
+    "أهلاً كوتش {coach_name}، بنتمنى تكون بأفضل حال. حابين نطمن على متابعتك لمتدربيك على Nanoush ونعرف لو محتاج أي دعم بخصوص باقتك الحالية.",
 }
 
 const WHATSAPP_SETTINGS_KEY = "admin_whatsapp_templates"

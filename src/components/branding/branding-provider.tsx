@@ -14,7 +14,7 @@ export type Branding = {
 }
 
 const BrandingContext = createContext<Branding>({
-  brandName: "Coach Flow",
+  brandName: "Nanoush",
   logoUrl: null,
   avatarUrl: null,
   primaryColor: "#961112",

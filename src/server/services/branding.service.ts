@@ -3,7 +3,7 @@ import type { CoachBranding } from "@/lib/db/types"
 import { normalizeFacebookUrl, normalizeInstagramUrl, normalizeWhatsappUrl } from "@/lib/validations/branding"
 
 export const DEFAULT_BRANDING = {
-  brandName: "Coach Flow",
+  brandName: "Nanoush",
   logoUrl: null as string | null,
   avatarUrl: null as string | null,
   primaryColor: "#961112",

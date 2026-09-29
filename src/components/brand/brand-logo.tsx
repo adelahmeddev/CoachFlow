@@ -25,13 +25,15 @@ const SIZES = {
 
 /**
  * Gradient wordmark — used alongside the mark when showWordmark is set.
- * If coach has custom branding, show brandName, else Coach Flow default.
+ * If coach has custom branding, show brandName, else Nanoush default.
  */
 function Wordmark({ fontSize, className }: { fontSize: number; className?: string }) {
-  let brandName = "Coach Flow"
+  let brandName = "Nanoush"
   try {
     const b = useBranding()
-    if (b.brandName && b.brandName !== "CoachFlow") brandName = b.brandName
+    if (b.brandName && b.brandName !== "CoachFlow" && b.brandName !== "Coach Flow" && b.brandName !== "Nanoush") {
+      brandName = b.brandName
+    }
   } catch {}
   return (
     <span
@@ -48,7 +50,7 @@ function Wordmark({ fontSize, className }: { fontSize: number; className?: strin
 }
 
 export function BrandLogo({
-  alt = "Coach Flow",
+  alt = "Nanoush",
   height,
   width,
   className = "",

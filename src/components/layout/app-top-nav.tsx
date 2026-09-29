@@ -338,7 +338,7 @@ export function AppTopNav({
                   href={homeHref}
                   onClick={() => setMobileOpen(false)}
                   className="mb-6 flex items-center gap-3"
-                  aria-label="Coach Flow"
+                  aria-label="Nanoush"
                 >
                   <BrandLogo variant="mark" height={44} width={44} alt="" quality={95} showWordmark />
                 </Link>
@@ -441,7 +441,7 @@ export function AppTopNav({
           <Link
             href={homeHref}
             className="flex shrink-0 items-center gap-2.5 transition-[opacity] hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-[var(--radius-md)]"
-            aria-label="Coach Flow"
+            aria-label="Nanoush"
           >
             <BrandLogo variant="mark" height={44} width={44} alt="" priority quality={95} showWordmark />
           </Link>

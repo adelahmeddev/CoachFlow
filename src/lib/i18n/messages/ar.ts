@@ -245,6 +245,22 @@ export const ar: Dictionary = {
       title: "تم تقديم المعلومات",
       description: "تم إرسال معلوماتك إلى مدربك.",
     },
+    inbody: {
+      sectionTitle: "قياسات الجسم / InBody (اختياري)",
+      sectionDescription: "لو معاك تقرير InBody حديث أو قياساتك، تقدر تسجلها هنا عشان تساعد كوتشك.",
+      toggleButton: "إضافة قياسات InBody",
+      weightKg: "الوزن (كجم)",
+      muscleMassKg: "الكتلة العضلية (كجم)",
+      bodyFatKg: "كتلة الدهون (كجم)",
+      bodyWaterPct: "نسبة الماء بالجسم (%)",
+      fatControlKg: "التحكم في الدهون (كجم)",
+      bmrKcal: "معدل الأيض الأساسي (سعرة)",
+      visceralFatLevel: "مستوى الدهون الحشوية",
+      fitnessScore: "مؤشر اللياقة",
+      waistHipRatio: "نسبة الخصر للأرداف",
+      notes: "ملاحظات",
+      notesPlaceholder: "أي تفاصيل أو ملاحظات عن القياسات...",
+    },
   },
 
   clients: {
@@ -1698,7 +1714,7 @@ export const ar: Dictionary = {
     allDone: "الكل سجّل النهاردة",
     lastCheckin: "آخر مرة: {date}",
     never: "أبدًا",
-    energyLow: "واطي",
+    energyLow: "منخفض",
     energyHigh: "عالي",
   },
 

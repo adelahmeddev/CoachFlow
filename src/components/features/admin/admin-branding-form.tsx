@@ -42,7 +42,7 @@ export function AdminBrandingForm({ coachId, initial }: { coachId: string; initi
   const [previewLogo, setPreviewLogo] = useState<string | null>(initial?.logoUrl ?? null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
-  const effectiveName = brandName.trim() || "Coach Flow"
+  const effectiveName = brandName.trim() || "Nanoush"
   const effectiveColor = /^#([0-9A-Fa-f]{6})$/.test(primaryColor) ? primaryColor : "#961112"
   const warning = getContrastWarning(effectiveColor)
   const fg = foregroundForPrimary(effectiveColor)
@@ -80,7 +80,7 @@ export function AdminBrandingForm({ coachId, initial }: { coachId: string; initi
                 <Input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={onFile} className="max-w-[220px]" />
               </div>
               <Input value={logoUrl} onChange={e=> {setLogoUrl(e.target.value); setSelectedFile(null); setPreviewLogo(e.target.value || null)}} placeholder="https://... or leave empty for default" className="mt-2" />
-              <p className="text-xs text-muted-foreground">If empty, default Coach Flow logo is shown. File upload takes precedence over URL.</p>
+              <p className="text-xs text-muted-foreground">If empty, default Nanoush logo is shown. File upload takes precedence over URL.</p>
             </div>
             <div className="space-y-1">
               <Label>Primary Color</Label>
@@ -148,11 +148,11 @@ export function AdminBrandingForm({ coachId, initial }: { coachId: string; initi
           })}>Save Branding</Button>
 
           <Button variant="outline" disabled={pending} onClick={()=> startTransition(async()=>{
-            if (!confirm("Reset to Coach Flow defaults? This clears brand name, logo, color, and social links.")) return
+            if (!confirm("Reset to Nanoush defaults? This clears brand name, logo, color, and social links.")) return
             const res = await adminResetBrandingAction(coachId)
             if (res.ok) { toast.success("Reset to default"); setBrandName(""); setLogoUrl(""); setPreviewLogo(null); setSelectedFile(null); setPrimaryColor("#961112"); setWhatsappUrl(""); setFacebookUrl(""); setInstagramUrl(""); router.refresh() }
             else toast.error(res.error)
-          })}>Reset to Coach Flow Branding</Button>
+          })}>Reset to Nanoush Branding</Button>
         </div>
       </CardContent>
     </Card>

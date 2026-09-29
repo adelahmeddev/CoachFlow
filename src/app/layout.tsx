@@ -31,11 +31,11 @@ const display = Alexandria({
 
 export const metadata: Metadata = {
   title: {
-    default: "Coach Flow",
-    template: "%s · Coach Flow",
+    default: "Nanoush",
+    template: "%s · Nanoush",
   },
   description: "نظام إدارة المدرب الشخصي",
-  applicationName: "Coach Flow",
+  applicationName: "Nanoush",
   manifest: "/brand/manifest.json",
   icons: {
     icon: "/brand/favicon.svg",
@@ -43,12 +43,12 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "Coach Flow",
+    title: "Nanoush",
     statusBarStyle: "black-translucent",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Coach Flow",
+    title: "Nanoush",
     description: "نظام إدارة المدرب الشخصي",
   },
 }
