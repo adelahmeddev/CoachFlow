@@ -7,10 +7,15 @@ export const revalidate = 0
 
 export async function GET() {
   const session = await getCurrentSession()
-  if (
-    !session?.user ||
-    (session.user.role !== "COACH" && session.user.role !== "CLIENT")
-  ) {
+  if (!session?.user) {
+    return NextResponse.json({ count: 0 }, { status: 401 })
+  }
+
+  if (session.user.role === "SUPER_ADMIN") {
+    return NextResponse.json({ count: 0 })
+  }
+
+  if (session.user.role !== "COACH" && session.user.role !== "CLIENT") {
     return NextResponse.json({ count: 0 }, { status: 401 })
   }
 

@@ -27,16 +27,16 @@ const nextConfig: NextConfig = {
     const isDev = process.env.NODE_ENV !== "production";
     const cspHeader = `
       default-src 'self';
-      script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval'" : ""};
-      style-src 'self' 'unsafe-inline';
+      script-src 'self' 'unsafe-inline' https://vercel.live ${isDev ? "'unsafe-eval'" : ""};
+      style-src 'self' 'unsafe-inline' https://vercel.live;
       img-src 'self' blob: data: https:;
       font-src 'self' data: https:;
       object-src 'none';
       base-uri 'self';
       form-action 'self';
-      frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com;
+      frame-src 'self' https://vercel.live https://www.youtube.com https://www.youtube-nocookie.com;
       frame-ancestors 'none';
-      connect-src 'self' https: wss: ws:;
+      connect-src 'self' https: wss: ws: https://vercel.live https://*.pusher.com;
     `
       .replace(/\s{2,}/g, " ")
       .trim();

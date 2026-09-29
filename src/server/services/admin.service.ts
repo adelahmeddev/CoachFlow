@@ -16,6 +16,7 @@ import {
 import { pickCurrentSubscription } from "@/server/services/subscription.service"
 import { withCache, toIso } from "@/lib/cache"
 import { parseGoals } from "@/lib/goals"
+import { logger } from "@/lib/logger"
 
 export async function getAdminDashboardStats() {
   return withCache(
@@ -146,7 +147,23 @@ export async function getAdminDashboardStats() {
   )()
 }
 
+let ensureRawPasswordPromise: Promise<void> | null = null
+export async function ensureRawPasswordColumn(): Promise<void> {
+  if (!ensureRawPasswordPromise) {
+    ensureRawPasswordPromise = pool
+      .query(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "rawPassword" TEXT;`)
+      .then(() => undefined)
+      .catch((err) => {
+        ensureRawPasswordPromise = null
+        logger.warn("[admin] failed to auto-add rawPassword column", err)
+      })
+  }
+  return ensureRawPasswordPromise
+}
+
 export async function getAdminTrainers(params: AdminTrainersQuery & { status?: string; filter?: string }) {
+  await ensureRawPasswordColumn()
+
   const page = params.page ?? 1
   const perPage = params.perPage ?? 10
   const offset = (page - 1) * perPage
@@ -172,28 +189,24 @@ export async function getAdminTrainers(params: AdminTrainersQuery & { status?: s
   const whereSql = whereParts.length ? `WHERE ${whereParts.join(" AND ")}` : ""
   const joinSql = `LEFT JOIN "CoachSubscription" cs ON cs."coachId" = tp."id" LEFT JOIN "CoachBranding" cb ON cb."coachId" = tp."id"`
 
-  const [totalRes, trainersRes] = await Promise.all([
-    pool.query<{ count: number }>(
-      `SELECT COUNT(*)::int AS count FROM "TrainerProfile" tp ${joinSql} ${whereSql}`,
-      whereParams
-    ),
-    pool.query<{
-      id: string
-      fullName: string
-      phone: string
-      createdAt: Date
-      username: string | null
-      rawPassword: string | null
-      clientsCount: number
-      accountStatus: string
-      subscriptionStatus: string | null
-      subscriptionEndDate: Date | null
-      amountPaid: string | null
-      brandName: string | null
-      logoUrl: string | null
-      primaryColor: string | null
-    }>(
-      `SELECT tp."id", tp."fullName", tp."phone", tp."createdAt", tp."accountStatus", u."username", u."rawPassword",
+  type TrainerRow = {
+    id: string
+    fullName: string
+    phone: string
+    createdAt: Date
+    username: string | null
+    rawPassword: string | null
+    clientsCount: number
+    accountStatus: string
+    subscriptionStatus: string | null
+    subscriptionEndDate: Date | null
+    amountPaid: string | null
+    brandName: string | null
+    logoUrl: string | null
+    primaryColor: string | null
+  }
+
+  const selectWithPassword = `SELECT tp."id", tp."fullName", tp."phone", tp."createdAt", tp."accountStatus", u."username", u."rawPassword",
               (SELECT COUNT(*)::int FROM "Client" c WHERE c."trainerId" = tp."id") AS "clientsCount",
               cs."status" AS "subscriptionStatus", cs."endDate" AS "subscriptionEndDate", cs."amountPaid",
               cb."brandName", cb."logoUrl", cb."primaryColor"
@@ -202,9 +215,40 @@ export async function getAdminTrainers(params: AdminTrainersQuery & { status?: s
        ${joinSql}
        ${whereSql}
        ORDER BY tp."createdAt" DESC
-       LIMIT $${idx} OFFSET $${idx + 1}`,
-      [...whereParams, perPage, offset]
+       LIMIT $${idx} OFFSET $${idx + 1}`
+
+  const selectFallback = `SELECT tp."id", tp."fullName", tp."phone", tp."createdAt", tp."accountStatus", u."username", NULL as "rawPassword",
+              (SELECT COUNT(*)::int FROM "Client" c WHERE c."trainerId" = tp."id") AS "clientsCount",
+              cs."status" AS "subscriptionStatus", cs."endDate" AS "subscriptionEndDate", cs."amountPaid",
+              cb."brandName", cb."logoUrl", cb."primaryColor"
+       FROM "TrainerProfile" tp
+       LEFT JOIN "User" u ON u."id" = tp."userId"
+       ${joinSql}
+       ${whereSql}
+       ORDER BY tp."createdAt" DESC
+       LIMIT $${idx} OFFSET $${idx + 1}`
+
+  const [totalRes, trainersRes] = await Promise.all([
+    pool.query<{ count: number }>(
+      `SELECT COUNT(*)::int AS count FROM "TrainerProfile" tp ${joinSql} ${whereSql}`,
+      whereParams
     ),
+    (async () => {
+      try {
+        return await pool.query<TrainerRow>(selectWithPassword, [...whereParams, perPage, offset])
+      } catch (err: unknown) {
+        const pgErr = err as { code?: string }
+        if (pgErr?.code === "42703") {
+          try {
+            await pool.query(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "rawPassword" TEXT;`)
+            return await pool.query<TrainerRow>(selectWithPassword, [...whereParams, perPage, offset])
+          } catch {
+            return await pool.query<TrainerRow>(selectFallback, [...whereParams, perPage, offset])
+          }
+        }
+        throw err
+      }
+    })(),
   ])
 
   const total = (totalRes.rows[0] as { count: number }).count
@@ -451,6 +495,7 @@ export async function getAdminSubscriptions(params: AdminSubscriptionsQuery) {
 }
 
 export async function createTrainer(data: unknown) {
+  await ensureRawPasswordColumn()
   const parsed = createTrainerSchema.safeParse(data)
   if (!parsed.success) {
     return {
@@ -476,11 +521,19 @@ export async function createTrainer(data: unknown) {
     const trainerId = generateId()
     const now = new Date()
 
-    await client.query(
-      `INSERT INTO "User" ("id", "username", "phone", "passwordHash", "rawPassword", "role", "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, $4, $5, $6::"Role", $7, $7)`,
-      [id, phone, phone, passwordHash, password, "COACH", now]
-    )
+    try {
+      await client.query(
+        `INSERT INTO "User" ("id", "username", "phone", "passwordHash", "rawPassword", "role", "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, $4, $5, $6::"Role", $7, $7)`,
+        [id, phone, phone, passwordHash, password, "COACH", now]
+      )
+    } catch {
+      await client.query(
+        `INSERT INTO "User" ("id", "username", "phone", "passwordHash", "role", "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, $4, $5::"Role", $6, $6)`,
+        [id, phone, phone, passwordHash, "COACH", now]
+      )
+    }
 
     await client.query(
       `INSERT INTO "TrainerProfile" ("id", "userId", "fullName", "phone", "createdAt", "updatedAt")
@@ -495,15 +548,39 @@ export async function createTrainer(data: unknown) {
 }
 
 export async function getAdminCoachDetails(coachId: string) {
-  const res = await pool.query(
-    `SELECT tp."id", tp."fullName", tp."phone", tp."createdAt", tp."accountStatus",
+  await ensureRawPasswordColumn()
+
+  const sqlWithPassword = `SELECT tp."id", tp."fullName", tp."phone", tp."createdAt", tp."accountStatus",
             u."id" AS "userId", u."username", u."email", u."mustChangePassword", u."rawPassword",
             (SELECT COUNT(*)::int FROM "Client" c WHERE c."trainerId" = tp."id") AS "clientsCount"
      FROM "TrainerProfile" tp
      LEFT JOIN "User" u ON u."id" = tp."userId"
-     WHERE tp."id" = $1 LIMIT 1`,
-    [coachId]
-  )
+     WHERE tp."id" = $1 LIMIT 1`
+
+  const sqlFallback = `SELECT tp."id", tp."fullName", tp."phone", tp."createdAt", tp."accountStatus",
+            u."id" AS "userId", u."username", u."email", u."mustChangePassword", NULL as "rawPassword",
+            (SELECT COUNT(*)::int FROM "Client" c WHERE c."trainerId" = tp."id") AS "clientsCount"
+     FROM "TrainerProfile" tp
+     LEFT JOIN "User" u ON u."id" = tp."userId"
+     WHERE tp."id" = $1 LIMIT 1`
+
+  let res
+  try {
+    res = await pool.query(sqlWithPassword, [coachId])
+  } catch (err: unknown) {
+    const pgErr = err as { code?: string }
+    if (pgErr?.code === "42703") {
+      try {
+        await pool.query(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "rawPassword" TEXT;`)
+        res = await pool.query(sqlWithPassword, [coachId])
+      } catch {
+        res = await pool.query(sqlFallback, [coachId])
+      }
+    } else {
+      throw err
+    }
+  }
+
   if (res.rowCount === 0) return null
   const row = res.rows[0] as {
     id: string
@@ -534,6 +611,7 @@ export async function getAdminCoachDetails(coachId: string) {
 }
 
 export async function resetTrainerPassword(coachId: string, newPassword: string): Promise<boolean> {
+  await ensureRawPasswordColumn()
   const passwordHash = await hashPassword(newPassword)
   const tp = await pool.query(`SELECT "userId" FROM "TrainerProfile" WHERE "id" = $1 LIMIT 1`, [coachId])
   const userId = (tp.rows[0] as { userId: string } | undefined)?.userId
