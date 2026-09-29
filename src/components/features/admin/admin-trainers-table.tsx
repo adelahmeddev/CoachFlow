@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { useI18n } from "@/lib/i18n/client"
 import { formatDate } from "@/lib/i18n/format"
 import { COACH_SUBSCRIPTION_STATUS_BADGE_VARIANTS } from "@/lib/constants"
+import { TrainerPasswordDisplay } from "@/components/features/admin/trainer-password-display"
 import type { getAdminTrainers } from "@/server/services/admin.service"
 import type { CoachSubscriptionStatus } from "@/lib/db/enums"
 
@@ -48,6 +49,15 @@ export function AdminTrainersTable({
             </div>
 
             <div className="mt-2 text-xs text-muted-foreground space-y-1">
+              <div className="flex justify-between items-center py-0.5">
+                <span>{c.password ?? "Password"}:</span>
+                <TrainerPasswordDisplay
+                  coachId={trainer.id}
+                  coachName={trainer.fullName}
+                  password={trainer.rawPassword}
+                  compact
+                />
+              </div>
               <div className="flex justify-between"><span>{trainer._count.clients} clients</span><Badge variant={trainer.accountStatus === "SUSPENDED" ? "destructive" : "default"}>{trainer.accountStatus ?? "ACTIVE"}</Badge></div>
               <div className="flex justify-between"><span>Subscription:</span><span>{trainer.subscriptionStatus ? <Badge variant={COACH_SUBSCRIPTION_STATUS_BADGE_VARIANTS[trainer.subscriptionStatus as CoachSubscriptionStatus] ?? "outline"}>{trainer.subscriptionStatus}</Badge> : "—"}</span></div>
               <div className="flex justify-between"><span>Expires:</span><span>{trainer.subscriptionEndDate ? formatDate(trainer.subscriptionEndDate as unknown as string, locale) : "—"}</span></div>
@@ -80,6 +90,7 @@ export function AdminTrainersTable({
             <TableRow>
               <TableHead>{c.fullName}</TableHead>
               <TableHead>{c.phone}</TableHead>
+              <TableHead>{c.password ?? "Password"}</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Subscription</TableHead>
               <TableHead>Expires</TableHead>
@@ -96,6 +107,16 @@ export function AdminTrainersTable({
                     {trainer.fullName}
                   </Link>
                   <div className="text-xs text-muted-foreground">{trainer.user?.username ?? trainer.phone}</div>
+                </TableCell>
+                <TableCell className="text-xs font-mono" dir="ltr">
+                  {trainer.phone}
+                </TableCell>
+                <TableCell>
+                  <TrainerPasswordDisplay
+                    coachId={trainer.id}
+                    coachName={trainer.fullName}
+                    password={trainer.rawPassword}
+                  />
                 </TableCell>
                 <TableCell>
                   <Badge variant={trainer.accountStatus === "SUSPENDED" ? "destructive" : "default"}>

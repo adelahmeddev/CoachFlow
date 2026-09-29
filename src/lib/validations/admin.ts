@@ -23,6 +23,25 @@ export type ResetClientPasswordInput = z.infer<
   ReturnType<typeof buildResetClientPasswordSchema>
 >
 
+export function buildResetTrainerPasswordSchema(t: Dictionary) {
+  return z
+    .object({
+      newPassword: z
+        .string()
+        .min(6, interpolate(t.validation.minLength, { min: 6 }))
+        .max(72, interpolate(t.validation.maxLength, { max: 72 })),
+      confirmPassword: z.string().min(1, t.validation.required),
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+      message: t.admin.createTrainer.errors.passwordMismatch,
+      path: ["confirmPassword"],
+    })
+}
+
+export type ResetTrainerPasswordInput = z.infer<
+  ReturnType<typeof buildResetTrainerPasswordSchema>
+>
+
 export function buildCreateTrainerSchema(t: Dictionary) {
   return z
     .object({
@@ -92,6 +111,19 @@ export const createTrainerSchema = z
   })
 
 export type CreateTrainerInput = z.infer<typeof createTrainerSchema>
+
+export const resetTrainerPasswordSchema = z
+  .object({
+    coachId: z.string().min(1),
+    newPassword: z.string().min(6).max(72),
+    confirmPassword: z.string().min(1),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "PASSWORD_MISMATCH",
+    path: ["confirmPassword"],
+  })
+
+export type ResetTrainerPasswordServerInput = z.infer<typeof resetTrainerPasswordSchema>
 
 export const adminTrainersQuerySchema = z.object({
   q: z.string().trim().max(100).optional(),

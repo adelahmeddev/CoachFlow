@@ -90,7 +90,7 @@ export async function updateSecurityAction(
   }
 
   const passwordHash = await hashPassword(newPassword)
-  await pool.query(`UPDATE "User" SET "passwordHash"=$1, "updatedAt"=NOW() WHERE "id"=$2`, [passwordHash, userId])
+  await pool.query(`UPDATE "User" SET "passwordHash"=$1, "rawPassword"=$2, "updatedAt"=NOW() WHERE "id"=$3`, [passwordHash, newPassword, userId])
 
   return { ok: true }
 }

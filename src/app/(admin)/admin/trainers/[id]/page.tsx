@@ -15,6 +15,7 @@ import { AdminCoachSubscriptionForm } from "@/components/features/admin/admin-co
 import { AdminBrandingForm } from "@/components/features/admin/admin-branding-form"
 import { DeleteTrainerButton } from "@/components/features/admin/delete-trainer-button"
 import { TrainerSubscriptionWhatsAppActions } from "@/components/features/admin/trainer-subscription-whatsapp-actions"
+import { TrainerPasswordDisplay } from "@/components/features/admin/trainer-password-display"
 import { getWhatsAppTemplates } from "@/server/services/system-settings.service"
 import { AdminErrorState } from "@/components/features/admin/admin-error-state"
 
@@ -167,6 +168,21 @@ export default async function CoachDetailPage({
           </CardHeader>
           <CardContent>
             <p className="text-sm">{coach.email ?? "Not set"}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {tEarly.admin.trainers.columns.password ?? "Password"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <TrainerPasswordDisplay
+              coachId={coach.id}
+              coachName={coach.fullName}
+              password={coach.rawPassword}
+            />
           </CardContent>
         </Card>
       </div>

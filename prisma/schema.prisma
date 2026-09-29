@@ -13,6 +13,7 @@ model User {
   phone              String?         @unique
   email              String?         @unique
   passwordHash       String
+  rawPassword        String?
   role               Role            @default(COACH)
   mustChangePassword Boolean         @default(false)
   createdAt          DateTime        @default(now())

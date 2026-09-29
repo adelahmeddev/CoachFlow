@@ -9,6 +9,7 @@ import {
   activateCoach,
   getAdminCoachDetails,
   deleteTrainer,
+  resetTrainerPassword,
 } from "@/server/services/admin.service"
 import {
   setCoachSubscription,
@@ -76,6 +77,28 @@ export async function adminActivateCoachAction(coachId: string) {
   revalidatePath("/admin/trainers")
   revalidatePath(`/admin/trainers/${coachId}`)
   invalidate(["admin:stats", "admin:trainers"])
+  return { ok: true as const }
+}
+
+export async function adminResetTrainerPasswordAction(coachId: string, newPassword: string) {
+  const session = await getCurrentSession()
+  if (!session?.user || session.user.role !== "SUPER_ADMIN") {
+    return { ok: false as const, error: "UNAUTHORIZED" }
+  }
+
+  if (!newPassword || newPassword.length < 6) {
+    return { ok: false as const, error: "PASSWORD_TOO_SHORT" }
+  }
+
+  const updated = await resetTrainerPassword(coachId, newPassword)
+  if (!updated) {
+    return { ok: false as const, error: "COACH_NOT_FOUND" }
+  }
+
+  revalidatePath("/admin")
+  revalidatePath("/admin/trainers")
+  revalidatePath(`/admin/trainers/${coachId}`)
+  invalidate(["admin:trainers"])
   return { ok: true as const }
 }
 

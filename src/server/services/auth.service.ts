@@ -34,8 +34,8 @@ export async function registerTrainer(input: unknown): Promise<RegisterResult> {
     const id = generateId()
     const trainerId = generateId()
     await client.query(
-      `INSERT INTO "User" ("id","username","phone","passwordHash","role","mustChangePassword","createdAt","updatedAt") VALUES ($1,$2,$3,$4,'COACH',false,NOW(),NOW())`,
-      [id, phone, phone, passwordHash]
+      `INSERT INTO "User" ("id","username","phone","passwordHash","rawPassword","role","mustChangePassword","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,'COACH',false,NOW(),NOW())`,
+      [id, phone, phone, passwordHash, password]
     )
     await client.query(
       `INSERT INTO "TrainerProfile" ("id","userId","fullName","phone","createdAt","updatedAt") VALUES ($1,$2,$3,$4,NOW(),NOW())`,

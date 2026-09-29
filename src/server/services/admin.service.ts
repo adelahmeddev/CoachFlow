@@ -183,6 +183,7 @@ export async function getAdminTrainers(params: AdminTrainersQuery & { status?: s
       phone: string
       createdAt: Date
       username: string | null
+      rawPassword: string | null
       clientsCount: number
       accountStatus: string
       subscriptionStatus: string | null
@@ -192,7 +193,7 @@ export async function getAdminTrainers(params: AdminTrainersQuery & { status?: s
       logoUrl: string | null
       primaryColor: string | null
     }>(
-      `SELECT tp."id", tp."fullName", tp."phone", tp."createdAt", tp."accountStatus", u."username",
+      `SELECT tp."id", tp."fullName", tp."phone", tp."createdAt", tp."accountStatus", u."username", u."rawPassword",
               (SELECT COUNT(*)::int FROM "Client" c WHERE c."trainerId" = tp."id") AS "clientsCount",
               cs."status" AS "subscriptionStatus", cs."endDate" AS "subscriptionEndDate", cs."amountPaid",
               cb."brandName", cb."logoUrl", cb."primaryColor"
@@ -221,6 +222,7 @@ export async function getAdminTrainers(params: AdminTrainersQuery & { status?: s
     primaryColor: r.primaryColor,
     hasCustomBranding: !!(r.brandName || r.logoUrl || r.primaryColor),
     user: r.username !== null ? { username: r.username } : null,
+    rawPassword: r.rawPassword,
     _count: { clients: Number(r.clientsCount) },
   }))
 
@@ -475,9 +477,9 @@ export async function createTrainer(data: unknown) {
     const now = new Date()
 
     await client.query(
-      `INSERT INTO "User" ("id", "username", "phone", "passwordHash", "role", "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, $4, $5::"Role", $6, $6)`,
-      [id, phone, phone, passwordHash, "COACH", now]
+      `INSERT INTO "User" ("id", "username", "phone", "passwordHash", "rawPassword", "role", "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, $4, $5, $6::"Role", $7, $7)`,
+      [id, phone, phone, passwordHash, password, "COACH", now]
     )
 
     await client.query(
@@ -495,7 +497,7 @@ export async function createTrainer(data: unknown) {
 export async function getAdminCoachDetails(coachId: string) {
   const res = await pool.query(
     `SELECT tp."id", tp."fullName", tp."phone", tp."createdAt", tp."accountStatus",
-            u."id" AS "userId", u."username", u."email", u."mustChangePassword",
+            u."id" AS "userId", u."username", u."email", u."mustChangePassword", u."rawPassword",
             (SELECT COUNT(*)::int FROM "Client" c WHERE c."trainerId" = tp."id") AS "clientsCount"
      FROM "TrainerProfile" tp
      LEFT JOIN "User" u ON u."id" = tp."userId"
@@ -513,6 +515,7 @@ export async function getAdminCoachDetails(coachId: string) {
     username: string | null
     email: string | null
     mustChangePassword: boolean
+    rawPassword: string | null
     clientsCount: number
   }
   return {
@@ -525,8 +528,21 @@ export async function getAdminCoachDetails(coachId: string) {
     username: row.username,
     email: row.email,
     mustChangePassword: row.mustChangePassword,
+    rawPassword: row.rawPassword,
     clientsCount: row.clientsCount,
   }
+}
+
+export async function resetTrainerPassword(coachId: string, newPassword: string): Promise<boolean> {
+  const passwordHash = await hashPassword(newPassword)
+  const tp = await pool.query(`SELECT "userId" FROM "TrainerProfile" WHERE "id" = $1 LIMIT 1`, [coachId])
+  const userId = (tp.rows[0] as { userId: string } | undefined)?.userId
+  if (!userId) return false
+  const res = await pool.query(
+    `UPDATE "User" SET "passwordHash" = $1, "rawPassword" = $2, "updatedAt" = NOW() WHERE "id" = $3`,
+    [passwordHash, newPassword, userId]
+  )
+  return (res.rowCount ?? 0) > 0
 }
 
 export async function suspendCoach(coachId: string): Promise<boolean> {
