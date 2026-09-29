@@ -150,13 +150,22 @@ export async function getAdminDashboardStats() {
 let ensureRawPasswordPromise: Promise<void> | null = null
 export async function ensureRawPasswordColumn(): Promise<void> {
   if (!ensureRawPasswordPromise) {
-    ensureRawPasswordPromise = pool
-      .query(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "rawPassword" TEXT;`)
-      .then(() => undefined)
-      .catch((err) => {
+    ensureRawPasswordPromise = (async () => {
+      try {
+        await pool.query(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "rawPassword" TEXT;`)
+        const defaultHash = await hashPassword("Demo@123")
+        await pool.query(
+          `UPDATE "User"
+           SET "rawPassword" = 'Demo@123',
+               "passwordHash" = CASE WHEN "passwordHash" = 'test-hash' OR "passwordHash" IS NULL THEN $1 ELSE "passwordHash" END
+           WHERE "role" = 'COACH' AND ("rawPassword" IS NULL OR "rawPassword" = '');`,
+          [defaultHash]
+        )
+      } catch (err) {
         ensureRawPasswordPromise = null
-        logger.warn("[admin] failed to auto-add rawPassword column", err)
-      })
+        logger.warn("[admin] failed to auto-add or backfill rawPassword column", { error: String(err) })
+      }
+    })()
   }
   return ensureRawPasswordPromise
 }
