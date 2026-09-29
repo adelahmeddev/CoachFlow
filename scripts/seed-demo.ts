@@ -399,15 +399,15 @@ async function createDemoTrainer() {
   if (userRow.rowCount === 0) {
     const id = generateId()
     await pool.query(
-      `INSERT INTO "User" ("id","username","phone","email","passwordHash","role","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6::"Role",NOW(),NOW())`,
-      [id, "coach.karim", DEMO_TRAINER_PHONE, "coach.karim@example.com", hashed, Role.COACH]
+      `INSERT INTO "User" ("id","username","phone","email","passwordHash","rawPassword","role","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7::"Role",NOW(),NOW())`,
+      [id, "coach.karim", DEMO_TRAINER_PHONE, "coach.karim@example.com", hashed, DEMO_TRAINER_PASSWORD, Role.COACH]
     )
     const fresh = await pool.query(`SELECT * FROM "User" WHERE "id" = $1`, [id])
     trainerUser = fresh.rows[0]
   } else {
     trainerUser = userRow.rows[0]
-    // update passwordHash
-    await pool.query(`UPDATE "User" SET "passwordHash" = $1, "updatedAt" = NOW() WHERE "id" = $2`, [hashed, trainerUser.id])
+    // update passwordHash and rawPassword
+    await pool.query(`UPDATE "User" SET "passwordHash" = $1, "rawPassword" = $2, "updatedAt" = NOW() WHERE "id" = $3`, [hashed, DEMO_TRAINER_PASSWORD, trainerUser.id])
     const fresh = await pool.query(`SELECT * FROM "User" WHERE "id" = $1`, [trainerUser.id])
     trainerUser = fresh.rows[0]
   }
