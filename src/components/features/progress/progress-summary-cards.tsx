@@ -1,3 +1,5 @@
+"use client"
+
 import { ArrowDownRight, ArrowUpRight, Minus, Scale, TrendingDown, TrendingUp, CalendarCheck2, Target } from "lucide-react"
 import type { BodyComposition, ProgressReview } from "@/lib/db/types"
 import { formatDate } from "@/lib/format"
