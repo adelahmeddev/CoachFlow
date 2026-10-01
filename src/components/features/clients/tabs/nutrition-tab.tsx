@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getI18n } from "@/lib/i18n"
 import { formatDate } from "@/lib/i18n/format"
+import { getPlanStatusLabel, getSubstituteCategoryLabel } from "@/lib/i18n/labels"
 import { Flame, Wheat, Droplets, GlassWater, Apple, UtensilsCrossed, Pill, Shuffle, CheckCircle2, Clock3, Leaf, Sparkles, Dumbbell } from "lucide-react"
 
 export async function NutritionTab({ clientId }: { clientId: string }) {
@@ -39,8 +40,10 @@ export async function NutritionTab({ clientId }: { clientId: string }) {
 
   const itemLabels = new Map<string, string>()
   for (const meal of plan?.meals ?? []) {
+    const mealName = isAr && meal.nameAr ? meal.nameAr : meal.name
     for (const item of meal.items) {
-      itemLabels.set(item.id, `${meal.name} · ${item.foodName}`)
+      const foodName = isAr && item.foodNameAr ? item.foodNameAr : item.foodName
+      itemLabels.set(item.id, `${mealName} · ${foodName}`)
     }
   }
 
@@ -120,9 +123,9 @@ export async function NutritionTab({ clientId }: { clientId: string }) {
                         <span className="bg-gradient-to-r from-muscle-500 to-muscle-400" style={{ width: `${fPct}%` }} />
                       </div>
                       <div className="flex flex-wrap gap-3 text-[11px] font-medium">
-                        <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-performance-500" /> Protein {pPct}%</span>
-                        <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-energy-500" /> Carbs {cPct}%</span>
-                        <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-muscle-500" /> Fats {fPct}%</span>
+                        <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-performance-500" /> {t.nutrition.protein} {pPct}%</span>
+                        <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-energy-500" /> {t.nutrition.carbs} {cPct}%</span>
+                        <span className="inline-flex items-center gap-1"><span className="size-2 rounded-full bg-muscle-500" /> {t.nutrition.fat} {fPct}%</span>
                       </div>
                     </div>
                   )}
@@ -154,10 +157,10 @@ export async function NutritionTab({ clientId }: { clientId: string }) {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 p-5 pt-0">
             {[
               { icon: Flame, label: t.nutrition.calories, value: plan.calories, unit: "kcal", gradient: "from-brand-500 to-energy-500", bg: "bg-brand-500/10 text-brand-600 dark:text-brand-400" },
-              { icon: Dumbbell, label: "Protein", value: plan.proteinGrams, unit: "g", gradient: "from-performance-500 to-performance-600", bg: "bg-performance-500/10 text-performance-600 dark:text-performance-400" },
-              { icon: Wheat, label: "Carbs", value: plan.carbsGrams, unit: "g", gradient: "from-energy-500 to-energy-600", bg: "bg-energy-500/10 text-energy-600 dark:text-energy-400" },
-              { icon: Droplets, label: "Fats", value: plan.fatsGrams, unit: "g", gradient: "from-muscle-500 to-muscle-600", bg: "bg-muscle-500/10 text-muscle-600 dark:text-muscle-400" },
-              { icon: GlassWater, label: "Water", value: plan.waterLiters, unit: "L", gradient: "from-sky-500 to-sky-600", bg: "bg-sky-500/10 text-sky-600 dark:text-sky-400" },
+              { icon: Dumbbell, label: t.nutrition.protein, value: plan.proteinGrams, unit: "g", gradient: "from-performance-500 to-performance-600", bg: "bg-performance-500/10 text-performance-600 dark:text-performance-400" },
+              { icon: Wheat, label: t.nutrition.carbs, value: plan.carbsGrams, unit: "g", gradient: "from-energy-500 to-energy-600", bg: "bg-energy-500/10 text-energy-600 dark:text-energy-400" },
+              { icon: Droplets, label: t.nutrition.fat, value: plan.fatsGrams, unit: "g", gradient: "from-muscle-500 to-muscle-600", bg: "bg-muscle-500/10 text-muscle-600 dark:text-muscle-400" },
+              { icon: GlassWater, label: isAr ? "الماء" : "Water", value: plan.waterLiters, unit: "L", gradient: "from-sky-500 to-sky-600", bg: "bg-sky-500/10 text-sky-600 dark:text-sky-400" },
             ].map((k) => (
               <div key={k.label} className="relative overflow-hidden rounded-2xl border bg-card p-4 shadow-soft hover:shadow-medium hover:-translate-y-0.5 transition-all">
                 <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-500/20 to-transparent opacity-60`} aria-hidden="true" />
@@ -183,30 +186,36 @@ export async function NutritionTab({ clientId }: { clientId: string }) {
               <Badge variant="outline" className="rounded-full">{plan.meals.length} {isAr ? "وجبات" : "meals"}</Badge>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {plan.meals.map((meal) => (
-                <div key={meal.id} className="group relative overflow-hidden rounded-2xl border bg-card p-4 shadow-soft hover:shadow-medium hover:-translate-y-0.5 transition-all">
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-500/15 to-transparent" aria-hidden="true" />
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold leading-tight">{meal.name}</p>
-                      <p className="text-xs text-muted-foreground">{meal.items.length} {isAr ? "أصناف" : "items"}</p>
+              {plan.meals.map((meal) => {
+                const mealName = isAr && meal.nameAr ? meal.nameAr : meal.name
+                return (
+                  <div key={meal.id} className="group relative overflow-hidden rounded-2xl border bg-card p-4 shadow-soft hover:shadow-medium hover:-translate-y-0.5 transition-all">
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-500/15 to-transparent" aria-hidden="true" />
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold leading-tight">{mealName}</p>
+                        <p className="text-xs text-muted-foreground">{meal.items.length} {isAr ? "أصناف" : "items"}</p>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium">{meal.items.length}</span>
                     </div>
-                    <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium">{meal.items.length}</span>
+                    <ul className="mt-3 space-y-1.5">
+                      {meal.items.slice(0,3).map((item) => {
+                        const foodName = isAr && item.foodNameAr ? item.foodNameAr : item.foodName
+                        return (
+                          <li key={item.id} className="flex items-center gap-2 truncate text-sm">
+                            <span className="size-1.5 rounded-full bg-brand-500/60 shrink-0" aria-hidden="true" />
+                            <span className="truncate text-muted-foreground">{foodName}</span>
+                            {item.amount ? <span className="ms-auto shrink-0 text-xs tabular-nums font-medium">{item.amount}{item.unit}</span> : null}
+                          </li>
+                        )
+                      })}
+                      {meal.items.length > 3 && (
+                        <li className="text-xs text-muted-foreground">+{meal.items.length - 3} {isAr ? "أصناف كمان" : "more"}</li>
+                      )}
+                    </ul>
                   </div>
-                  <ul className="mt-3 space-y-1.5">
-                    {meal.items.slice(0,3).map((item) => (
-                      <li key={item.id} className="flex items-center gap-2 truncate text-sm">
-                        <span className="size-1.5 rounded-full bg-brand-500/60 shrink-0" aria-hidden="true" />
-                        <span className="truncate text-muted-foreground">{item.foodName}</span>
-                        {item.amount ? <span className="ms-auto shrink-0 text-xs tabular-nums font-medium">{item.amount}{item.unit}</span> : null}
-                      </li>
-                    ))}
-                    {meal.items.length > 3 && (
-                      <li className="text-xs text-muted-foreground">+{meal.items.length - 3} {isAr ? "أصناف كمان" : "more"}</li>
-                    )}
-                  </ul>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 
@@ -230,15 +239,24 @@ export async function NutritionTab({ clientId }: { clientId: string }) {
                   <p className="py-6 text-center text-sm text-muted-foreground">{isAr ? "مفيش مكملات متسجلة" : "No supplements defined"}</p>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {plan.supplementDefs.map((def) => (
-                      <div key={def.id} className="rounded-xl border bg-muted/20 p-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm font-bold">{def.name}</p>
-                          <Badge variant="secondary" className="rounded-full bg-performance-500/10 text-performance-700 ring-1 ring-performance-500/15 text-[11px]">{def.importance}</Badge>
+                    {plan.supplementDefs.map((def) => {
+                      const name = isAr && def.nameAr ? def.nameAr : def.name
+                      const importance = isAr && def.importanceAr ? def.importanceAr : def.importance
+                      const definition = isAr && def.definitionAr ? def.definitionAr : def.definition
+                      return (
+                        <div key={def.id} className="rounded-xl border bg-muted/20 p-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-sm font-bold">{name}</p>
+                            {importance ? (
+                              <Badge variant="secondary" className="rounded-full bg-performance-500/10 text-performance-700 ring-1 ring-performance-500/15 text-[11px]">{importance}</Badge>
+                            ) : null}
+                          </div>
+                          {definition ? (
+                            <p className="mt-2 text-sm leading-relaxed">{definition}</p>
+                          ) : null}
                         </div>
-                        <p className="mt-2 text-sm leading-relaxed">{def.definition}</p>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>
@@ -269,14 +287,20 @@ export async function NutritionTab({ clientId }: { clientId: string }) {
                       <div key={g.id} className="rounded-xl border bg-card p-3">
                         <p className="text-sm font-bold flex items-center gap-2">
                           <Leaf className="size-4 text-performance-500" />
-                          {g.category}
+                          {getSubstituteCategoryLabel(g.category, locale)}
+                          {g.caloriesLabel ? (
+                            <span className="text-xs font-normal text-muted-foreground">({g.caloriesLabel})</span>
+                          ) : null}
                         </p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
-                          {g.items.map((it) => (
-                            <span key={it.id} className="inline-flex items-center rounded-full border bg-muted px-2.5 py-1 text-xs font-medium">
-                              {it.name} {it.amount ? <span className="ms-1 tabular-nums text-muted-foreground">{it.amount}{it.unit}</span> : null}
-                            </span>
-                          ))}
+                          {g.items.map((it) => {
+                            const itemName = isAr && it.nameAr ? it.nameAr : it.name
+                            return (
+                              <span key={it.id} className="inline-flex items-center rounded-full border bg-muted px-2.5 py-1 text-xs font-medium">
+                                {itemName} {it.amount ? <span className="ms-1 tabular-nums text-muted-foreground">{it.amount}{it.unit}</span> : null}
+                              </span>
+                            )
+                          })}
                         </div>
                       </div>
                     ))}
@@ -301,19 +325,25 @@ export async function NutritionTab({ clientId }: { clientId: string }) {
                 </Button>
               </div>
               <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                {plan.meals.map((meal) => (
-                  <div key={meal.id} className="rounded-xl border bg-muted/20 p-3">
-                    <p className="text-sm font-bold">{meal.name}</p>
-                    <ul className="mt-2 space-y-1.5">
-                      {meal.items.map((it) => (
-                        <li key={it.id} className="flex items-center justify-between gap-2 text-sm">
-                          <span className="truncate">{it.foodName}</span>
-                          <span className="shrink-0 rounded-full bg-card border px-2 py-0.5 text-xs tabular-nums">{it.amount ? `${it.amount}${it.unit}` : "—"}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
+                {plan.meals.map((meal) => {
+                  const mealName = isAr && meal.nameAr ? meal.nameAr : meal.name
+                  return (
+                    <div key={meal.id} className="rounded-xl border bg-muted/20 p-3">
+                      <p className="text-sm font-bold">{mealName}</p>
+                      <ul className="mt-2 space-y-1.5">
+                        {meal.items.map((it) => {
+                          const foodName = isAr && it.foodNameAr ? it.foodNameAr : it.foodName
+                          return (
+                            <li key={it.id} className="flex items-center justify-between gap-2 text-sm">
+                              <span className="truncate">{foodName}</span>
+                              <span className="shrink-0 rounded-full bg-card border px-2 py-0.5 text-xs tabular-nums">{it.amount ? `${it.amount}${it.unit}` : "—"}</span>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           </div>
@@ -383,7 +413,7 @@ export async function NutritionTab({ clientId }: { clientId: string }) {
                       </TableCell>
                       <TableCell>
                         <Badge variant={row.status === "ACTIVE" ? "default" : "secondary"} className="rounded-full">
-                          {row.status}
+                          {getPlanStatusLabel(row.status, locale)}
                         </Badge>
                       </TableCell>
                       <TableCell className="tabular-nums text-muted-foreground">{row.calories ?? "—"}</TableCell>

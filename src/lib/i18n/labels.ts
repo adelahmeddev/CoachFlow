@@ -12,6 +12,7 @@ import {
   Role,
   SplitType,
   SubscriptionStatus,
+  SubstituteCategory,
   TrainingDayFocus,
 } from "@/lib/db/enums"
 
@@ -104,7 +105,7 @@ export function formatPlanSize(
   return interpolate(dict.summaryPeriodDays, { total: subscription.durationDays })
 }
 
-export function getPlanStatusLabel(status: PlanStatus, locale: Locale): string {
+export function getPlanStatusLabel(status: PlanStatus | string, locale: Locale): string {
   const dict = getDictionary(locale).enums.planStatus as Record<string, string>
   return lookupEnum(dict, status) ?? status
 }
@@ -172,4 +173,36 @@ export function getEquipmentLabel(
       equipment.toLowerCase() as keyof typeof en.templates.equipment
     ] ?? equipment
   )
+}
+
+export function getSubstituteCategoryLabel(
+  category: SubstituteCategory | string,
+  locale: Locale
+): string {
+  if (locale === "ar") {
+    switch (category) {
+      case "CARB":
+        return "نشويات"
+      case "PROTEIN":
+        return "بروتين"
+      case "FAT":
+        return "دهون صحية"
+      case "FRUIT":
+        return "فواكه"
+      default:
+        return category
+    }
+  }
+  switch (category) {
+    case "CARB":
+      return "Carbs"
+    case "PROTEIN":
+      return "Protein"
+    case "FAT":
+      return "Fats"
+    case "FRUIT":
+      return "Fruits"
+    default:
+      return category
+  }
 }
