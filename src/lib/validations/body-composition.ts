@@ -59,6 +59,19 @@ export const bodyCompositionSchema = z.object({
     })
     .optional()
     .nullable(),
+  age: z
+    .union([z.number().int(), z.string().transform((v) => (v.trim() === "" ? "" : Number(v))), z.literal("")])
+    .optional()
+    .transform((v) => {
+      if (v === "" || v === undefined) return null
+      const n = typeof v === "string" ? Number(v) : v
+      return Number.isNaN(n) ? null : Math.round(n)
+    })
+    .refine((v) => v === null || (Number.isInteger(v) && v > 0 && v <= 150), {
+      message: "Age must be between 1 and 150",
+    })
+    .optional()
+    .nullable(),
   weightKg: z
     .union([z.number().positive(), z.string().transform((v) => (v.trim() === "" ? "" : Number(v))), z.literal("")])
     .optional()

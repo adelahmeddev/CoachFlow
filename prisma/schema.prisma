@@ -512,6 +512,7 @@ model BodyComposition {
   date             DateTime              @db.Date
   source           BodyCompositionSource
   heightCm         Float?
+  age              Int?
   weightKg         Float?
   muscleMassKg     Float?
   bodyFatKg        Float?

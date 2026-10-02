@@ -250,6 +250,7 @@ export const ar: Dictionary = {
       sectionDescription: "لو معاك تقرير InBody حديث أو قياساتك، تقدر تسجلها هنا عشان تساعد كوتشك.",
       toggleButton: "إضافة قياسات InBody",
       heightCm: "الطول (سم)",
+      age: "السن (سنة)",
       weightKg: "الوزن (كجم)",
       muscleMassKg: "الكتلة العضلية (كجم)",
       bodyFatKg: "كتلة الدهون (كجم)",
@@ -465,6 +466,8 @@ export const ar: Dictionary = {
     addAnalysisTitle: "تكوين الجسم | InBody — إضافة تحليل",
     addAnalysisDesc: "متابعة تكوين الجسم — إضافة تحليل InBody جديد",
     fields: {
+      heightCm: "الطول (سم)",
+      age: "السن (سنة)",
       weightKg: "الوزن (كجم)",
       muscleMassKg: "الكتلة العضلية (كجم)",
       bodyFatKg: "كتلة الدهون (كجم)",

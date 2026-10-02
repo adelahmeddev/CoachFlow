@@ -14,6 +14,8 @@ import { createBodyCompositionAction, updateBodyCompositionAction } from "@/serv
 import { useI18n } from "@/lib/i18n/client"
 
 const FIELD_CONFIG: { key: keyof BodyCompositionInput; labelAr: string; labelEn: string; placeholder: string }[] = [
+  { key: "heightCm", labelAr: "الطول (سم)", labelEn: "HEIGHT (CM)", placeholder: "175.0" },
+  { key: "age", labelAr: "السن (سنة)", labelEn: "AGE (YRS)", placeholder: "25" },
   { key: "weightKg", labelAr: "الوزن (كجم)", labelEn: "WEIGHT (KG)", placeholder: "86.8" },
   { key: "muscleMassKg", labelAr: "الكتلة العضلية (كجم)", labelEn: "MUSCLE MASS (KG)", placeholder: "32.5" },
   { key: "bodyFatKg", labelAr: "دهون الجسم (كجم)", labelEn: "BODY FAT (KG)", placeholder: "29.3" },
@@ -42,6 +44,8 @@ export function BodyCompositionForm({ clientId, entry, onSuccess, onCancel }: Pr
     resolver: zodResolver(bodyCompositionSchema) as never,
     defaultValues: {
       date: entry?.date ? String(entry.date).slice(0, 10) : new Date().toISOString().slice(0, 10),
+      heightCm: (entry?.heightCm as never) ?? "",
+      age: (entry?.age as never) ?? "",
       weightKg: (entry?.weightKg as never) ?? "",
       muscleMassKg: (entry?.muscleMassKg as never) ?? "",
       bodyFatKg: (entry?.bodyFatKg as never) ?? "",

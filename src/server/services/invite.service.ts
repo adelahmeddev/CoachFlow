@@ -145,6 +145,7 @@ function hasInBodyMeasurements(inbody?: ClientInBodyInput | null): boolean {
   if (!inbody) return false
   return (
     inbody.heightCm != null ||
+    inbody.age != null ||
     inbody.weightKg != null ||
     inbody.muscleMassKg != null ||
     inbody.bodyFatKg != null ||
@@ -193,6 +194,7 @@ export async function submitClientBasicInfo(
       date: new Date(),
       source: BodyCompositionSource.CLIENT,
       heightCm: inbody!.heightCm ?? null,
+      age: inbody!.age ?? null,
       weightKg: inbody!.weightKg ?? null,
       muscleMassKg: inbody!.muscleMassKg ?? null,
       bodyFatKg: inbody!.bodyFatKg ?? null,
@@ -287,10 +289,11 @@ export async function submitJoinClient(
         [userId, phone, phone, passwordHash, "CLIENT", now]
       )
       const goalsArray = `{${(goals as string[]).join(",")}}`
+      const birthDate = inbody?.age ? new Date(new Date().getFullYear() - inbody.age, 0, 1) : null
       const res = await tx.query(
-        `INSERT INTO "Client" ("id", "trainerId", "fullName", "phone", "goals", "status", "basicInfoCompletedAt", "userId", "injuries", "healthConditions", "medications", "createdAt", "updatedAt")
-         VALUES ($1, $2, $3, $4, $5::"Goal"[], $6::"ClientStatus", $7, $8, $9, $10, $11, $12, $12) RETURNING "id", "userId"`,
-        [clientId, trainer.trainerProfileId, fullName, phone, goalsArray, ClientStatus.PENDING_ASSESSMENT, now, userId, injuries ?? null, healthConditions ?? null, medications ?? null, now]
+        `INSERT INTO "Client" ("id", "trainerId", "fullName", "phone", "goals", "status", "basicInfoCompletedAt", "userId", "birthDate", "injuries", "healthConditions", "medications", "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, $4, $5::"Goal"[], $6::"ClientStatus", $7, $8, $9, $10, $11, $12, $13, $13) RETURNING "id", "userId"`,
+        [clientId, trainer.trainerProfileId, fullName, phone, goalsArray, ClientStatus.PENDING_ASSESSMENT, now, userId, birthDate, injuries ?? null, healthConditions ?? null, medications ?? null, now]
       )
       return res.rows[0] as { id: string; userId: string }
     })
@@ -300,6 +303,7 @@ export async function submitJoinClient(
         date: new Date(),
         source: BodyCompositionSource.CLIENT,
         heightCm: inbody!.heightCm ?? null,
+        age: inbody!.age ?? null,
         weightKg: inbody!.weightKg ?? null,
         muscleMassKg: inbody!.muscleMassKg ?? null,
         bodyFatKg: inbody!.bodyFatKg ?? null,
@@ -327,7 +331,11 @@ export async function submitJoinClient(
         })
         
         let chatMessage = `البيانات المسجلة للمشترك:\n`
-        if (inbody?.heightCm || inbody?.weightKg) chatMessage += `القياسات: الطول ${inbody?.heightCm ?? "-"} سم، الوزن ${inbody?.weightKg ?? "-"} كجم\n`
+        const measurements: string[] = []
+        if (inbody?.heightCm) measurements.push(`الطول ${inbody.heightCm} سم`)
+        if (inbody?.weightKg) measurements.push(`الوزن ${inbody.weightKg} كجم`)
+        if (inbody?.age) measurements.push(`السن ${inbody.age} سنة`)
+        if (measurements.length) chatMessage += `القياسات: ${measurements.join("، ")}\n`
         if (injuries) chatMessage += `الإصابات: ${injuries}\n`
         if (healthConditions) chatMessage += `المشاكل الصحية: ${healthConditions}\n`
         if (medications) chatMessage += `الأدوية: ${medications}\n`
@@ -404,7 +412,7 @@ export async function submitClientAccountInfo(
 
     try {
       const clientDataRes = await pool.query(`SELECT "fullName", "injuries", "healthConditions", "medications", "trainerId" FROM "Client" WHERE "id" = $1 LIMIT 1`, [invite.clientId])
-      const inbodyDataRes = await pool.query(`SELECT "heightCm", "weightKg" FROM "BodyComposition" WHERE "clientId" = $1 ORDER BY "date" DESC LIMIT 1`, [invite.clientId])
+      const inbodyDataRes = await pool.query(`SELECT "heightCm", "age", "weightKg" FROM "BodyComposition" WHERE "clientId" = $1 ORDER BY "date" DESC LIMIT 1`, [invite.clientId])
       if (clientDataRes.rowCount && clientDataRes.rowCount > 0 && newUserId) {
         const cData = clientDataRes.rows[0] as any
         const inbody = inbodyDataRes.rowCount ? inbodyDataRes.rows[0] : null
@@ -421,7 +429,11 @@ export async function submitClientAccountInfo(
           })
           
           let chatMessage = `البيانات المسجلة للمشترك:\n`
-          if (inbody?.heightCm || inbody?.weightKg) chatMessage += `القياسات: الطول ${inbody?.heightCm ?? "-"} سم، الوزن ${inbody?.weightKg ?? "-"} كجم\n`
+          const measurements: string[] = []
+          if (inbody?.heightCm) measurements.push(`الطول ${inbody.heightCm} سم`)
+          if (inbody?.weightKg) measurements.push(`الوزن ${inbody.weightKg} كجم`)
+          if (inbody?.age) measurements.push(`السن ${inbody.age} سنة`)
+          if (measurements.length) chatMessage += `القياسات: ${measurements.join("، ")}\n`
           if (cData.injuries) chatMessage += `الإصابات: ${cData.injuries}\n`
           if (cData.healthConditions) chatMessage += `المشاكل الصحية: ${cData.healthConditions}\n`
           if (cData.medications) chatMessage += `الأدوية: ${cData.medications}\n`

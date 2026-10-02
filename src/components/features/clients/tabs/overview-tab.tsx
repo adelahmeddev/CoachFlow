@@ -163,6 +163,8 @@ function InBodyCard({ clientId, profile, t, locale }: { clientId: string; profil
   const inBody = (profile as unknown as { latestBodyComposition?: unknown }).latestBodyComposition
   const bc = inBody as null | {
     date: Date | string
+    heightCm: number | null
+    age: number | null
     weightKg: number | null
     muscleMassKg: number | null
     bodyFatKg: number | null
@@ -190,6 +192,8 @@ function InBodyCard({ clientId, profile, t, locale }: { clientId: string; profil
         <CardContent>
           <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
             <InfoItem label={t.bodyComposition.dateLabel} value={formatDate(bc.date as Date, locale)} />
+            <InfoItem label={(t.bodyComposition.fields as unknown as Record<string, string>).heightCm ?? "Height"} value={bc.heightCm != null ? `${bc.heightCm} cm` : "—"} />
+            <InfoItem label={(t.bodyComposition.fields as unknown as Record<string, string>).age ?? "Age"} value={bc.age != null ? `${bc.age} ${t.profile.overview.years}` : "—"} />
             <InfoItem label={t.bodyComposition.fields.weightKg} value={bc.weightKg != null ? `${bc.weightKg} kg` : "—"} />
             <InfoItem label={t.bodyComposition.fields.muscleMassKg} value={bc.muscleMassKg != null ? `${bc.muscleMassKg} kg` : "—"} />
             <InfoItem label={t.bodyComposition.fields.bodyFatKg} value={bc.bodyFatKg != null ? `${bc.bodyFatKg} kg` : "—"} />

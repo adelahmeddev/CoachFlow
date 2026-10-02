@@ -381,6 +381,7 @@ export type BodyComposition = {
   date: Date
   source: BodyCompositionSource
   heightCm: number | null
+  age: number | null
   weightKg: number | null
   muscleMassKg: number | null
   bodyFatKg: number | null

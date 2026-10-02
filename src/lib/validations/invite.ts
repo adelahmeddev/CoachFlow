@@ -48,6 +48,7 @@ const optionalRatio = z
 export const clientInBodySchema = z
   .object({
     heightCm: optionalMetricNumber(300, "Height must be between 1 and 300 cm"),
+    age: optionalMetricInt(150, "Age must be between 1 and 150"),
     weightKg: optionalMetricNumber(500, "Weight must be between 1 and 500 kg"),
     muscleMassKg: optionalMetricNumber(300, "Muscle mass must be between 1 and 300 kg"),
     bodyFatKg: optionalMetricNumber(300, "Body fat must be positive"),

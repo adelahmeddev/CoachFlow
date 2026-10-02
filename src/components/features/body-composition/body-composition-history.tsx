@@ -23,6 +23,8 @@ type Entry = {
   id: string
   date: string | Date
   source: string
+  heightCm?: number | null
+  age?: number | null
   weightKg: number | null
   muscleMassKg: number | null
   bodyFatKg: number | null
@@ -99,6 +101,8 @@ export function BodyCompositionHistory({
             </CardHeader>
             <CardContent>
               <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
+                {bc.heightCm != null && <div><dt className="text-xs text-muted-foreground">{(t.bodyComposition.fields as unknown as Record<string, string>).heightCm ?? "Height"}</dt><dd className="font-medium">{bc.heightCm} cm</dd></div>}
+                {bc.age != null && <div><dt className="text-xs text-muted-foreground">{(t.bodyComposition.fields as unknown as Record<string, string>).age ?? "Age"}</dt><dd className="font-medium">{bc.age} {t.profile.overview.years}</dd></div>}
                 <div><dt className="text-xs text-muted-foreground">{t.bodyComposition.fields.weightKg}</dt><dd className="font-medium">{bc.weightKg ?? "—"} {bc.weightKg != null ? "kg" : ""}</dd></div>
                 <div><dt className="text-xs text-muted-foreground">{t.bodyComposition.fields.muscleMassKg}</dt><dd className="font-medium">{bc.muscleMassKg ?? "—"} {bc.muscleMassKg != null ? "kg" : ""}</dd></div>
                 <div><dt className="text-xs text-muted-foreground">{t.bodyComposition.fields.bodyFatKg}</dt><dd className="font-medium">{bc.bodyFatKg ?? "—"} {bc.bodyFatKg != null ? "kg" : ""}</dd></div>

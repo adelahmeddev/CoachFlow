@@ -43,6 +43,14 @@ export function ClientInBodySection({
       type: "number",
     },
     {
+      key: "age",
+      label: (t.invite.inbody as unknown as Record<string, string>).age ?? (isAr ? "السن (سنة)" : "Age (years)"),
+      subLabel: isAr ? "AGE (YRS)" : "السن (سنة)",
+      placeholder: "25",
+      step: "1",
+      type: "number",
+    },
+    {
       key: "weightKg",
       label: t.invite.inbody.weightKg,
       subLabel: isAr ? "WEIGHT (KG)" : "الوزن (كجم)",

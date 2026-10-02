@@ -6,6 +6,7 @@ export interface BodyCompositionInput {
   date: Date
   source: BodyCompositionSource
   heightCm?: number | null
+  age?: number | null
   weightKg?: number | null
   muscleMassKg?: number | null
   bodyFatKg?: number | null
@@ -45,8 +46,8 @@ export async function createBodyComposition(
 ): Promise<BodyComposition> {
   const id = generateId()
   const res = await pool.query<BodyComposition>(
-    `INSERT INTO "BodyComposition" ("id", "clientId", "date", "source", "heightCm", "weightKg", "muscleMassKg", "bodyFatKg", "bodyWaterPct", "fatControlKg", "bmrKcal", "fitnessScore", "waistHipRatio", "visceralFatLevel", "notes", "createdAt", "updatedAt")
-     VALUES ($1, $2, $3, $4::"BodyCompositionSource", $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW())
+    `INSERT INTO "BodyComposition" ("id", "clientId", "date", "source", "heightCm", "age", "weightKg", "muscleMassKg", "bodyFatKg", "bodyWaterPct", "fatControlKg", "bmrKcal", "fitnessScore", "waistHipRatio", "visceralFatLevel", "notes", "createdAt", "updatedAt")
+     VALUES ($1, $2, $3, $4::"BodyCompositionSource", $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW(), NOW())
      RETURNING *`,
     [
       id,
@@ -54,6 +55,7 @@ export async function createBodyComposition(
       data.date,
       data.source,
       data.heightCm ?? null,
+      data.age ?? null,
       data.weightKg ?? null,
       data.muscleMassKg ?? null,
       data.bodyFatKg ?? null,
@@ -89,6 +91,10 @@ export async function updateBodyComposition(
   if (data.heightCm !== undefined) {
     fields.push(`"heightCm" = $${idx++}`)
     values.push(data.heightCm)
+  }
+  if (data.age !== undefined) {
+    fields.push(`"age" = $${idx++}`)
+    values.push(data.age)
   }
   if (data.weightKg !== undefined) {
     fields.push(`"weightKg" = $${idx++}`)
@@ -163,6 +169,7 @@ export function calculateDelta(
 
 export const BODY_COMPOSITION_FIELDS = [
   "heightCm",
+  "age",
   "weightKg",
   "muscleMassKg",
   "bodyFatKg",

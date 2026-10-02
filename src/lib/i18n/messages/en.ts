@@ -248,6 +248,7 @@ export const en = {
       sectionDescription: "If you have a recent InBody or scale reading, you can share it to help tailor your plan.",
       toggleButton: "Add InBody / Measurements",
       heightCm: "Height (cm)",
+      age: "Age (years)",
       weightKg: "Weight (kg)",
       muscleMassKg: "Muscle Mass (kg)",
       bodyFatKg: "Body Fat (kg)",
@@ -463,6 +464,8 @@ export const en = {
     addAnalysisTitle: "Body Composition | InBody — Add Entry",
     addAnalysisDesc: "Body composition tracking — add new InBody entry",
     fields: {
+      heightCm: "Height (cm)",
+      age: "Age (years)",
       weightKg: "Weight (kg)",
       muscleMassKg: "Muscle Mass (kg)",
       bodyFatKg: "Body Fat (kg)",
