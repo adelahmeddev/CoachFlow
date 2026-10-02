@@ -24,6 +24,9 @@ export const clientCreateSchema = z.object({
   status: z.enum(["INVITED", "PENDING_ASSESSMENT", "ACTIVE", "PAUSED"]),
   coachingMode: z.nativeEnum(CoachingMode).optional(),
   workoutDisplayMode: z.nativeEnum(WorkoutDisplayMode).optional(),
+  injuries: z.string().trim().max(1000, "Cannot exceed 1000 characters").optional().nullable(),
+  healthConditions: z.string().trim().max(1000, "Cannot exceed 1000 characters").optional().nullable(),
+  medications: z.string().trim().max(1000, "Cannot exceed 1000 characters").optional().nullable(),
 })
 
 export type ClientCreateInput = z.infer<typeof clientCreateSchema>

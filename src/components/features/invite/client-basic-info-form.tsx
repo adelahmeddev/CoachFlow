@@ -21,6 +21,7 @@ import {
 import { useI18n } from "@/lib/i18n/client"
 import { MultiGoalPicker } from "@/components/features/goals/multi-goal-picker"
 import { ClientInBodySection } from "@/components/features/invite/client-inbody-section"
+import { ClientHealthSection } from "@/components/features/invite/client-health-section"
 import type { ClientInBodyInput } from "@/lib/validations/invite"
 import { cn } from "@/lib/utils"
 
@@ -173,6 +174,12 @@ export function ClientBasicInfoForm({ token }: { token: string }) {
           </div>
 
           <ClientInBodySection
+            register={register}
+            errors={errors}
+            disabled={isPending}
+          />
+          
+          <ClientHealthSection
             register={register}
             errors={errors}
             disabled={isPending}

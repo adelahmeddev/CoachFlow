@@ -80,6 +80,9 @@ model Client {
   basicInfoCompletedAt DateTime?
   passwordHash         String?
   email                String?
+  injuries             String?
+  healthConditions     String?
+  medications          String?
   neckPain             Boolean               @default(false)
   shoulderPain         Boolean               @default(false)
   backPain             Boolean               @default(false)
@@ -508,6 +511,7 @@ model BodyComposition {
   clientId         String
   date             DateTime              @db.Date
   source           BodyCompositionSource
+  heightCm         Float?
   weightKg         Float?
   muscleMassKg     Float?
   bodyFatKg        Float?

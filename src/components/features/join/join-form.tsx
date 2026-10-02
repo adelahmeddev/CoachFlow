@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useI18n } from "@/lib/i18n/client"
 import { MultiGoalPicker } from "@/components/features/goals/multi-goal-picker"
 import { ClientInBodySection } from "@/components/features/invite/client-inbody-section"
+import { ClientHealthSection } from "@/components/features/invite/client-health-section"
 import type { ClientInBodyInput } from "@/lib/validations/invite"
 import { cn } from "@/lib/utils"
 
@@ -134,6 +135,11 @@ export function JoinForm({ slug, trainerName }: { slug: string; trainerName: str
           </div>
 
           <ClientInBodySection
+            register={register}
+            errors={errors}
+            disabled={isPending}
+          />
+          <ClientHealthSection
             register={register}
             errors={errors}
             disabled={isPending}

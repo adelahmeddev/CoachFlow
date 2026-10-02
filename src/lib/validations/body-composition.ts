@@ -46,6 +46,19 @@ const optionalRatio = z
 export const bodyCompositionSchema = z.object({
   date: z.string().min(1, "Date is required"),
   source: z.nativeEnum(BodyCompositionSource).optional().default(BodyCompositionSource.COACH),
+  heightCm: z
+    .union([z.number().positive(), z.string().transform((v) => (v.trim() === "" ? "" : Number(v))), z.literal("")])
+    .optional()
+    .transform((v) => {
+      if (v === "" || v === undefined) return null
+      const n = typeof v === "string" ? Number(v) : v
+      return Number.isNaN(n) ? null : n
+    })
+    .refine((v) => v === null || (typeof v === "number" && v > 0 && v <= 300), {
+      message: "Height must be between 0 and 300 cm",
+    })
+    .optional()
+    .nullable(),
   weightKg: z
     .union([z.number().positive(), z.string().transform((v) => (v.trim() === "" ? "" : Number(v))), z.literal("")])
     .optional()

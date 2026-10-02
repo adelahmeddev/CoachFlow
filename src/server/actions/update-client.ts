@@ -46,7 +46,7 @@ export async function updateClientInfoAction(
     }
   }
 
-  const { fullName, phone, birthDate, goals, status, coachingMode, workoutDisplayMode } = parsed.data
+  const { fullName, phone, birthDate, goals, status, coachingMode, workoutDisplayMode, injuries, healthConditions, medications } = parsed.data
 
   const goalsArray = `{${(goals ?? []).join(",")}}`
   await pool.query(
@@ -58,8 +58,11 @@ export async function updateClientInfoAction(
       "status" = $5::"ClientStatus",
       "coachingMode" = $6::"CoachingMode",
       "workoutDisplayMode" = $7::"WorkoutDisplayMode",
+      "injuries" = $8,
+      "healthConditions" = $9,
+      "medications" = $10,
       "updatedAt" = NOW()
-    WHERE "id" = $8`,
+    WHERE "id" = $11`,
     [
       fullName,
       phone ?? null,
@@ -68,6 +71,9 @@ export async function updateClientInfoAction(
       status,
       coachingMode ?? 'ONLINE',
       workoutDisplayMode ?? 'FULL',
+      injuries ?? null,
+      healthConditions ?? null,
+      medications ?? null,
       clientId,
     ]
   )

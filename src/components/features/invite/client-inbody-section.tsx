@@ -35,6 +35,14 @@ export function ClientInBodySection({
 
   const fields = [
     {
+      key: "heightCm",
+      label: t.invite.inbody.heightCm,
+      subLabel: isAr ? "HEIGHT (CM)" : "الطول (سم)",
+      placeholder: "175.0",
+      step: "0.1",
+      type: "number",
+    },
+    {
       key: "weightKg",
       label: t.invite.inbody.weightKg,
       subLabel: isAr ? "WEIGHT (KG)" : "الوزن (كجم)",

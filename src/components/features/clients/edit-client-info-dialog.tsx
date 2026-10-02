@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Dialog,
@@ -56,6 +57,9 @@ type FormValues = {
   status: "INVITED" | "PENDING_ASSESSMENT" | "ACTIVE" | "PAUSED"
   coachingMode: "ONLINE" | "IN_PERSON"
   workoutDisplayMode: "FULL" | "DAY_NAME_ONLY"
+  injuries?: string
+  healthConditions?: string
+  medications?: string
 }
 
 export function EditClientInfoDialog({
@@ -77,6 +81,9 @@ export function EditClientInfoDialog({
       status: (initial.status as FormValues["status"]) || "ACTIVE",
       coachingMode: (initial.coachingMode as FormValues["coachingMode"]) || "ONLINE",
       workoutDisplayMode: (initial.workoutDisplayMode as FormValues["workoutDisplayMode"]) || "FULL",
+      injuries: (initial as any).injuries || "",
+      healthConditions: (initial as any).healthConditions || "",
+      medications: (initial as any).medications || "",
     },
   })
 
@@ -220,6 +227,25 @@ export function EditClientInfoDialog({
                   </Select>
                 )}
               />
+            </div>
+
+            <div className="space-y-2 sm:col-span-2 mt-4 pt-4 border-t border-border/60">
+              <h4 className="font-semibold text-sm text-destructive">{isAr ? "الملف الصحي" : "Health Profile"}</h4>
+            </div>
+
+            <div className="space-y-2 sm:col-span-2">
+              <Label>{isAr ? "الإصابات" : "Injuries"}</Label>
+              <Textarea {...form.register("injuries")} rows={2} className="resize-none" />
+            </div>
+
+            <div className="space-y-2 sm:col-span-2">
+              <Label>{isAr ? "المشاكل الصحية" : "Health Conditions"}</Label>
+              <Textarea {...form.register("healthConditions")} rows={2} className="resize-none" />
+            </div>
+
+            <div className="space-y-2 sm:col-span-2">
+              <Label>{isAr ? "الأدوية" : "Medications"}</Label>
+              <Textarea {...form.register("medications")} rows={2} className="resize-none" />
             </div>
           </div>
           <DialogFooter>

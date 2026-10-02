@@ -47,6 +47,7 @@ const optionalRatio = z
 
 export const clientInBodySchema = z
   .object({
+    heightCm: optionalMetricNumber(300, "Height must be between 1 and 300 cm"),
     weightKg: optionalMetricNumber(500, "Weight must be between 1 and 500 kg"),
     muscleMassKg: optionalMetricNumber(300, "Muscle mass must be between 1 and 300 kg"),
     bodyFatKg: optionalMetricNumber(300, "Body fat must be positive"),
@@ -92,6 +93,9 @@ export const inviteBasicInfoSchema = z.object({
     .trim()
     .regex(/^\d{11}$/, "Enter a valid 11-digit phone number"),
   goals: z.array(z.nativeEnum(Goal)).min(1, "Select at least one goal"),
+  injuries: z.string().trim().max(1000, "Cannot exceed 1000 characters").optional().nullable(),
+  healthConditions: z.string().trim().max(1000, "Cannot exceed 1000 characters").optional().nullable(),
+  medications: z.string().trim().max(1000, "Cannot exceed 1000 characters").optional().nullable(),
   inbody: clientInBodySchema,
 })
 
@@ -115,6 +119,9 @@ export const joinClientSchema = z
       .trim()
       .regex(/^\d{11}$/, "Enter a valid 11-digit phone number"),
     goals: z.array(z.nativeEnum(Goal)).min(1, "Select at least one goal"),
+    injuries: z.string().trim().max(1000, "Cannot exceed 1000 characters").optional().nullable(),
+    healthConditions: z.string().trim().max(1000, "Cannot exceed 1000 characters").optional().nullable(),
+    medications: z.string().trim().max(1000, "Cannot exceed 1000 characters").optional().nullable(),
     password: z
       .string()
       .min(8, "Password must be at least 8 characters")

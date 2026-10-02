@@ -29,6 +29,7 @@ import { ResetPasswordDialog } from "@/components/features/clients/reset-passwor
 import { ClientAccessCard } from "@/components/features/clients/client-access-card"
 import { EditClientInfoDialog } from "@/components/features/clients/edit-client-info-dialog"
 import { PainFlagsForm } from "@/components/features/body-composition/pain-flags-form"
+import { ClientHealthCard } from "@/components/features/clients/cards/client-health-card"
 
 type I18n = Awaited<ReturnType<typeof getI18n>>
 type T = I18n["t"]
@@ -46,6 +47,11 @@ export async function OverviewTab({ clientId, profile }: OverviewTabProps) {
       <QuickActions clientId={clientId} clientName={profile.client.fullName ?? ""} t={t} />
       <div className="grid gap-6 lg:grid-cols-2">
         <ClientInfoCard clientId={clientId} profile={profile} t={t} locale={locale} />
+        <ClientHealthCard 
+          injuries={(profile.client as any).injuries ?? null}
+          healthConditions={(profile.client as any).healthConditions ?? null}
+          medications={(profile.client as any).medications ?? null}
+        />
         <ClientAccessCard clientId={clientId} profile={profile} />
         <InBodyCard clientId={clientId} profile={profile} t={t} locale={locale} />
         <PainFlagsForm

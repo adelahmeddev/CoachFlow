@@ -11,6 +11,8 @@ import {
 import { hashPassword } from "@/lib/auth"
 import { invalidateDashboard } from "@/lib/cache"
 import { createBodyComposition } from "@/server/services/body-composition.service"
+import { getOrCreateConversation, sendMessage } from "@/server/services/message.service"
+import { notifySafe } from "@/server/services/notification.service"
 
 const DEFAULT_INVITE_EXPIRY_DAYS = 7
 
@@ -142,6 +144,7 @@ export type SubmitInviteResult =
 function hasInBodyMeasurements(inbody?: ClientInBodyInput | null): boolean {
   if (!inbody) return false
   return (
+    inbody.heightCm != null ||
     inbody.weightKg != null ||
     inbody.muscleMassKg != null ||
     inbody.bodyFatKg != null ||
@@ -173,7 +176,7 @@ export async function submitClientBasicInfo(
     }
   }
 
-  const { fullName, birthDate, phone, goals, inbody } = parsed.data as typeof parsed.data & { status?: string }
+  const { fullName, birthDate, phone, goals, inbody, injuries, healthConditions, medications } = parsed.data as typeof parsed.data & { status?: string }
   const statusValue =
     (parsed.data as unknown as { status?: string }).status != null
       ? STATUS_MAP[(parsed.data as unknown as { status: keyof typeof STATUS_MAP }).status] ?? ClientStatus.PENDING_ASSESSMENT
@@ -181,14 +184,15 @@ export async function submitClientBasicInfo(
 
   const goalsArray = `{${(goals as string[]).join(",")}}`
   await pool.query(
-    `UPDATE "Client" SET "fullName" = $1, "birthDate" = $2, "phone" = $3, "goals" = $4::"Goal"[], "status" = $5::"ClientStatus", "basicInfoCompletedAt" = $6, "updatedAt" = NOW() WHERE "id" = $7`,
-    [fullName, new Date(`${birthDate}T00:00:00Z`), phone, goalsArray, statusValue, new Date(), invite.clientId]
+    `UPDATE "Client" SET "fullName" = $1, "birthDate" = $2, "phone" = $3, "goals" = $4::"Goal"[], "status" = $5::"ClientStatus", "basicInfoCompletedAt" = $6, "updatedAt" = NOW(), "injuries" = $8, "healthConditions" = $9, "medications" = $10 WHERE "id" = $7`,
+    [fullName, new Date(`${birthDate}T00:00:00Z`), phone, goalsArray, statusValue, new Date(), invite.clientId, injuries ?? null, healthConditions ?? null, medications ?? null]
   )
 
   if (hasInBodyMeasurements(inbody)) {
     await createBodyComposition(invite.clientId, {
       date: new Date(),
       source: BodyCompositionSource.CLIENT,
+      heightCm: inbody!.heightCm ?? null,
       weightKg: inbody!.weightKg ?? null,
       muscleMassKg: inbody!.muscleMassKg ?? null,
       bodyFatKg: inbody!.bodyFatKg ?? null,
@@ -266,7 +270,7 @@ export async function submitJoinClient(
       fieldErrors: parsed.error.flatten().fieldErrors,
     }
   }
-  const { fullName, phone, goals, password, inbody } = parsed.data
+  const { fullName, phone, goals, password, inbody, injuries, healthConditions, medications } = parsed.data
   const existing = await pool.query(`SELECT "id" FROM "Client" WHERE "trainerId" = $1 AND "phone" = $2 LIMIT 1`, [trainer.trainerProfileId, phone])
   if (existing.rowCount && existing.rowCount > 0) {
     return { ok: false, error: "A client with this phone number already exists for this trainer.", fieldErrors: { phone: ["Phone already registered"] } }
@@ -284,17 +288,18 @@ export async function submitJoinClient(
       )
       const goalsArray = `{${(goals as string[]).join(",")}}`
       const res = await tx.query(
-        `INSERT INTO "Client" ("id", "trainerId", "fullName", "phone", "goals", "status", "basicInfoCompletedAt", "userId", "createdAt", "updatedAt")
-         VALUES ($1, $2, $3, $4, $5::"Goal"[], $6::"ClientStatus", $7, $8, $9, $9) RETURNING "id"`,
-        [clientId, trainer.trainerProfileId, fullName, phone, goalsArray, ClientStatus.PENDING_ASSESSMENT, now, userId, now]
+        `INSERT INTO "Client" ("id", "trainerId", "fullName", "phone", "goals", "status", "basicInfoCompletedAt", "userId", "injuries", "healthConditions", "medications", "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, $4, $5::"Goal"[], $6::"ClientStatus", $7, $8, $9, $10, $11, $12, $12) RETURNING "id", "userId"`,
+        [clientId, trainer.trainerProfileId, fullName, phone, goalsArray, ClientStatus.PENDING_ASSESSMENT, now, userId, injuries ?? null, healthConditions ?? null, medications ?? null, now]
       )
-      return res.rows[0] as { id: string }
+      return res.rows[0] as { id: string; userId: string }
     })
 
     if (hasInBodyMeasurements(inbody)) {
       await createBodyComposition(client.id, {
         date: new Date(),
         source: BodyCompositionSource.CLIENT,
+        heightCm: inbody!.heightCm ?? null,
         weightKg: inbody!.weightKg ?? null,
         muscleMassKg: inbody!.muscleMassKg ?? null,
         bodyFatKg: inbody!.bodyFatKg ?? null,
@@ -306,6 +311,37 @@ export async function submitJoinClient(
         visceralFatLevel: inbody!.visceralFatLevel ?? null,
         notes: inbody!.notes ?? null,
       })
+    }
+
+    try {
+      const trainerRes = await pool.query(`SELECT "userId" FROM "TrainerProfile" WHERE "id" = $1 LIMIT 1`, [trainer.trainerProfileId])
+      if (trainerRes.rowCount && trainerRes.rowCount > 0) {
+        const trainerUserId = (trainerRes.rows[0] as { userId: string }).userId
+        await notifySafe({
+          userId: trainerUserId,
+          type: "CLIENT_ACTIVITY",
+          titleKey: "newClientRegisteredTitle",
+          bodyKey: "newClientRegisteredBody",
+          params: { name: fullName },
+          link: `/clients/${client.id}`,
+        })
+        
+        let chatMessage = `البيانات المسجلة للمشترك:\n`
+        if (inbody?.heightCm || inbody?.weightKg) chatMessage += `القياسات: الطول ${inbody?.heightCm ?? "-"} سم، الوزن ${inbody?.weightKg ?? "-"} كجم\n`
+        if (injuries) chatMessage += `الإصابات: ${injuries}\n`
+        if (healthConditions) chatMessage += `المشاكل الصحية: ${healthConditions}\n`
+        if (medications) chatMessage += `الأدوية: ${medications}\n`
+        
+        await sendMessage({
+          trainerId: trainer.trainerProfileId,
+          clientId: client.id,
+          senderId: client.userId,
+          senderRole: "CLIENT",
+          body: chatMessage,
+        })
+      }
+    } catch (err) {
+      console.error("Failed to notify coach on join client", err)
     }
 
     invalidateDashboard(trainer.trainerProfileId)
@@ -352,18 +388,56 @@ export async function submitClientAccountInfo(
   const passwordHash = await hashPassword(password)
 
   try {
+    let newUserId: string | null = null
     await withTransaction(async (tx) => {
-      const userId = generateId()
+      newUserId = generateId()
       const now = new Date()
       const username = invite.phone ?? `client_${invite.clientId}`
       const phoneVal = invite.phone ?? null
       await tx.query(
         `INSERT INTO "User" ("id", "username", "phone", "passwordHash", "role", "createdAt", "updatedAt")
          VALUES ($1, $2, $3, $4, $5::"Role", $6, $6)`,
-        [userId, username, phoneVal, passwordHash, "CLIENT", now]
+        [newUserId, username, phoneVal, passwordHash, "CLIENT", now]
       )
-      await tx.query(`UPDATE "Client" SET "userId" = $1, "updatedAt" = NOW() WHERE "id" = $2`, [userId, invite.clientId])
+      await tx.query(`UPDATE "Client" SET "userId" = $1, "updatedAt" = NOW() WHERE "id" = $2`, [newUserId, invite.clientId])
     })
+
+    try {
+      const clientDataRes = await pool.query(`SELECT "fullName", "injuries", "healthConditions", "medications", "trainerId" FROM "Client" WHERE "id" = $1 LIMIT 1`, [invite.clientId])
+      const inbodyDataRes = await pool.query(`SELECT "heightCm", "weightKg" FROM "BodyComposition" WHERE "clientId" = $1 ORDER BY "date" DESC LIMIT 1`, [invite.clientId])
+      if (clientDataRes.rowCount && clientDataRes.rowCount > 0 && newUserId) {
+        const cData = clientDataRes.rows[0] as any
+        const inbody = inbodyDataRes.rowCount ? inbodyDataRes.rows[0] : null
+        const trainerRes = await pool.query(`SELECT "userId" FROM "TrainerProfile" WHERE "id" = $1 LIMIT 1`, [cData.trainerId])
+        if (trainerRes.rowCount && trainerRes.rowCount > 0) {
+          const trainerUserId = (trainerRes.rows[0] as { userId: string }).userId
+          await notifySafe({
+            userId: trainerUserId,
+            type: "CLIENT_ACTIVITY",
+            titleKey: "newClientRegisteredTitle",
+            bodyKey: "newClientRegisteredBody",
+            params: { name: cData.fullName || "" },
+            link: `/clients/${invite.clientId}`,
+          })
+          
+          let chatMessage = `البيانات المسجلة للمشترك:\n`
+          if (inbody?.heightCm || inbody?.weightKg) chatMessage += `القياسات: الطول ${inbody?.heightCm ?? "-"} سم، الوزن ${inbody?.weightKg ?? "-"} كجم\n`
+          if (cData.injuries) chatMessage += `الإصابات: ${cData.injuries}\n`
+          if (cData.healthConditions) chatMessage += `المشاكل الصحية: ${cData.healthConditions}\n`
+          if (cData.medications) chatMessage += `الأدوية: ${cData.medications}\n`
+          
+          await sendMessage({
+            trainerId: cData.trainerId,
+            clientId: invite.clientId,
+            senderId: newUserId,
+            senderRole: "CLIENT",
+            body: chatMessage,
+          })
+        }
+      }
+    } catch (err) {
+      console.error("Failed to notify coach on account creation", err)
+    }
 
     return { ok: true }
   } catch (error) {

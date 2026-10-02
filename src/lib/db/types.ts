@@ -76,6 +76,9 @@ export type Client = {
   basicInfoCompletedAt: Date | null
   passwordHash: string | null
   email: string | null
+  injuries: string | null
+  healthConditions: string | null
+  medications: string | null
   neckPain: boolean
   shoulderPain: boolean
   backPain: boolean
@@ -377,6 +380,7 @@ export type BodyComposition = {
   clientId: string
   date: Date
   source: BodyCompositionSource
+  heightCm: number | null
   weightKg: number | null
   muscleMassKg: number | null
   bodyFatKg: number | null
