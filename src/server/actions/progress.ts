@@ -56,6 +56,7 @@ export async function createProgressReviewAction(
   invalidate([
     `client:${clientId}:progress`,
     `trainer:${trainerProfileId}:dashboard`,
+    `trainer:${trainerProfileId}:needs-action`,
     `trainer:${trainerProfileId}:clients`,
   ])
   const pair = await getRecipientPair(clientId)
@@ -108,6 +109,7 @@ export async function createWorkoutLogAction(
   invalidate([
     `client:${clientId}:progress`,
     `trainer:${trainerProfileId}:dashboard`,
+    `trainer:${trainerProfileId}:needs-action`,
     `trainer:${trainerProfileId}:clients`,
   ])
   return { ok: true as const }
@@ -137,6 +139,7 @@ export async function deleteWorkoutLogAction(
   invalidate([
     `client:${clientId}:progress`,
     `trainer:${trainerProfileId}:dashboard`,
+    `trainer:${trainerProfileId}:needs-action`,
     `trainer:${trainerProfileId}:clients`,
   ])
   return { ok: true as const }

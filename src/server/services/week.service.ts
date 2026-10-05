@@ -250,13 +250,21 @@ export async function getDayDetail(
     (modeRes.rows[0] as { workoutDisplayMode: WorkoutDisplayMode | null } | undefined)?.workoutDisplayMode ?? "FULL"
 
   const exercisesRes = await pool.query(
-    `SELECT sde."id", sde."splitDayId", sde."order", sde."exerciseId", sde."exerciseName", sde."targetSets", sde."targetReps", sde."targetWeightKg", sde."restSeconds", sde."notes", sde."videoUrl",
-            e."name" AS "exercise_name", e."nameAr" AS "exercise_name_ar", e."youtubeUrl" AS "exercise_youtubeUrl"
+    `SELECT sde."id", sde."splitDayId", sde."order", sde."exerciseId",
+            COALESCE(sde."exerciseName", o."name", e."name") AS "exerciseName",
+            sde."targetSets", sde."targetReps", sde."targetWeightKg", sde."restSeconds", sde."notes",
+            COALESCE(NULLIF(sde."videoUrl", ''), o."youtubeUrl", e."youtubeUrl") AS "videoUrl",
+            COALESCE(o."name", e."name") AS "exercise_name",
+            COALESCE(o."nameAr", e."nameAr") AS "exercise_name_ar",
+            COALESCE(NULLIF(sde."videoUrl", ''), o."youtubeUrl", e."youtubeUrl") AS "exercise_youtubeUrl"
      FROM "SplitDayExercise" sde
      LEFT JOIN "Exercise" e ON e."id" = sde."exerciseId"
+     LEFT JOIN "ExerciseOverride" o ON o."exerciseId" = e."id" AND o."trainerId" = (
+       SELECT "trainerId" FROM "Client" WHERE id = $2 LIMIT 1
+     )
      WHERE sde."splitDayId" = $1
      ORDER BY sde."order" ASC`,
-    [day.id]
+    [day.id, clientId]
   )
   const exercises = exercisesRes.rows as Array<{
     id: string
@@ -323,7 +331,7 @@ export async function getDayDetail(
     return {
       id: ex.id,
       exerciseName: ex.exerciseName || ex.exercise_name || "Exercise",
-      exerciseNameAr: ex.exercise_name_ar ?? null,
+      exerciseNameAr: null,
       targetSets: ex.targetSets,
       targetReps: ex.targetReps,
       targetWeightKg: ex.targetWeightKg,

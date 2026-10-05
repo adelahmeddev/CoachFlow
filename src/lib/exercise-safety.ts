@@ -24,6 +24,7 @@ export interface ExerciseOption {
   defaultReps: number | null
   defaultRestSeconds: number | null
   youtubeUrl: string | null
+  isGlobal?: boolean
 }
 
 export interface ExerciseConflict {

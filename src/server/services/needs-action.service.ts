@@ -1,16 +1,21 @@
 import { pool } from "@/lib/db"
+import { withCache } from "@/lib/cache"
 import { getActiveGoalDeadlines } from "@/server/services/goal.service"
 import {
   evaluateClientActions,
+  type ActionPriority,
   type ClientActionSnapshot,
   type NeedActionItem,
+  type NeedActionKind,
 } from "@/lib/needs-action"
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
 export interface NeedsActionSummary {
   items: NeedActionItem[]
-  counts: { HIGH: number; MEDIUM: number; LOW: number }
+  counts: Record<ActionPriority, number>
+  countsByKind: Partial<Record<NeedActionKind, number>>
+  clientCount: number
 }
 
 /**
@@ -19,7 +24,7 @@ export interface NeedsActionSummary {
  * of client count — never one query per client. Scales to 1000+ clients:
  * fixed query count, indexed GROUP BYs, selected columns only.
  */
-export async function getNeedsAction(trainerProfileId: string): Promise<NeedsActionSummary> {
+async function fetchNeedsAction(trainerProfileId: string): Promise<NeedsActionSummary> {
   const clientsRes = await pool.query<{
     id: string
     fullName: string | null
@@ -32,11 +37,11 @@ export async function getNeedsAction(trainerProfileId: string): Promise<NeedsAct
   )
   const clients = clientsRes.rows as { id: string; fullName: string | null; status: string }[]
   if (clients.length === 0) {
-    return { items: [], counts: { HIGH: 0, MEDIUM: 0, LOW: 0 } }
+    return { items: [], counts: { HIGH: 0, MEDIUM: 0, LOW: 0 }, countsByKind: {}, clientCount: 0 }
   }
 
   const ids = clients.map((c) => c.id)
-  if (ids.length === 0) return { items: [], counts: { HIGH: 0, MEDIUM: 0, LOW: 0 } }
+  if (ids.length === 0) return { items: [], counts: { HIGH: 0, MEDIUM: 0, LOW: 0 }, countsByKind: {}, clientCount: 0 }
   const nowMs = Date.now()
 
   const [activityRes, subRes, inbodyRes, proofsRes, checkinRes, mediaRes, goalDeadlines] = await Promise.all([
@@ -127,7 +132,22 @@ export async function getNeedsAction(trainerProfileId: string): Promise<NeedsAct
 
   const rank = { HIGH: 0, MEDIUM: 1, LOW: 2 } as const
   items.sort((a, b) => rank[a.priority] - rank[b.priority])
-  const counts = { HIGH: 0, MEDIUM: 0, LOW: 0 }
-  for (const i of items) counts[i.priority] += 1
-  return { items: items.slice(0, 50), counts }
+  const counts: Record<ActionPriority, number> = { HIGH: 0, MEDIUM: 0, LOW: 0 }
+  const countsByKind: Partial<Record<NeedActionKind, number>> = {}
+  for (const i of items) {
+    counts[i.priority] = (counts[i.priority] ?? 0) + 1
+    countsByKind[i.kind] = (countsByKind[i.kind] ?? 0) + 1
+  }
+  const clientCount = new Set(items.map((i) => i.clientId)).size
+
+  return { items, counts, countsByKind, clientCount }
+}
+
+export async function getNeedsAction(trainerProfileId: string): Promise<NeedsActionSummary> {
+  return withCache(
+    async () => fetchNeedsAction(trainerProfileId),
+    ["trainer-needs-action", trainerProfileId],
+    [`trainer:${trainerProfileId}:needs-action`],
+    120
+  )()
 }

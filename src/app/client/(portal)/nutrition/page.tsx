@@ -3,17 +3,70 @@ import { Utensils } from "lucide-react"
 import { getCurrentSession } from "@/server/auth"
 import {
   getCachedActivePlanFull,
+  getCachedPreviousPlanFull,
   getTodayMealChoices,
+  type ClientNutritionPlanFull,
 } from "@/server/services/nutrition.service"
 import {
-  ClientNutritionView,
   type ClientPlanView,
 } from "@/components/features/nutrition/client-nutrition-view"
+import { NutritionPlanSwitcher } from "@/components/features/nutrition/nutrition-plan-switcher"
 import { Card, CardContent } from "@/components/ui/card"
 import { getI18n } from "@/lib/i18n"
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+
+function formatPlanToView(plan: ClientNutritionPlanFull): ClientPlanView {
+  return {
+    coachMessage: plan.coachMessage ?? null,
+    calories: plan.calories,
+    proteinGrams: plan.proteinGrams,
+    carbsGrams: plan.carbsGrams,
+    fatsGrams: plan.fatsGrams,
+    waterLiters: plan.waterLiters,
+    guidelines: [...plan.guidelines],
+    avoidFoods: [...plan.avoidFoods],
+    recommendedFoods: [...plan.recommendedFoods],
+    meals: plan.meals.map((meal) => ({
+      id: meal.id,
+      kind: meal.kind as "MEAL" | "SNACK",
+      name: meal.name,
+      nameAr: meal.nameAr,
+      isSpare: meal.isSpare,
+      replacesMealId: meal.replacesMealId,
+      items: meal.items.map((item) => ({
+        id: item.id,
+        foodName: item.foodName,
+        foodNameAr: item.foodNameAr,
+        amount: item.amount,
+        unit: item.unit as any,
+        calories: item.calories ?? null,
+      })),
+    })),
+    supplementDefs: plan.supplementDefs.map((def) => ({
+      id: def.id,
+      name: def.name,
+      nameAr: def.nameAr,
+      definition: def.definition,
+      definitionAr: def.definitionAr,
+      importance: def.importance,
+      importanceAr: def.importanceAr,
+    })),
+    substituteGroups: plan.substituteGroups.map((group) => ({
+      id: group.id,
+      category: group.category as any,
+      caloriesLabel: group.caloriesLabel,
+      items: group.items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        nameAr: item.nameAr,
+        amount: item.amount,
+        unit: item.unit as any,
+      })),
+    })),
+  }
+}
 
 export default async function ClientNutritionPage() {
   const { t, locale } = await getI18n()
@@ -24,8 +77,9 @@ export default async function ClientNutritionPage() {
     redirect("/client/login")
   }
 
-  const [plan, chosenItemIds] = await Promise.all([
+  const [plan, prevPlanRaw, chosenItemIds] = await Promise.all([
     getCachedActivePlanFull(clientId),
+    getCachedPreviousPlanFull(clientId),
     getTodayMealChoices(clientId),
   ])
 
@@ -41,54 +95,8 @@ export default async function ClientNutritionPage() {
     )
   }
 
-  const view: ClientPlanView = {
-    coachMessage: plan.coachMessage ?? null,
-    calories: plan.calories,
-    proteinGrams: plan.proteinGrams,
-    carbsGrams: plan.carbsGrams,
-    fatsGrams: plan.fatsGrams,
-    waterLiters: plan.waterLiters,
-    guidelines: [...plan.guidelines],
-    avoidFoods: [...plan.avoidFoods],
-    recommendedFoods: [...plan.recommendedFoods],
-    meals: plan.meals.map((meal: any) => ({
-      id: meal.id,
-      kind: meal.kind,
-      name: meal.name,
-      nameAr: meal.nameAr,
-      isSpare: meal.isSpare,
-      replacesMealId: meal.replacesMealId,
-      items: meal.items.map((item: any) => ({
-        id: item.id,
-        foodName: item.foodName,
-        foodNameAr: item.foodNameAr,
-        amount: item.amount,
-        unit: item.unit,
-        calories: item.calories ?? null,
-      })),
-    })),
-    supplementDefs: plan.supplementDefs.map((def) => ({
-      id: def.id,
-      name: def.name,
-      nameAr: def.nameAr,
-      definition: def.definition,
-      definitionAr: def.definitionAr,
-      importance: def.importance,
-      importanceAr: def.importanceAr,
-    })),
-    substituteGroups: plan.substituteGroups.map((group) => ({
-      id: group.id,
-      category: group.category,
-      caloriesLabel: group.caloriesLabel,
-      items: group.items.map((item) => ({
-        id: item.id,
-        name: item.name,
-        nameAr: item.nameAr,
-        amount: item.amount,
-        unit: item.unit,
-      })),
-    })),
-  }
+  const view = formatPlanToView(plan)
+  const prevPlanView = prevPlanRaw ? formatPlanToView(prevPlanRaw) : null
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-4 pb-[env(safe-area-inset-bottom)] md:p-8">
@@ -108,7 +116,12 @@ export default async function ClientNutritionPage() {
           </p>
         </div>
       </div>
-      <ClientNutritionView plan={view} chosenItemIds={chosenItemIds} />
+      <NutritionPlanSwitcher
+        currPlan={view}
+        prevPlan={prevPlanView}
+        chosenItemIds={chosenItemIds}
+        updatedAt={plan.updatedAt}
+      />
     </div>
   )
 }

@@ -34,18 +34,26 @@ export async function CheckinOverviewCard() {
           </span>
           <CardTitle className="text-sm font-bold tracking-tight">{t.checkin.todayTitle}</CardTitle>
         </div>
-        <Badge variant="outline" className="tabular-nums shrink-0">
-          {overview.checkedInToday.length}/{total}
-        </Badge>
+        <Link href="/needs-action?kind=missed_checkin">
+          <Badge variant="outline" className="tabular-nums shrink-0 hover:bg-muted cursor-pointer">
+            {overview.checkedInToday.length}/{total}
+          </Badge>
+        </Link>
       </CardHeader>
       <CardContent className="space-y-3 p-4">
         {overview.missing.length === 0 ? (
           <p className="py-2 text-center text-sm font-medium">{t.checkin.allDone}</p>
         ) : (
           <div className="space-y-2">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-              {t.checkin.missing} ({overview.missing.length})
-            </p>
+            <Link
+              href="/needs-action?kind=missed_checkin"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground"
+            >
+              <span>
+                {t.checkin.missing} ({overview.missing.length})
+              </span>
+              <span className="text-xs">→</span>
+            </Link>
             <ul className="max-h-56 space-y-1.5 overflow-y-auto">
               {overview.missing.slice(0, 10).map((c) => (
                 <li key={c.id}>

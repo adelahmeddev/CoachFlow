@@ -18,6 +18,7 @@ async function invalidateClientWorkoutTags(clientId: string) {
   ]
   if (client?.trainerId) {
     tags.push(`trainer:${client.trainerId}:dashboard`)
+    tags.push(`trainer:${client.trainerId}:needs-action`)
     tags.push(`trainer:${client.trainerId}:clients`)
   }
   invalidate(tags)

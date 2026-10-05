@@ -66,51 +66,78 @@ export function sanitizeBranding(input: { brandName?: string | null; logoUrl?: s
   return out
 }
 
+import { withCache, toIso } from "@/lib/cache"
+
 // Centralized resolution — tenant-isolated, no global cache
 // Resilient: returns default branding if DB unreachable (never breaks layout)
 export async function getCoachBranding(coachId: string): Promise<CoachBranding & { effective: typeof DEFAULT_BRANDING & { whatsappUrl: string | null; facebookUrl: string | null; instagramUrl: string | null } }> {
-  try {
-    const res = await pool.query<CoachBranding>(`SELECT * FROM "CoachBranding" WHERE "coachId" = $1 LIMIT 1`, [coachId])
-    const row = res.rows[0] as CoachBranding | undefined
-    const profileRes = await pool.query<{ avatarUrl: string | null }>(`SELECT "avatarUrl" FROM "TrainerProfile" WHERE "id" = $1 LIMIT 1`, [coachId])
-    const avatarUrl = profileRes.rows[0]?.avatarUrl?.trim() ? (profileRes.rows[0].avatarUrl as string) : null
-    const effective = {
-      brandName: row?.brandName?.trim() ? row.brandName.trim() : DEFAULT_BRANDING.brandName,
-      logoUrl: row?.logoUrl?.trim() ? row.logoUrl : DEFAULT_BRANDING.logoUrl,
-      avatarUrl,
-      primaryColor: row?.primaryColor && isValidPrimaryColor(row.primaryColor) ? row.primaryColor : DEFAULT_BRANDING.primaryColor,
-      whatsappUrl: row?.whatsappUrl?.trim() ? row.whatsappUrl.trim() : null,
-      facebookUrl: row?.facebookUrl?.trim() ? row.facebookUrl.trim() : null,
-      instagramUrl: row?.instagramUrl?.trim() ? row.instagramUrl.trim() : null,
-    }
-    const base: CoachBranding = row ?? {
-      id: "",
-      coachId,
-      brandName: null,
-      logoUrl: null,
-      primaryColor: null,
-      whatsappUrl: null,
-      facebookUrl: null,
-      instagramUrl: null,
-      createdAt: new Date(0),
-      updatedAt: new Date(0),
-    }
-    return { ...base, effective } as CoachBranding & { effective: typeof DEFAULT_BRANDING & { whatsappUrl: string | null; facebookUrl: string | null; instagramUrl: string | null } }
-  } catch {
-    const fallback: CoachBranding = {
-      id: "",
-      coachId,
-      brandName: null,
-      logoUrl: null,
-      primaryColor: null,
-      whatsappUrl: null,
-      facebookUrl: null,
-      instagramUrl: null,
-      createdAt: new Date(0),
-      updatedAt: new Date(0),
-    }
-    return { ...fallback, effective: { ...DEFAULT_BRANDING, whatsappUrl: null, facebookUrl: null, instagramUrl: null } } as CoachBranding & { effective: typeof DEFAULT_BRANDING & { whatsappUrl: string | null; facebookUrl: string | null; instagramUrl: string | null } }
-  }
+  const cached = await withCache(
+    async () => {
+      try {
+        const [res, profileRes] = await Promise.all([
+          pool.query<CoachBranding>(`SELECT * FROM "CoachBranding" WHERE "coachId" = $1 LIMIT 1`, [coachId]),
+          pool.query<{ avatarUrl: string | null }>(`SELECT "avatarUrl" FROM "TrainerProfile" WHERE "id" = $1 LIMIT 1`, [coachId])
+        ])
+        const row = res.rows[0] as CoachBranding | undefined
+        const avatarUrl = profileRes.rows[0]?.avatarUrl?.trim() ? (profileRes.rows[0].avatarUrl as string) : null
+        const effective = {
+          brandName: row?.brandName?.trim() ? row.brandName.trim() : DEFAULT_BRANDING.brandName,
+          logoUrl: row?.logoUrl?.trim() ? row.logoUrl : DEFAULT_BRANDING.logoUrl,
+          avatarUrl,
+          primaryColor: row?.primaryColor && isValidPrimaryColor(row.primaryColor) ? row.primaryColor : DEFAULT_BRANDING.primaryColor,
+          whatsappUrl: row?.whatsappUrl?.trim() ? row.whatsappUrl.trim() : null,
+          facebookUrl: row?.facebookUrl?.trim() ? row.facebookUrl.trim() : null,
+          instagramUrl: row?.instagramUrl?.trim() ? row.instagramUrl.trim() : null,
+        }
+        const base: CoachBranding = row ?? {
+          id: "",
+          coachId,
+          brandName: null,
+          logoUrl: null,
+          primaryColor: null,
+          whatsappUrl: null,
+          facebookUrl: null,
+          instagramUrl: null,
+          createdAt: new Date(0),
+          updatedAt: new Date(0),
+        }
+        return {
+          ...base,
+          createdAt: toIso(base.createdAt),
+          updatedAt: toIso(base.updatedAt),
+          effective,
+        }
+      } catch {
+        const fallback: CoachBranding = {
+          id: "",
+          coachId,
+          brandName: null,
+          logoUrl: null,
+          primaryColor: null,
+          whatsappUrl: null,
+          facebookUrl: null,
+          instagramUrl: null,
+          createdAt: new Date(0),
+          updatedAt: new Date(0),
+        }
+        return {
+          ...fallback,
+          createdAt: toIso(fallback.createdAt),
+          updatedAt: toIso(fallback.updatedAt),
+          effective: { ...DEFAULT_BRANDING, whatsappUrl: null, facebookUrl: null, instagramUrl: null },
+        }
+      }
+    },
+    ["coach-branding", coachId],
+    [`coach:${coachId}:branding`],
+    300
+  )()
+
+  return {
+    ...cached,
+    createdAt: cached.createdAt ? new Date(cached.createdAt) : new Date(0),
+    updatedAt: cached.updatedAt ? new Date(cached.updatedAt) : new Date(0),
+  } as CoachBranding & { effective: typeof DEFAULT_BRANDING & { whatsappUrl: string | null; facebookUrl: string | null; instagramUrl: string | null } }
 }
 
 // For client -> resolve via trainerId

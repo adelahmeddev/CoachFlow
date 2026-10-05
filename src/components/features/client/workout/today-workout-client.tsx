@@ -178,7 +178,7 @@ export function TodayWorkoutClient({
             {activeExercise && (
               <span className="hidden shrink-0 items-center gap-1.5 rounded-full bg-brand-500/10 px-2.5 py-1 text-xs font-bold text-brand-700 ring-1 ring-brand-500/15 dark:text-brand-300 sm:inline-flex">
                 <span className="size-1.5 rounded-full bg-brand-500 animate-pulse" />
-                {isAr && activeExercise.exerciseNameAr ? activeExercise.exerciseNameAr : activeExercise.exerciseName}
+                {activeExercise.exerciseName}
               </span>
             )}
           </div>

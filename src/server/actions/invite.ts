@@ -70,6 +70,7 @@ export async function generateInviteAction() {
     invalidate([
       `trainer:${trainerProfileId}:clients`,
       `trainer:${trainerProfileId}:dashboard`,
+      `trainer:${trainerProfileId}:needs-action`,
     ])
 
     return {
@@ -90,14 +91,26 @@ export async function submitClientBasicInfoAction(
   token: string,
   input: unknown
 ) {
-  return submitClientBasicInfo(token, input)
+  try {
+    return await submitClientBasicInfo(token, input)
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to submit information. Please try again."
+    return { ok: false as const, error: message }
+  }
 }
 
 export async function submitClientAccountInfoAction(
   token: string,
   input: unknown
 ) {
-  return submitClientAccountInfo(token, input)
+  try {
+    return await submitClientAccountInfo(token, input)
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to create account. Please try again."
+    return { ok: false as const, error: message }
+  }
 }
 
 export async function getJoinLinkAction() {
@@ -138,7 +151,13 @@ export async function regenerateJoinLinkAction() {
 }
 
 export async function submitJoinClientAction(slug: string, input: unknown) {
-  return submitJoinClient(slug, input)
+  try {
+    return await submitJoinClient(slug, input)
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to complete registration. Please try again."
+    return { ok: false as const, error: message }
+  }
 }
 
 async function requireTrainerProfileId() {

@@ -50,6 +50,7 @@ export async function createSessionLogAction(
     `client:${clientId}:progress`,
     `client:${clientId}:workout`,
     `trainer:${trainerProfileId}:dashboard`,
+    `trainer:${trainerProfileId}:needs-action`,
     `trainer:${trainerProfileId}:clients`,
   ])
   return { ok: true as const }

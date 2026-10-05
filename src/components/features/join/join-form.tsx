@@ -43,25 +43,29 @@ export function JoinForm({ slug, trainerName }: { slug: string; trainerName: str
   async function onSubmit(values: FormValues) {
     setIsPending(true)
     setServerError(null)
-    const result = await submitJoinClientAction(slug, values)
-    if (!result.ok) {
-      if (result.fieldErrors) {
-        for (const [field, messages] of Object.entries(result.fieldErrors)) {
-          if (messages?.length) setError(field as keyof FormValues, { type: "server", message: messages[0] })
+    try {
+      const result = await submitJoinClientAction(slug, values)
+      if (!result.ok) {
+        if (result.fieldErrors) {
+          for (const [field, messages] of Object.entries(result.fieldErrors)) {
+            if (messages?.length) setError(field as keyof FormValues, { type: "server", message: messages[0] })
+          }
         }
+        setServerError(result.error)
+        return
       }
-      setServerError(result.error)
+      // Auto-login after sign-up
+      await signIn("credentials", {
+        identifier: values.phone,
+        password: values.password,
+        redirect: true,
+        callbackUrl: "/client/home",
+      })
+    } catch {
+      setServerError("An unexpected error occurred. Please try again.")
+    } finally {
       setIsPending(false)
-      return
     }
-    // Auto-login after sign-up
-    await signIn("credentials", {
-      identifier: values.phone,
-      password: values.password,
-      redirect: true,
-      callbackUrl: "/client/home",
-    })
-    setIsPending(false)
   }
 
   if (success) {

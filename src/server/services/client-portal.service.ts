@@ -210,24 +210,30 @@ async function getTodayWorkoutUncached(
   }
 
   const exRes = await pool.query(
-    `SELECT sde.*, e."name" AS "ex_name", e."nameAr" AS "ex_name_ar", e."youtubeUrl" AS "ex_youtube"
+    `SELECT sde.*,
+            COALESCE(sde."exerciseName", o.name, e.name) AS "ex_name",
+            COALESCE(o."nameAr", e."nameAr") AS "ex_name_ar",
+            COALESCE(NULLIF(sde."videoUrl", ''), o."youtubeUrl", e."youtubeUrl") AS "resolved_video_url"
      FROM "SplitDayExercise" sde
      LEFT JOIN "Exercise" e ON sde."exerciseId" = e."id"
+     LEFT JOIN "ExerciseOverride" o ON o."exerciseId" = e."id" AND o."trainerId" = (
+       SELECT "trainerId" FROM "Client" WHERE id = $2 LIMIT 1
+     )
      WHERE sde."splitDayId" = $1 ORDER BY sde."order" ASC`,
-    [todayDay.id]
+    [todayDay.id, clientId]
   )
 
   const exercises = (exRes.rows as Array<Record<string, unknown>>).map((ex) => ({
     id: ex.id as string,
     exerciseName: (ex.exerciseName as string) || (ex.ex_name as string) || "Exercise",
-    exerciseNameAr: (ex.ex_name_ar as string) || null,
+    exerciseNameAr: null,
     sets: (ex.targetSets as number | null) ?? 3,
     reps: (ex.targetReps as number | null) ?? 10,
     targetWeight: (ex.targetWeightKg as number | null) ?? null,
     restSeconds: (ex.restSeconds as number | null) ?? null,
     notes: (ex.notes as string | null) ?? null,
-    youtubeUrl: (ex.ex_youtube as string | null) ?? null,
-    videoUrl: (ex.videoUrl as string | null) ?? null,
+    youtubeUrl: ((ex.resolved_video_url as string | null) || (ex.videoUrl as string | null)) ?? null,
+    videoUrl: ((ex.resolved_video_url as string | null) || (ex.videoUrl as string | null)) ?? null,
     log: null as {
       actualSets: number | null
       actualReps: number | null

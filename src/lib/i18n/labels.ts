@@ -145,10 +145,8 @@ export function getBodyCompositionFieldLabel(
 
 export function getExerciseName(
   exercise: { name: string; nameAr?: string | null },
-  locale: Locale
+  _locale?: Locale
 ): string {
-  if (!exercise.nameAr) return exercise.name
-  if (locale === "ar") return exercise.nameAr
   return exercise.name
 }
 

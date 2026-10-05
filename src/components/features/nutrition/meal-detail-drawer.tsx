@@ -17,6 +17,7 @@ interface MealDetailDrawerProps {
   pending: boolean
   onToggle: (itemId: string) => void
   formatAmount: (amount: number | null, unit: ClientMealView["items"][number]["unit"]) => string
+  readOnly?: boolean
 }
 
 /** Premium bottom sheet: main meal vs alternatives kept visually distinct. */
@@ -31,6 +32,7 @@ export function MealDetailDrawer({
   pending,
   onToggle,
   formatAmount,
+  readOnly = false,
 }: MealDetailDrawerProps) {
   const { locale } = useI18n()
   const isAr = locale === "ar"
@@ -224,16 +226,16 @@ export function MealDetailDrawer({
                     <div
                       role="button"
                       tabIndex={0}
-                      onClick={() => !pending && onToggle(item.id)}
+                      onClick={() => !pending && !readOnly && onToggle(item.id)}
                       onKeyDown={(e) => {
-                        if ((e.key === "Enter" || e.key === " ") && !pending) {
+                        if ((e.key === "Enter" || e.key === " ") && !pending && !readOnly) {
                           e.preventDefault()
                           onToggle(item.id)
                         }
                       }}
                       className={cn(
-                        "flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-2xl border p-3 text-start backdrop-blur-md transition-all duration-200",
-                        "hover:-translate-y-px active:scale-[0.99]",
+                        "flex min-h-12 w-full items-center gap-3 rounded-2xl border p-3 text-start backdrop-blur-md transition-all duration-200",
+                        readOnly ? "cursor-default" : "cursor-pointer hover:-translate-y-px active:scale-[0.99]",
                         pending && "pointer-events-none opacity-50",
                         isChosen
                           ? "border-performance-500/50 bg-performance-500/10 shadow-[0_0_16px_-4px_color-mix(in_srgb,var(--color-performance-500)_45%,transparent)]"

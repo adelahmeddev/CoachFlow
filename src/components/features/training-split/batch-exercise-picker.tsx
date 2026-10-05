@@ -152,7 +152,6 @@ export function BatchExercisePicker({
       if (!q) return true
       return (
         ex.name.toLowerCase().includes(q) ||
-        (ex.nameAr ?? "").toLowerCase().includes(q) ||
         ex.muscleGroup.toLowerCase().includes(q) ||
         (ex.equipment ?? "").toLowerCase().includes(q)
       )
@@ -375,8 +374,6 @@ export function BatchExercisePicker({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                 {filtered.map((exercise) => {
                   const isSelected = selectedMap.has(exercise.id)
-                  const primaryName = getExerciseName(exercise, locale)
-                  const secondaryName = isAr ? exercise.name : exercise.nameAr
                   const muscleLabel = getMuscleGroupLabel(exercise.muscleGroup, locale)
                   const equipmentLabel = getEquipmentLabel(exercise.equipment, locale)
                   const accent = MUSCLE_ACCENTS[exercise.muscleGroup.toUpperCase()]
@@ -423,15 +420,10 @@ export function BatchExercisePicker({
                           )}
                         </div>
 
-                        {/* Title & Secondary Title */}
+                        {/* Title */}
                         <h4 className="font-bold text-sm text-foreground group-hover:text-brand-300 transition-colors line-clamp-1">
-                          {primaryName}
+                          {exercise.name}
                         </h4>
-                        {secondaryName && secondaryName !== primaryName && (
-                          <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5" dir="auto">
-                            {secondaryName}
-                          </p>
-                        )}
                       </div>
 
                       {/* Card Footer: Target sets/reps, equipment, and video preview button */}
@@ -505,7 +497,7 @@ export function BatchExercisePicker({
 
                 <div>
                   <h4 className="font-bold text-base text-foreground">
-                    {getExerciseName(previewExercise, locale)}
+                    {previewExercise.name}
                   </h4>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="outline" className="text-[10px]">
@@ -601,7 +593,7 @@ export function BatchExercisePicker({
                               #{idx + 1}
                             </span>
                             <span className="font-semibold truncate">
-                              {getExerciseName(ex, locale)}
+                              {ex.name}
                             </span>
                           </div>
                           <button

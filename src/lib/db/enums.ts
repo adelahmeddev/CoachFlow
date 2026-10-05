@@ -103,6 +103,7 @@ export const NotificationType = {
   MEDIA_SUBMITTED: 'MEDIA_SUBMITTED',
   CHECKIN_ACTIVITY: 'CHECKIN_ACTIVITY',
   WORKOUT_STARTED: 'WORKOUT_STARTED',
+  MEAL_LOGGED: 'MEAL_LOGGED',
 } as const
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
 

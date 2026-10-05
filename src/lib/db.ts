@@ -57,73 +57,6 @@ function getPool(): Pool {
   return _pool
 }
 
-function makeLazyPool() {
-  const handler = {
-    get(_target: object, prop: string | symbol) {
-      const p = getPool()
-      const value = p[prop as keyof Pool]
-      return typeof value === "function" ? value.bind(p) : value
-    },
-  }
-  return new Proxy({}, handler) as Pool
-}
-
-export const pool = makeLazyPool()
-
-function createReplicaPool(): Pool {
-  let connectionString = process.env.DATABASE_URL_REPLICA || process.env.DATABASE_URL
-  if (!connectionString) {
-    return getPool()
-  }
-
-  if (
-    /sslmode=(require|prefer|verify-ca)/i.test(connectionString) &&
-    !/uselibpqcompat=/i.test(connectionString) &&
-    !/sslmode=verify-full/i.test(connectionString)
-  ) {
-    const separator = connectionString.includes("?") ? "&" : "?"
-    connectionString = `${connectionString}${separator}uselibpqcompat=true`
-  }
-
-  const isServerless = process.env.VERCEL === "1" || process.env.AWS_LAMBDA_FUNCTION_NAME
-
-  return new Pool({
-    connectionString,
-    max: isServerless ? 5 : 10,
-    idleTimeoutMillis: isServerless ? 10_000 : 30_000,
-    connectionTimeoutMillis: isServerless ? 15_000 : 10_000,
-    keepAlive: true,
-    statement_timeout: 15_000,
-    ssl: isServerless ? { rejectUnauthorized: false } : undefined,
-  })
-}
-
-function getReplicaPool(): Pool {
-  if (!_replicaPool) {
-    _replicaPool = globalForPg.replicaPgPool ?? createReplicaPool()
-    if (process.env.NODE_ENV !== "production") {
-      globalForPg.replicaPgPool = _replicaPool
-    }
-    _replicaPool.on("error", (err) => {
-      logger.error("[pg-replica] replica pool error (idle client)", err)
-    })
-  }
-  return _replicaPool
-}
-
-function makeLazyReplicaPool() {
-  const handler = {
-    get(_target: object, prop: string | symbol) {
-      const p = getReplicaPool()
-      const value = p[prop as keyof Pool]
-      return typeof value === "function" ? value.bind(p) : value
-    },
-  }
-  return new Proxy({}, handler) as Pool
-}
-
-export const replicaPool = makeLazyReplicaPool()
-
 let totalRetries = 0
 let totalRetryFailures = 0
 
@@ -203,6 +136,86 @@ async function withDbRetry<T>(fn: () => Promise<T>, opName = "query"): Promise<T
     throw err
   }
 }
+
+function makeLazyPool() {
+  const handler = {
+    get(_target: object, prop: string | symbol) {
+      const p = getPool()
+      if (prop === "query") {
+        return <T extends QueryResultRow = QueryResultRow>(...args: Parameters<Pool["query"]>) => {
+          return withDbRetry(() => (p.query as unknown as (...a: unknown[]) => Promise<QueryResult<T>>)(...args), "pool.query")
+        }
+      }
+      const value = p[prop as keyof Pool]
+      return typeof value === "function" ? value.bind(p) : value
+    },
+  }
+  return new Proxy({}, handler) as Pool
+}
+
+export const pool = makeLazyPool()
+
+function createReplicaPool(): Pool {
+  let connectionString = process.env.DATABASE_URL_REPLICA
+  if (!connectionString) {
+    return getPool()
+  }
+
+  if (
+    /sslmode=(require|prefer|verify-ca)/i.test(connectionString) &&
+    !/uselibpqcompat=/i.test(connectionString) &&
+    !/sslmode=verify-full/i.test(connectionString)
+  ) {
+    const separator = connectionString.includes("?") ? "&" : "?"
+    connectionString = `${connectionString}${separator}uselibpqcompat=true`
+  }
+
+  const isServerless = process.env.VERCEL === "1" || process.env.AWS_LAMBDA_FUNCTION_NAME
+
+  return new Pool({
+    connectionString,
+    max: isServerless ? 5 : 10,
+    idleTimeoutMillis: isServerless ? 10_000 : 30_000,
+    connectionTimeoutMillis: isServerless ? 15_000 : 10_000,
+    keepAlive: true,
+    statement_timeout: 15_000,
+    ssl: isServerless ? { rejectUnauthorized: false } : undefined,
+  })
+}
+
+function getReplicaPool(): Pool {
+  if (!process.env.DATABASE_URL_REPLICA) {
+    return getPool()
+  }
+  if (!_replicaPool) {
+    _replicaPool = globalForPg.replicaPgPool ?? createReplicaPool()
+    if (process.env.NODE_ENV !== "production") {
+      globalForPg.replicaPgPool = _replicaPool
+    }
+    _replicaPool.on("error", (err) => {
+      logger.error("[pg-replica] replica pool error (idle client)", err)
+    })
+  }
+  return _replicaPool
+}
+
+function makeLazyReplicaPool() {
+  const handler = {
+    get(_target: object, prop: string | symbol) {
+      const p = getReplicaPool()
+      if (prop === "query") {
+        return <T extends QueryResultRow = QueryResultRow>(...args: Parameters<Pool["query"]>) => {
+          return withDbRetry(() => (p.query as unknown as (...a: unknown[]) => Promise<QueryResult<T>>)(...args), "replicaPool.query")
+        }
+      }
+      const value = p[prop as keyof Pool]
+      return typeof value === "function" ? value.bind(p) : value
+    },
+  }
+  return new Proxy({}, handler) as Pool
+}
+
+export const replicaPool = makeLazyReplicaPool()
 
 export async function query<T extends QueryResultRow = QueryResultRow>(
   text: string,

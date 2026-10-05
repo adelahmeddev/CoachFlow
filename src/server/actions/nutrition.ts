@@ -18,8 +18,13 @@ import {
   savePlanContent,
   toggleMealChoice,
   getOwnedClientTrainerId,
+  fetchPlanFull,
 } from "@/server/services/nutrition.service"
-import { notifyClientsPlanUpdated } from "@/server/services/notification.service"
+import {
+  notifyClientsPlanUpdated,
+  upsertNotifySafe,
+  getRecipientPair,
+} from "@/server/services/notification.service"
 
 type Session = Awaited<ReturnType<typeof getCurrentSession>>
 
@@ -170,7 +175,7 @@ export async function refreshPlanFromTemplateAction(planId: string, clientId: st
   }
 
   const updated = await refreshPlanFromTemplate(trainerProfileId, planId)
-  if (!updated) {
+  if (!updated.ok) {
     return { ok: false as const, error: "PLAN_NOT_FOUND" }
   }
 
@@ -181,7 +186,7 @@ export async function refreshPlanFromTemplateAction(planId: string, clientId: st
   revalidatePath(`/clients/${clientId}?tab=nutrition`)
   revalidatePath("/client/nutrition")
   await notifyClientsPlanUpdated([clientId], "nutrition", (await getCurrentSession())?.user.name ?? null)
-  return { ok: true as const }
+  return { ok: true as const, newPlanId: updated.newPlanId }
 }
 
 export async function savePlanContentAction(
@@ -211,7 +216,7 @@ export async function savePlanContentAction(
   revalidatePath(`/clients/${clientId}?tab=nutrition`)
   revalidatePath("/client/nutrition")
   await notifyClientsPlanUpdated([clientId], "nutrition", (await getCurrentSession())?.user.name ?? null)
-  return { ok: true as const }
+  return { ok: true as const, newPlanId: plan.id }
 }
 
 export async function toggleMealChoiceAction(mealItemId: string) {
@@ -230,5 +235,34 @@ export async function toggleMealChoiceAction(mealItemId: string) {
   }
 
   invalidate([`client:${clientId}:nutrition`])
+  revalidatePath(`/clients/${clientId}?tab=nutrition`)
+
+  if (result.chosen) {
+    const todayStr = new Date().toISOString().split("T")[0]
+    const pair = await getRecipientPair(clientId)
+    if (pair?.trainerUserId) {
+      await upsertNotifySafe({
+        userId: pair.trainerUserId,
+        type: "MEAL_LOGGED",
+        titleKey: "mealLoggedTitle",
+        bodyKey: "mealLoggedBody",
+        params: {
+          name: pair.clientName ?? "Client",
+          meal: result.mealName,
+          done: result.doneMeals,
+          total: result.totalMeals,
+        },
+        link: `/clients/${clientId}?tab=nutrition&date=${todayStr}#meal-log`,
+        dedupeKey: `meal-log:${clientId}:${todayStr}`,
+      })
+    }
+  }
+
   return { ok: true as const, chosen: result.chosen }
+}
+
+export async function getPlanFullAction(planId: string) {
+  const session = await getCurrentSession()
+  if (!session?.user) return null
+  return fetchPlanFull(planId)
 }

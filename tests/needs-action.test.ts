@@ -111,4 +111,28 @@ describe("evaluateClientActions", () => {
       assert.ok(i.cta.includes("c1"), i.kind)
     }
   })
+
+  it("exports NEED_ACTION_KINDS covering all defined kinds", async () => {
+    const { NEED_ACTION_KINDS } = await import("../src/lib/needs-action")
+    assert.ok(Array.isArray(NEED_ACTION_KINDS))
+    assert.ok(NEED_ACTION_KINDS.includes("inactive_5d"))
+    assert.ok(NEED_ACTION_KINDS.includes("missed_checkin"))
+    assert.ok(NEED_ACTION_KINDS.includes("payment_pending"))
+  })
+
+  it("aggregates items into distinct clientCount and countsByKind", () => {
+    const c1Items = evaluateClientActions({ ...healthy(), daysSinceActivity: 6, pendingProofs: 2 }, NOW)
+    const c2Items = evaluateClientActions({ ...healthy(), clientId: "c2", daysSinceCheckin: 3 }, NOW)
+    const all = [...c1Items, ...c2Items]
+
+    const distinctClients = new Set(all.map((i) => i.clientId)).size
+    assert.equal(distinctClients, 2)
+
+    const countsByKind: Record<string, number> = {}
+    for (const i of all) countsByKind[i.kind] = (countsByKind[i.kind] ?? 0) + 1
+
+    assert.equal(countsByKind["inactive_5d"], 1)
+    assert.equal(countsByKind["payment_pending"], 1)
+    assert.equal(countsByKind["missed_checkin"], 1)
+  })
 })

@@ -82,6 +82,48 @@ export async function getRecipientPair(clientId: string): Promise<RecipientPair 
   return row
 }
 
+export async function upsertNotification(
+  input: NotifyInput & { dedupeKey: string }
+): Promise<NotifyResult> {
+  const userRes = await pool.query(`SELECT "id" FROM "User" WHERE "id" = $1 LIMIT 1`, [input.userId])
+  if (!userRes.rows[0]) return { ok: false, error: "USER_NOT_FOUND" }
+
+  const id = generateId()
+  const res = await pool.query<Notification>(
+    `INSERT INTO "Notification" ("id", "userId", "type", "titleKey", "bodyKey", "params", "link", "dedupeKey", "createdAt")
+     VALUES ($1, $2, $3::"NotificationType", $4, $5, $6::jsonb, $7, $8, NOW())
+     ON CONFLICT ("dedupeKey") DO UPDATE
+     SET "params" = EXCLUDED."params",
+         "titleKey" = EXCLUDED."titleKey",
+         "bodyKey" = EXCLUDED."bodyKey",
+         "link" = EXCLUDED."link",
+         "readAt" = NULL,
+         "createdAt" = NOW()
+     RETURNING *`,
+    [
+      id,
+      input.userId,
+      input.type,
+      input.titleKey,
+      input.bodyKey,
+      JSON.stringify(input.params ?? {}),
+      input.link ?? null,
+      input.dedupeKey,
+    ]
+  )
+  const row = (res.rows[0] as Notification | undefined) ?? null
+  if (!row) return { ok: true, notification: null, deduped: true }
+  return { ok: true, notification: row }
+}
+
+export async function upsertNotifySafe(input: NotifyInput & { dedupeKey: string }): Promise<void> {
+  try {
+    await upsertNotification(input)
+  } catch (err) {
+    console.error("[upsertNotify] failed", input.type, input.userId, err)
+  }
+}
+
 /**
  * Notify all clients (that have logins) about a plan change.
  * One user lookup for all ids, then one insert per recipient.
@@ -105,7 +147,7 @@ export async function notifyClientsPlanUpdated(
       titleKey: "planUpdatedTitle",
       bodyKey: "planUpdatedBody",
       params: { coach: coachName ?? "", plan: `@plan.${plan}` },
-      link: plan === "nutrition" ? "/client/nutrition" : "/client/workout/today",
+      link: plan === "nutrition" ? "/client/nutrition?view=compare" : "/client/workout/today",
     })
   }
 }

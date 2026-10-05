@@ -18,7 +18,7 @@ import { SubscriptionTab } from "@/components/features/clients/tabs/subscription
 
 interface ClientProfilePageProps {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ tab?: string }>
+  searchParams: Promise<{ tab?: string; date?: string }>
 }
 
 export default async function ClientProfilePage({
@@ -36,7 +36,7 @@ export default async function ClientProfilePage({
   }
 
   const { id } = await params
-  const { tab } = await searchParams
+  const { tab, date } = await searchParams
   const activeTab = parseClientProfileTab(tab) ?? DEFAULT_CLIENT_PROFILE_TAB
 
   const { locale } = await getI18n()
@@ -68,7 +68,7 @@ export default async function ClientProfilePage({
   const tabsContent: Record<ClientProfileTab, ReactNode> = {
     overview: <OverviewTab clientId={id} profile={profile} />,
     "body-composition": <BodyCompositionTab clientId={id} />,
-    nutrition: <NutritionTab clientId={id} />,
+    nutrition: <NutritionTab clientId={id} initialDate={date} />,
     "training-split": <TrainingSplitTab clientId={id} />,
     progress: <ProgressTab clientId={id} />,
     goals: <GoalsTab clientId={id} />,

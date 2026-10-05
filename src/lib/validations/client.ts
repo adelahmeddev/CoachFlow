@@ -35,6 +35,7 @@ export const clientsListQuerySchema = z.object({
   q: z.string().trim().max(100).optional(),
   goal: z.nativeEnum(Goal).optional(),
   status: z.nativeEnum(ClientStatus).optional(),
+  addedWithin: z.coerce.number().int().positive().max(365).optional(),
   page: z.coerce.number().int().positive().default(1),
   perPage: z.coerce.number().int().positive().max(100).default(10),
 })

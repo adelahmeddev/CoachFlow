@@ -60,6 +60,7 @@ export async function createSubscriptionAction(
     `client:${clientId}:profile`,
     `trainer:${session!.user!.trainerProfileId!}:clients`,
     `trainer:${session!.user!.trainerProfileId!}:dashboard`,
+    `trainer:${session!.user!.trainerProfileId!}:needs-action`,
     "admin:stats",
   ])
   return { ok: true as const, subscriptionId: subscription.id }
@@ -101,6 +102,7 @@ export async function updateSubscriptionAction(
     `client:${clientId}:profile`,
     `trainer:${session!.user!.trainerProfileId!}:clients`,
     `trainer:${session!.user!.trainerProfileId!}:dashboard`,
+    `trainer:${session!.user!.trainerProfileId!}:needs-action`,
     "admin:stats",
   ])
   return { ok: true as const }
@@ -138,6 +140,7 @@ export async function updateSubscriptionStatusAction(
     `client:${clientId}:profile`,
     `trainer:${session!.user!.trainerProfileId!}:clients`,
     `trainer:${session!.user!.trainerProfileId!}:dashboard`,
+    `trainer:${session!.user!.trainerProfileId!}:needs-action`,
     "admin:stats",
   ])
   return { ok: true as const }
@@ -179,6 +182,7 @@ export async function renewSubscriptionAction(
     `client:${clientId}:profile`,
     `trainer:${session!.user!.trainerProfileId!}:clients`,
     `trainer:${session!.user!.trainerProfileId!}:dashboard`,
+    `trainer:${session!.user!.trainerProfileId!}:needs-action`,
     "admin:stats",
   ])
   return { ok: true as const }
@@ -210,6 +214,7 @@ export async function consumeSessionAction(
     `client:${clientId}:profile`,
     `trainer:${session!.user!.trainerProfileId!}:clients`,
     `trainer:${session!.user!.trainerProfileId!}:dashboard`,
+    `trainer:${session!.user!.trainerProfileId!}:needs-action`,
     "admin:stats",
   ])
   return { ok: true as const, remainingSessions: subscription.remainingSessions }

@@ -365,11 +365,14 @@ const EXERCISE_LIBRARY: ExerciseSeed[] = [
 async function seedExerciseLibrary() {
   let count = 0
   for (const exercise of EXERCISE_LIBRARY) {
-    const exists = await pool.query(`SELECT "id" FROM "Exercise" WHERE "name" = $1 LIMIT 1`, [exercise.name])
+    const exists = await pool.query(
+      `SELECT "id" FROM "Exercise" WHERE "name" = $1 AND "trainerId" IS NULL LIMIT 1`,
+      [exercise.name]
+    )
     if (exists.rowCount === 0) {
       const id = generateId()
       await pool.query(
-        `INSERT INTO "Exercise" ("id","name","nameAr","muscleGroup","equipment","tags","defaultSets","defaultReps","defaultRestSeconds","isGlobal","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6::text[],$7,$8,$9,true,NOW(),NOW())`,
+        `INSERT INTO "Exercise" ("id","trainerId","name","nameAr","muscleGroup","equipment","tags","defaultSets","defaultReps","defaultRestSeconds","createdAt","updatedAt") VALUES ($1,NULL,$2,$3,$4,$5,$6::text[],$7,$8,$9,NOW(),NOW())`,
         [id, exercise.name, exercise.nameAr, exercise.muscleGroup, exercise.equipment, exercise.tags, exercise.defaultSets ?? null, exercise.defaultReps ?? null, exercise.defaultRestSeconds ?? null]
       )
       count++

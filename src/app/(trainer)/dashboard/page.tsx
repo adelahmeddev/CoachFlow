@@ -2,6 +2,7 @@ import { Clock3, Users, Flame, ArrowLeft, Zap, Trophy, Target, Dumbbell, Sparkle
 import Link from "next/link"
 import { getCurrentSession } from "@/server/auth"
 import { getDashboardData } from "@/server/services/dashboard.service"
+import { getNeedsAction } from "@/server/services/needs-action.service"
 import { StatCard } from "@/components/features/dashboard/stat-card"
 import { RecentClientsVisual } from "@/components/features/dashboard/recent-clients"
 import { NeedsActionSection } from "@/components/features/dashboard/needs-action-section"
@@ -48,10 +49,15 @@ export default async function DashboardPage() {
   }
 
   let stats, recentClients: Awaited<ReturnType<typeof getDashboardData>>["recentClients"]
+  let needsActionSummary: Awaited<ReturnType<typeof getNeedsAction>>
   try {
-    const data = await getDashboardData(trainerProfileId)
+    const [data, naSummary] = await Promise.all([
+      getDashboardData(trainerProfileId),
+      getNeedsAction(trainerProfileId),
+    ])
     stats = data.stats
     recentClients = data.recentClients
+    needsActionSummary = naSummary
   } catch (err) {
     console.error("[dashboard] failed to load", err)
     // Degraded fallback — avoids ErrorBoundary crash from "Connection terminated"
@@ -60,14 +66,21 @@ export default async function DashboardPage() {
       pendingAssessment: 0,
       activeClients: 0,
       recentlyAdded: 0,
-      deltas: { totalClients: 0, pendingAssessment: 0, activeClients: 0, recentlyAdded: 0 },
+      expiringSoon: 0,
+      deltas: { totalClients: 0, pendingAssessment: 0, activeClients: 0, recentlyAdded: 0, expiringSoon: 0 },
     }
     recentClients = []
+    needsActionSummary = {
+      items: [],
+      counts: { HIGH: 0, MEDIUM: 0, LOW: 0 },
+      countsByKind: {},
+      clientCount: 0,
+    }
   }
   const todayStr = new Date().toLocaleDateString(locale === "ar" ? "ar-EG-u-nu-latn" : locale, { weekday: "long", year: "numeric", month: "long", day: "numeric" })
 
-  const pendingCount = stats.pendingAssessment
   const activeCount = stats.activeClients
+  const followUpCount = needsActionSummary.clientCount
 
   return (
     <div className="space-y-6">
@@ -106,24 +119,30 @@ export default async function DashboardPage() {
                   )}
                 </h1>
                 <p className="max-w-[60ch] text-sm leading-relaxed text-muted-foreground">
-                  {pendingCount > 0
-                    ? (isAr ? `عندك ${pendingCount} بطل محتاج متابعة النهاردة — خليك سريع` : `${pendingCount} athletes need your attention today`)
+                  {followUpCount > 0
+                    ? (isAr ? `عندك ${followUpCount} بطل محتاج متابعة النهاردة — خليك سريع` : `${followUpCount} athletes need your attention today`)
                     : (isAr ? "يومك شكله هادي — وقت تراجع تقدم الأبطال وتجهز برامج جديدة" : "Calm day — perfect to review progress and plan")}
                 </p>
                 <div className="flex flex-wrap items-center gap-2 pt-1">
-                  <Badge variant="outline" className="gap-1.5 bg-white/80 dark:bg-white/5 backdrop-blur">
-                    <Trophy className="size-3 text-energy-600" aria-hidden="true" />
-                    {activeCount} {isAr ? "بيتمرنوا" : "active"}
-                  </Badge>
-                  <Badge variant="outline" className="gap-1.5 bg-white/80 dark:bg-white/5">
-                    <Target className="size-3 text-brand-600" aria-hidden="true" />
-                    {stats.totalClients} {isAr ? "بطل" : "athletes"}
-                  </Badge>
-                  {pendingCount > 0 && (
-                    <Badge className="gap-1.5 bg-gradient-to-r from-muscle-500 to-brand-500 text-white shadow-soft animate-pulse-glow">
-                      <Zap className="size-3 fill-white/30" aria-hidden="true" />
-                      {pendingCount} {isAr ? "محتاج متابعة" : "need check-in"}
+                  <Link href="/clients?status=ACTIVE">
+                    <Badge variant="outline" className="gap-1.5 bg-white/80 dark:bg-white/5 backdrop-blur hover:bg-muted cursor-pointer">
+                      <Trophy className="size-3 text-energy-600" aria-hidden="true" />
+                      {activeCount} {isAr ? "بيتمرنوا" : "active"}
                     </Badge>
+                  </Link>
+                  <Link href="/clients">
+                    <Badge variant="outline" className="gap-1.5 bg-white/80 dark:bg-white/5 hover:bg-muted cursor-pointer">
+                      <Target className="size-3 text-brand-600" aria-hidden="true" />
+                      {stats.totalClients} {isAr ? "بطل" : "athletes"}
+                    </Badge>
+                  </Link>
+                  {followUpCount > 0 && (
+                    <Link href="/needs-action">
+                      <Badge className="gap-1.5 bg-gradient-to-r from-muscle-500 to-brand-500 text-white shadow-soft animate-pulse-glow hover:brightness-110 cursor-pointer">
+                        <Zap className="size-3 fill-white/30" aria-hidden="true" />
+                        {followUpCount} {isAr ? "محتاج متابعة" : "need follow-up"}
+                      </Badge>
+                    </Link>
                   )}
                 </div>
               </div>
@@ -152,6 +171,7 @@ export default async function DashboardPage() {
             delta={stats.deltas.totalClients}
             variant="brand"
             sublabel={isAr ? "إجمالي الأبطال" : "total athletes"}
+            href="/clients"
           />
         </StaggerItem>
         <StaggerItem>
@@ -161,17 +181,19 @@ export default async function DashboardPage() {
             iconName="clock"
             delta={stats.deltas.pendingAssessment}
             variant="muscle"
-            sublabel={isAr ? "محتاج متابعة فورية" : "needs attention"}
+            sublabel={isAr ? "في انتظار التقييم" : "awaiting assessment"}
+            href="/clients?status=PENDING_ASSESSMENT"
           />
         </StaggerItem>
         <StaggerItem>
           <StatCard
-            label={t.dashboard.activeClients}
-            value={stats.activeClients}
-            iconName="check"
-            delta={stats.deltas.activeClients}
-            variant="performance"
-            sublabel={isAr ? "بيتمرنوا حالياً" : "training now"}
+            label={t.dashboard.expiringSoon}
+            value={stats.expiringSoon}
+            iconName="alert"
+            delta={stats.deltas.expiringSoon}
+            variant="energy"
+            sublabel={isAr ? "خلال 7 أيام" : "within 7 days"}
+            href="/needs-action?kind=sub_expiring"
           />
         </StaggerItem>
         <StaggerItem>
@@ -182,6 +204,7 @@ export default async function DashboardPage() {
             delta={stats.deltas.recentlyAdded}
             variant="energy"
             sublabel={isAr ? "جداد آخر 30 يوم" : "last 30 days"}
+            href="/clients?addedWithin=30"
           />
         </StaggerItem>
       </StaggerList>
@@ -191,22 +214,24 @@ export default async function DashboardPage() {
         <div className="grid gap-4 lg:grid-cols-3">
           <Card className="lg:col-span-2 overflow-hidden border bg-card shadow-soft">
             <CardHeader className="flex flex-row items-center justify-between gap-2 py-4 border-b bg-gradient-to-r from-muscle-500/[0.04] to-transparent">
-              <div className="flex min-w-0 flex-1 items-center gap-2">
+              <Link href="/needs-action" className="flex min-w-0 flex-1 items-center gap-2 hover:underline">
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-muscle-500 to-brand-500 text-white shadow-soft">
                   <Zap className="size-4" />
                 </span>
                 <CardTitle className="min-w-0 flex-1 break-words text-sm font-bold tracking-tight">
                   {isAr ? "محتاج تركيزك النهاردة" : "Needs your attention"}
                 </CardTitle>
-              </div>
-              {pendingCount > 0 && (
-                <span className="rounded-full bg-muscle-500 px-2.5 py-1 text-xs font-bold text-white">
-                  {pendingCount}
-                </span>
+              </Link>
+              {followUpCount > 0 && (
+                <Link href="/needs-action">
+                  <span className="rounded-full bg-muscle-500 px-2.5 py-1 text-xs font-bold text-white hover:brightness-110 cursor-pointer">
+                    {followUpCount}
+                  </span>
+                </Link>
               )}
             </CardHeader>
             <CardContent className="p-4">
-              {pendingCount === 0 ? (
+              {followUpCount === 0 ? (
                 <div className="flex flex-col items-center gap-3 py-8 text-center">
                   <span className="flex size-12 items-center justify-center rounded-2xl bg-performance-500/10 text-performance-600">
                     <Trophy className="size-6" />
@@ -228,14 +253,14 @@ export default async function DashboardPage() {
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-bold leading-snug break-words">
-                          {isAr ? `${pendingCount} بطل مستني متابعتك` : `${pendingCount} athletes awaiting check-in`}
+                          {isAr ? `${followUpCount} بطل مستني متابعتك` : `${followUpCount} athletes need follow-up`}
                         </p>
                         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                          {isAr ? "المتابعة السريعة بتفرق — كلمة منك ممكن تغيّر يوم البطل" : "Quick check-ins make the difference"}
+                          {isAr ? "المتابعة السريعة بتفرق — كلمة منك ممكن تغيّر يوم البطل" : "Quick check-ins and follow-ups make the difference"}
                         </p>
                         <Button asChild size="sm" className="mt-3 rounded-xl bg-muscle-600 hover:bg-muscle-700">
-                          <Link href="/clients?status=pending_assessment">
-                            {isAr ? "شوف مين مستني" : "View pending"}
+                          <Link href="/needs-action">
+                            {isAr ? "عرض تقرير المتابعة" : "View follow-up report"}
                             <ArrowLeft className="size-4 rtl:-scale-x-100" />
                           </Link>
                         </Button>
@@ -282,17 +307,17 @@ export default async function DashboardPage() {
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2 text-center">
-                <div className="rounded-xl border bg-muted/40 p-3">
+                <Link href="/clients" className="block rounded-xl border bg-muted/40 p-3 hover:bg-muted/70 transition-colors">
                   <p className="text-lg font-extrabold tabular-nums">{stats.totalClients}</p>
                   <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-medium">{isAr ? "إجمالي" : "total"}</p>
-                </div>
-                <div className="rounded-xl border bg-muted/40 p-3">
+                </Link>
+                <Link href="/clients?status=ACTIVE" className="block rounded-xl border bg-muted/40 p-3 hover:bg-muted/70 transition-colors">
                   <p className="text-lg font-extrabold tabular-nums text-performance-600">{activeCount}</p>
                   <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-medium">{isAr ? "نشط" : "active"}</p>
-                </div>
+                </Link>
               </div>
               <Button asChild variant="outline" size="sm" className="w-full rounded-xl">
-                <Link href="/clients?status=active">{isAr ? "شوف النشطين" : "View active"}</Link>
+                <Link href="/clients?status=ACTIVE">{isAr ? "شوف النشطين" : "View active"}</Link>
               </Button>
             </CardContent>
           </Card>
@@ -303,7 +328,7 @@ export default async function DashboardPage() {
       <FadeIn delay={0.25}>
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <NeedsActionSection />
+            <NeedsActionSection summary={needsActionSummary} />
           </div>
           <CheckinOverviewCard />
         </div>
@@ -320,9 +345,11 @@ export default async function DashboardPage() {
                 <span className="hidden sm:inline text-xs text-muted-foreground">— {isAr ? "آخر المنضمين لعيلتك" : "newest members"}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="rounded-full bg-brand-500/10 px-2.5 py-1 text-xs font-bold text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
-                  {recentClients.length}
-                </span>
+                <Link href="/clients">
+                  <span className="rounded-full bg-brand-500/10 px-2.5 py-1 text-xs font-bold text-brand-700 dark:bg-brand-500/15 dark:text-brand-300 hover:brightness-110 cursor-pointer">
+                    {recentClients.length}
+                  </span>
+                </Link>
                 <Button asChild variant="ghost" size="sm" className="h-7 gap-1 hidden sm:flex">
                   <Link href="/clients">
                     {isAr ? "الكل" : "View all"}

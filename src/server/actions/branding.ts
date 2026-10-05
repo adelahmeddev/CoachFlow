@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { pool, generateId } from "@/lib/db"
+import { invalidate } from "@/lib/cache"
 import { getCurrentSession } from "@/server/auth"
 import { sanitizeBranding, isValidPrimaryColor, getCoachBranding, toBranding } from "@/server/services/branding.service"
 import { sniffLogo, convertLogoToWebp, LOGO_MAX_INPUT_BYTES } from "@/lib/logo-image"
@@ -72,6 +73,7 @@ export async function adminUpsertBrandingAction(coachId: string, input: Branding
   revalidatePath(`/dashboard`, "layout")
   revalidatePath(`/subscription`, "layout")
   revalidatePath(`/client`, "layout")
+  invalidate([`coach:${coachId}:branding`])
   return { ok: true as const }
 }
 
@@ -86,6 +88,7 @@ export async function adminResetBrandingAction(coachId: string) {
   revalidatePath(`/dashboard`, "layout")
   revalidatePath(`/subscription`, "layout")
   revalidatePath(`/client`, "layout")
+  invalidate([`coach:${coachId}:branding`])
   return { ok: true as const }
 }
 
@@ -129,6 +132,7 @@ export async function adminUploadLogoAction(coachId: string, formData: FormData)
   revalidatePath(`/dashboard`, "layout")
   revalidatePath(`/subscription`, "layout")
   revalidatePath(`/client`, "layout")
+  invalidate([`coach:${coachId}:branding`])
   return { ok: true as const, logoUrl, byteSize: webp.length }
 }
 
@@ -141,11 +145,14 @@ function coachIdOf(session: Awaited<ReturnType<typeof getCurrentSession>>): stri
   return session.user.trainerProfileId ?? null
 }
 
-function revalidateCoachBranding() {
+function revalidateCoachBranding(coachId?: string) {
   revalidatePath(`/dashboard`, "layout")
   revalidatePath(`/settings`, "layout")
   revalidatePath(`/subscription`, "layout")
   revalidatePath(`/client`, "layout")
+  if (coachId) {
+    invalidate([`coach:${coachId}:branding`])
+  }
 }
 
 async function currentCoachBranding(coachId: string) {
@@ -169,7 +176,7 @@ async function storeCoachLogoFile(coachId: string, buf: Buffer) {
   )
   const logoUrl = `/api/coach-logo/${coachId}?v=${Date.now()}`
   await upsertBrandingFields(coachId, { logoUrl })
-  revalidateCoachBranding()
+  revalidateCoachBranding(coachId)
   const branding = await currentCoachBranding(coachId)
   return { ok: true as const, logoUrl, branding }
 }
@@ -216,7 +223,7 @@ export async function coachUpdateBrandingAction(input: BrandingFields) {
   if (input.instagramUrl !== undefined) toWrite.instagramUrl = sanitized.instagramUrl
   await upsertBrandingFields(coachId, toWrite)
 
-  revalidateCoachBranding()
+  revalidateCoachBranding(coachId)
   return { ok: true as const, branding: await currentCoachBranding(coachId) }
 }
 
@@ -228,7 +235,7 @@ export async function coachRemoveLogoAction() {
   await pool.query(`DELETE FROM "CoachLogoFile" WHERE "coachId"=$1`, [coachId])
   await upsertBrandingFields(coachId, { logoUrl: null })
 
-  revalidateCoachBranding()
+  revalidateCoachBranding(coachId)
   return { ok: true as const, branding: await currentCoachBranding(coachId) }
 }
 
@@ -254,7 +261,7 @@ async function storeCoachAvatarFile(coachId: string, buf: Buffer) {
   )
   const avatarUrl = `/api/coach-avatar/${coachId}?v=${Date.now()}`
   await pool.query(`UPDATE "TrainerProfile" SET "avatarUrl"=$1, "updatedAt"=NOW() WHERE "id"=$2`, [avatarUrl, coachId])
-  revalidateCoachBranding()
+  revalidateCoachBranding(coachId)
   const branding = await currentCoachBranding(coachId)
   return { ok: true as const, avatarUrl, branding }
 }
@@ -290,6 +297,6 @@ export async function coachRemoveAvatarAction() {
   await pool.query(`DELETE FROM "CoachAvatarFile" WHERE "coachId"=$1`, [coachId])
   await pool.query(`UPDATE "TrainerProfile" SET "avatarUrl"=NULL, "updatedAt"=NOW() WHERE "id"=$1`, [coachId])
 
-  revalidateCoachBranding()
+  revalidateCoachBranding(coachId)
   return { ok: true as const, branding: await currentCoachBranding(coachId) }
 }

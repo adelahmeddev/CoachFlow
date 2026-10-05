@@ -124,15 +124,19 @@ async function fetchSubstituteGroupsByTemplateId(
     [templateId]
   )
   const groups = groupsRes.rows as SubstituteGroup[]
-  const result: Array<SubstituteGroup & { items: SubstituteItem[] }> = []
-  for (const group of groups) {
-    const itemsRes = await exec.query(
-      `SELECT * FROM "SubstituteItem" WHERE "groupId" = $1 ORDER BY "order" ASC`,
-      [group.id]
-    )
-    result.push({ ...group, items: itemsRes.rows as SubstituteItem[] })
+  if (groups.length === 0) return []
+  const groupIds = groups.map((g) => g.id)
+  const itemsRes = await exec.query(
+    `SELECT * FROM "SubstituteItem" WHERE "groupId" = ANY($1::text[]) ORDER BY "order" ASC`,
+    [groupIds]
+  )
+  const itemsByGroup = new Map<string, SubstituteItem[]>()
+  for (const item of itemsRes.rows as SubstituteItem[]) {
+    const list = itemsByGroup.get(item.groupId) ?? []
+    list.push(item)
+    itemsByGroup.set(item.groupId, list)
   }
-  return result
+  return groups.map((g) => ({ ...g, items: itemsByGroup.get(g.id) ?? [] }))
 }
 
 async function fetchSubstituteGroupsByPlanId(planId: string, exec: Exec): Promise<Array<SubstituteGroup & { items: SubstituteItem[] }>> {
@@ -141,15 +145,19 @@ async function fetchSubstituteGroupsByPlanId(planId: string, exec: Exec): Promis
     [planId]
   )
   const groups = groupsRes.rows as SubstituteGroup[]
-  const result: Array<SubstituteGroup & { items: SubstituteItem[] }> = []
-  for (const group of groups) {
-    const itemsRes = await exec.query(
-      `SELECT * FROM "SubstituteItem" WHERE "groupId" = $1 ORDER BY "order" ASC`,
-      [group.id]
-    )
-    result.push({ ...group, items: itemsRes.rows as SubstituteItem[] })
+  if (groups.length === 0) return []
+  const groupIds = groups.map((g) => g.id)
+  const itemsRes = await exec.query(
+    `SELECT * FROM "SubstituteItem" WHERE "groupId" = ANY($1::text[]) ORDER BY "order" ASC`,
+    [groupIds]
+  )
+  const itemsByGroup = new Map<string, SubstituteItem[]>()
+  for (const item of itemsRes.rows as SubstituteItem[]) {
+    const list = itemsByGroup.get(item.groupId) ?? []
+    list.push(item)
+    itemsByGroup.set(item.groupId, list)
   }
-  return result
+  return groups.map((g) => ({ ...g, items: itemsByGroup.get(g.id) ?? [] }))
 }
 
 async function fetchMealsByTemplateId(templateId: string, exec: Exec): Promise<Array<Meal & { items: MealItem[] }>> {
@@ -158,15 +166,19 @@ async function fetchMealsByTemplateId(templateId: string, exec: Exec): Promise<A
     [templateId]
   )
   const meals = mealsRes.rows as Meal[]
-  const result: Array<Meal & { items: MealItem[] }> = []
-  for (const meal of meals) {
-    const itemsRes = await exec.query(
-      `SELECT * FROM "MealItem" WHERE "mealId" = $1 ORDER BY "order" ASC`,
-      [meal.id]
-    )
-    result.push({ ...meal, items: itemsRes.rows as MealItem[] })
+  if (meals.length === 0) return []
+  const mealIds = meals.map((m) => m.id)
+  const itemsRes = await exec.query(
+    `SELECT * FROM "MealItem" WHERE "mealId" = ANY($1::text[]) ORDER BY "order" ASC`,
+    [mealIds]
+  )
+  const itemsByMeal = new Map<string, MealItem[]>()
+  for (const item of itemsRes.rows as MealItem[]) {
+    const list = itemsByMeal.get(item.mealId) ?? []
+    list.push(item)
+    itemsByMeal.set(item.mealId, list)
   }
-  return result
+  return meals.map((m) => ({ ...m, items: itemsByMeal.get(m.id) ?? [] }))
 }
 
 async function fetchMealsByPlanId(planId: string, exec: Exec): Promise<Array<Meal & { items: MealItem[] }>> {
@@ -175,15 +187,19 @@ async function fetchMealsByPlanId(planId: string, exec: Exec): Promise<Array<Mea
     [planId]
   )
   const meals = mealsRes.rows as Meal[]
-  const result: Array<Meal & { items: MealItem[] }> = []
-  for (const meal of meals) {
-    const itemsRes = await exec.query(
-      `SELECT * FROM "MealItem" WHERE "mealId" = $1 ORDER BY "order" ASC`,
-      [meal.id]
-    )
-    result.push({ ...meal, items: itemsRes.rows as MealItem[] })
+  if (meals.length === 0) return []
+  const mealIds = meals.map((m) => m.id)
+  const itemsRes = await exec.query(
+    `SELECT * FROM "MealItem" WHERE "mealId" = ANY($1::text[]) ORDER BY "order" ASC`,
+    [mealIds]
+  )
+  const itemsByMeal = new Map<string, MealItem[]>()
+  for (const item of itemsRes.rows as MealItem[]) {
+    const list = itemsByMeal.get(item.mealId) ?? []
+    list.push(item)
+    itemsByMeal.set(item.mealId, list)
   }
-  return result
+  return meals.map((m) => ({ ...m, items: itemsByMeal.get(m.id) ?? [] }))
 }
 
 export type NutritionTemplateFull = NutritionTemplate & {
@@ -212,7 +228,7 @@ async function fetchTemplateFull(templateId: string, exec: Exec): Promise<Nutrit
   return { ...template, supplementDefs, substituteGroups, meals }
 }
 
-async function fetchPlanFull(planId: string, exec: Exec): Promise<ClientNutritionPlanFull | null> {
+export async function fetchPlanFull(planId: string, exec: Exec = pool): Promise<ClientNutritionPlanFull | null> {
   const planRes = await exec.query(
     `SELECT * FROM "ClientNutritionPlan" WHERE "id" = $1 LIMIT 1`,
     [planId]
@@ -542,15 +558,24 @@ export function getTemplatesForTrainer(trainerProfileId: string) {
         _count: { meals: number }
       }> = []
 
-      for (const tpl of templates) {
+      const mealCountMap = new Map<string, number>()
+      if (templates.length > 0) {
+        const templateIds = templates.map((t) => t.id)
         const countRes = await pool.query(
-          `SELECT COUNT(*)::int AS count FROM "Meal" WHERE "templateId" = $1`,
-          [tpl.id]
+          `SELECT "templateId", COUNT(*)::int AS count FROM "Meal"
+           WHERE "templateId" = ANY($1::text[])
+           GROUP BY "templateId"`,
+          [templateIds]
         )
-        const count = (countRes.rows[0] as { count: number }).count
+        for (const row of countRes.rows as Array<{ templateId: string; count: number }>) {
+          mealCountMap.set(row.templateId, row.count)
+        }
+      }
+
+      for (const tpl of templates) {
         rows.push({
           ...tpl,
-          _count: { meals: count },
+          _count: { meals: mealCountMap.get(tpl.id) ?? 0 },
         })
       }
 
@@ -588,10 +613,10 @@ export async function getTemplateForEdit(
 
 async function copyTemplateToPlanInTx(
   client: PgClient,
-  templateId: string,
+  templateOrId: string | NutritionTemplateFull,
   planId: string
 ) {
-  const template = await fetchTemplateFull(templateId, client)
+  const template = typeof templateOrId === "string" ? await fetchTemplateFull(templateOrId, client) : templateOrId
   if (!template) throw new Error("TEMPLATE_NOT_FOUND")
 
   await client.query(`DELETE FROM "Meal" WHERE "planId" = $1`, [planId])
@@ -679,6 +704,27 @@ async function copyTemplateToPlanInTx(
   await insertMealsForPlan(client, planId, meals)
 }
 
+export async function startNewPlanVersionInTx(
+  client: PgClient,
+  clientId: string,
+  templateId: string | null = null
+): Promise<string> {
+  await client.query(
+    `UPDATE "ClientNutritionPlan" SET "status" = $1::"PlanStatus", "endDate" = NOW(), "updatedAt" = NOW() WHERE "clientId" = $2 AND "status" = $3::"PlanStatus"`,
+    [PlanStatus.COMPLETED, clientId, PlanStatus.ACTIVE]
+  )
+
+  const planId = generateId()
+  const now = new Date()
+  await client.query(
+    `INSERT INTO "ClientNutritionPlan" ("id", "clientId", "templateId", "status", "startDate", "createdAt", "updatedAt")
+     VALUES ($1, $2, $3, $4::"PlanStatus", $5, $6, $6)`,
+    [planId, clientId, templateId, PlanStatus.ACTIVE, now, now]
+  )
+
+  return planId
+}
+
 export async function assignTemplateToClients(
   trainerProfileId: string,
   templateId: string,
@@ -699,23 +745,14 @@ export async function assignTemplateToClients(
   )
   const clients = clientsRes.rows as Array<{ id: string }>
 
+  const template = await fetchTemplateFull(templateId, pool)
+  if (!template) throw new Error("TEMPLATE_NOT_FOUND")
+
   let assigned = 0
   for (const client of clients) {
     await withTransaction(async (tx) => {
-      await tx.query(
-        `UPDATE "ClientNutritionPlan" SET "status" = $1::"PlanStatus", "endDate" = NOW(), "updatedAt" = NOW() WHERE "clientId" = $2 AND "status" = $3::"PlanStatus"`,
-        [PlanStatus.COMPLETED, client.id, PlanStatus.ACTIVE]
-      )
-
-      const planId = generateId()
-      const now = new Date()
-      await tx.query(
-        `INSERT INTO "ClientNutritionPlan" ("id", "clientId", "templateId", "status", "startDate", "createdAt", "updatedAt")
-         VALUES ($1, $2, $3, $4::"PlanStatus", $5, $6, $6)`,
-        [planId, client.id, templateId, PlanStatus.ACTIVE, now, now]
-      )
-
-      await copyTemplateToPlanInTx(tx, templateId, planId)
+      const planId = await startNewPlanVersionInTx(tx, client.id, templateId)
+      await copyTemplateToPlanInTx(tx, template, planId)
     })
     assigned += 1
   }
@@ -726,22 +763,24 @@ export async function assignTemplateToClients(
 export async function refreshPlanFromTemplate(
   trainerProfileId: string,
   planId: string
-): Promise<boolean> {
+): Promise<{ ok: boolean; newPlanId?: string }> {
   const planRes = await pool.query(
-    `SELECT cnp."id", cnp."templateId"
+    `SELECT cnp."id", cnp."clientId", cnp."templateId"
      FROM "ClientNutritionPlan" cnp
      JOIN "Client" c ON cnp."clientId" = c."id"
      WHERE cnp."id" = $1 AND c."trainerId" = $2 LIMIT 1`,
     [planId, trainerProfileId]
   )
-  if (!planRes.rowCount || planRes.rowCount === 0) return false
-  const plan = planRes.rows[0] as { id: string; templateId: string | null }
-  if (!plan.templateId) return false
+  if (!planRes.rowCount || planRes.rowCount === 0) return { ok: false }
+  const plan = planRes.rows[0] as { id: string; clientId: string; templateId: string | null }
+  if (!plan.templateId) return { ok: false }
 
-  await withTransaction(async (tx) => {
-    await copyTemplateToPlanInTx(tx, plan.templateId!, plan.id)
+  const newPlanId = await withTransaction(async (tx) => {
+    const createdId = await startNewPlanVersionInTx(tx, plan.clientId, plan.templateId)
+    await copyTemplateToPlanInTx(tx, plan.templateId!, createdId)
+    return createdId
   })
-  return true
+  return { ok: true, newPlanId }
 }
 
 /* ------------------------------------------------------------------ */
@@ -768,6 +807,30 @@ export function getCachedActivePlanFull(clientId: string) {
   )()
 }
 
+export async function getPreviousPlanFull(
+  clientId: string
+): Promise<ClientNutritionPlanFull | null> {
+  const planRes = await pool.query(
+    `SELECT "id" FROM "ClientNutritionPlan"
+     WHERE "clientId" = $1 AND "status" = $2::"PlanStatus"
+     ORDER BY "endDate" DESC NULLS LAST, "updatedAt" DESC, "createdAt" DESC
+     LIMIT 1`,
+    [clientId, PlanStatus.COMPLETED]
+  )
+  if (!planRes.rowCount || planRes.rowCount === 0) return null
+  const prevPlanId = (planRes.rows[0] as { id: string }).id
+  return fetchPlanFull(prevPlanId, pool)
+}
+
+export function getCachedPreviousPlanFull(clientId: string) {
+  return withCache(
+    () => getPreviousPlanFull(clientId),
+    ["client-prev-nutrition-plan-full", clientId],
+    [`client:${clientId}:nutrition`],
+    120
+  )()
+}
+
 export async function getOwnedClientTrainerId(clientId: string) {
   const res = await pool.query(
     `SELECT "trainerId" FROM "Client" WHERE "id" = $1 LIMIT 1`,
@@ -782,18 +845,20 @@ export async function savePlanContent(
   data: NutritionContentInput
 ) {
   const planCheck = await pool.query(
-    `SELECT cnp."id", cnp."clientId"
+    `SELECT cnp."id", cnp."clientId", cnp."templateId"
      FROM "ClientNutritionPlan" cnp
      JOIN "Client" c ON cnp."clientId" = c."id"
      WHERE cnp."id" = $1 AND c."trainerId" = $2 LIMIT 1`,
     [planId, trainerProfileId]
   )
   if (!planCheck.rowCount || planCheck.rowCount === 0) return null
+  const { clientId, templateId } = planCheck.rows[0] as {
+    clientId: string
+    templateId: string | null
+  }
 
   return withTransaction(async (client) => {
-    await client.query(`DELETE FROM "Meal" WHERE "planId" = $1`, [planId])
-    await client.query(`DELETE FROM "SubstituteGroup" WHERE "planId" = $1`, [planId])
-    await client.query(`DELETE FROM "SupplementDef" WHERE "planId" = $1`, [planId])
+    const newPlanId = await startNewPlanVersionInTx(client, clientId, templateId)
 
     await client.query(
       `UPDATE "ClientNutritionPlan" SET "calories" = $1, "proteinGrams" = $2, "carbsGrams" = $3, "fatsGrams" = $4, "waterLiters" = $5, "coachMessage" = $6, "guidelines" = $7, "avoidFoods" = $8, "recommendedFoods" = $9, "updatedAt" = NOW() WHERE "id" = $10`,
@@ -807,7 +872,7 @@ export async function savePlanContent(
         data.guidelines ?? [],
         data.avoidFoods ?? [],
         data.recommendedFoods ?? [],
-        planId,
+        newPlanId,
       ]
     )
 
@@ -820,7 +885,7 @@ export async function savePlanContent(
       importanceAr: def.importanceAr ?? null,
       order: idx + 1,
     }))
-    await insertSupplementDefsForPlan(client, planId, supDefsForPlan)
+    await insertSupplementDefsForPlan(client, newPlanId, supDefsForPlan)
 
     const groupsForPlan = data.substituteGroups.map((group, gIdx) => ({
       category: group.category,
@@ -834,11 +899,11 @@ export async function savePlanContent(
         order: iIdx + 1,
       })),
     }))
-    await insertSubstituteGroupsForPlan(client, planId, groupsForPlan)
+    await insertSubstituteGroupsForPlan(client, newPlanId, groupsForPlan)
 
     await insertMealsForPlan(
       client,
-      planId,
+      newPlanId,
       data.meals.map((meal, mIdx) => ({
         kind: meal.kind,
         name: meal.name,
@@ -855,7 +920,7 @@ export async function savePlanContent(
       }))
     )
 
-    const full = await fetchPlanFull(planId, client)
+    const full = await fetchPlanFull(newPlanId, client)
     return full!
   })
 }
@@ -899,7 +964,30 @@ function todayMidnight(): Date {
   return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
 }
 
-export async function toggleMealChoice(clientId: string, mealItemId: string) {
+function parseDateMidnight(date?: string | Date): Date {
+  if (!date) return todayMidnight()
+  if (typeof date === "string") {
+    const parts = date.split("-").map(Number)
+    if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
+      return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]))
+    }
+  }
+  const dt = new Date(date)
+  return new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate()))
+}
+
+export interface ToggleMealChoiceResult {
+  chosen: boolean
+  mealName: string
+  mealNameAr: string | null
+  doneMeals: number
+  totalMeals: number
+}
+
+export async function toggleMealChoice(
+  clientId: string,
+  mealItemId: string
+): Promise<ToggleMealChoiceResult | null> {
   const itemCheck = await pool.query(
     `SELECT mi."id"
      FROM "MealItem" mi
@@ -911,56 +999,100 @@ export async function toggleMealChoice(clientId: string, mealItemId: string) {
   )
   if (!itemCheck.rowCount || itemCheck.rowCount === 0) return null
 
+  const mealInfoRes = await pool.query(
+    `SELECT m."id" AS "mealId", m."name" AS "mealName", m."nameAr" AS "mealNameAr", m."planId"
+     FROM "MealItem" mi
+     JOIN "Meal" m ON mi."mealId" = m."id"
+     WHERE mi."id" = $1 LIMIT 1`,
+    [mealItemId]
+  )
+  const mealInfo = mealInfoRes.rows[0] as {
+    mealId: string
+    mealName: string
+    mealNameAr: string | null
+    planId: string
+  } | undefined
+  const planId = mealInfo?.planId
+
   const date = todayMidnight()
   const existing = await pool.query(
     `SELECT "id" FROM "MealChoice" WHERE "clientId" = $1 AND "mealItemId" = $2 AND "date" = $3 LIMIT 1`,
     [clientId, mealItemId, date]
   )
 
+  let isChosen = false
   if (existing.rowCount && existing.rowCount > 0) {
     await pool.query(`DELETE FROM "MealChoice" WHERE "id" = $1`, [(existing.rows[0] as { id: string }).id])
-    return { chosen: false }
-  }
-
-  const groupRes = await pool.query(
-    `WITH target_meal AS (
-       SELECT m."id", m."isSpare", m."replacesMealId", m."planId"
-       FROM "MealItem" mi
-       JOIN "Meal" m ON mi."mealId" = m."id"
-       WHERE mi."id" = $1
-     )
-     SELECT m2."id"
-     FROM target_meal tm
-     JOIN "Meal" m2 ON m2."planId" = tm."planId"
-     WHERE (
-       m2."id" = COALESCE(tm."replacesMealId", tm."id") 
-       OR 
-       m2."replacesMealId" = COALESCE(tm."replacesMealId", tm."id")
-     )`,
-    [mealItemId]
-  )
-  
-  if (groupRes.rowCount && groupRes.rowCount > 0) {
-    const mealIds = (groupRes.rows as {id: string}[]).map(r => r.id)
-    await pool.query(
-      `DELETE FROM "MealChoice"
-       WHERE "clientId" = $1 AND "date" = $2 
-       AND "mealItemId" IN (
-         SELECT "id" FROM "MealItem" 
-         WHERE "mealId" = ANY($3::text[])
-         AND "mealId" != (SELECT "mealId" FROM "MealItem" WHERE "id" = $4)
+    isChosen = false
+  } else {
+    const groupRes = await pool.query(
+      `WITH target_meal AS (
+         SELECT m."id", m."isSpare", m."replacesMealId", m."planId"
+         FROM "MealItem" mi
+         JOIN "Meal" m ON mi."mealId" = m."id"
+         WHERE mi."id" = $1
+       )
+       SELECT m2."id"
+       FROM target_meal tm
+       JOIN "Meal" m2 ON m2."planId" = tm."planId"
+       WHERE (
+         m2."id" = COALESCE(tm."replacesMealId", tm."id") 
+         OR 
+         m2."replacesMealId" = COALESCE(tm."replacesMealId", tm."id")
        )`,
-       [clientId, date, mealIds, mealItemId]
+      [mealItemId]
     )
+    
+    if (groupRes.rowCount && groupRes.rowCount > 0) {
+      const mealIds = (groupRes.rows as {id: string}[]).map(r => r.id)
+      await pool.query(
+        `DELETE FROM "MealChoice"
+         WHERE "clientId" = $1 AND "date" = $2 
+         AND "mealItemId" IN (
+           SELECT "id" FROM "MealItem" 
+           WHERE "mealId" = ANY($3::text[])
+           AND "mealId" != (SELECT "mealId" FROM "MealItem" WHERE "id" = $4)
+         )`,
+         [clientId, date, mealIds, mealItemId]
+      )
+    }
+
+    const id = generateId()
+    await pool.query(
+      `INSERT INTO "MealChoice" ("id", "clientId", "mealItemId", "date", "createdAt")
+       VALUES ($1, $2, $3, $4, NOW())`,
+      [id, clientId, mealItemId, date]
+    )
+    isChosen = true
   }
 
-  const id = generateId()
-  await pool.query(
-    `INSERT INTO "MealChoice" ("id", "clientId", "mealItemId", "date", "createdAt")
-     VALUES ($1, $2, $3, $4, NOW())`,
-    [id, clientId, mealItemId, date]
-  )
-  return { chosen: true }
+  let doneMeals = 0
+  let totalMeals = 0
+  if (planId) {
+    const totalRes = await pool.query(
+      `SELECT COUNT(*)::int AS count FROM "Meal" WHERE "planId" = $1 AND "isSpare" = false`,
+      [planId]
+    )
+    totalMeals = (totalRes.rows[0] as { count: number })?.count ?? 0
+
+    const doneRes = await pool.query(
+      `SELECT COUNT(DISTINCT m."id")::int AS count
+       FROM "MealChoice" mc
+       JOIN "MealItem" mi ON mc."mealItemId" = mi."id"
+       JOIN "Meal" m ON mi."mealId" = m."id"
+       WHERE mc."clientId" = $1 AND mc."date" = $2 AND m."planId" = $3 AND m."isSpare" = false`,
+      [clientId, date, planId]
+    )
+    doneMeals = (doneRes.rows[0] as { count: number })?.count ?? 0
+  }
+
+  return {
+    chosen: isChosen,
+    mealName: mealInfo?.mealName ?? "Meal",
+    mealNameAr: mealInfo?.mealNameAr ?? null,
+    doneMeals,
+    totalMeals,
+  }
 }
 
 export async function getTodayMealChoices(clientId: string) {
@@ -970,4 +1102,191 @@ export async function getTodayMealChoices(clientId: string) {
     [clientId, date]
   )
   return (res.rows as Array<{ mealItemId: string }>).map((r) => r.mealItemId)
+}
+
+export interface MealLogItem {
+  id: string
+  foodName: string
+  foodNameAr: string | null
+  amount: number | null
+  unit: string
+  calories: number | null
+  isChosen: boolean
+}
+
+export interface MealLogMeal {
+  id: string
+  name: string
+  nameAr: string | null
+  kind: string
+  order: number
+  isSpare: boolean
+  isDone: boolean
+  items: MealLogItem[]
+}
+
+export interface DayMealLog {
+  date: string
+  doneMeals: number
+  totalMeals: number
+  adherencePercent: number
+  meals: MealLogMeal[]
+}
+
+export async function getMealLogForDay(
+  clientId: string,
+  dateInput?: string | Date
+): Promise<DayMealLog> {
+  const date = parseDateMidnight(dateInput)
+  const dateStr = date.toISOString().split("T")[0]
+
+  const choicesRes = await pool.query(
+    `SELECT "mealItemId" FROM "MealChoice" WHERE "clientId" = $1 AND "date" = $2`,
+    [clientId, date]
+  )
+  const chosenSet = new Set(
+    (choicesRes.rows as Array<{ mealItemId: string }>).map((r) => r.mealItemId)
+  )
+
+  let resolvedPlanId: string | null = null
+
+  // If meal choices were logged on that date, find the specific plan they belong to
+  if (chosenSet.size > 0) {
+    const fromChoiceRes = await pool.query<{ planId: string }>(
+      `SELECT DISTINCT m."planId"
+       FROM "MealChoice" mc
+       JOIN "MealItem" mi ON mc."mealItemId" = mi."id"
+       JOIN "Meal" m ON mi."mealId" = m."id"
+       WHERE mc."clientId" = $1 AND mc."date" = $2 AND m."planId" IS NOT NULL
+       LIMIT 1`,
+      [clientId, date]
+    )
+    if (fromChoiceRes.rows.length > 0 && fromChoiceRes.rows[0].planId) {
+      resolvedPlanId = fromChoiceRes.rows[0].planId
+    }
+  }
+
+  // Otherwise, find the plan version that was active on that date
+  if (!resolvedPlanId) {
+    const activeOnDateRes = await pool.query<{ id: string }>(
+      `SELECT id FROM "ClientNutritionPlan"
+       WHERE "clientId" = $1
+         AND "startDate"::date <= $2::date
+         AND ("endDate" IS NULL OR "endDate"::date >= $2::date)
+       ORDER BY "createdAt" DESC
+       LIMIT 1`,
+      [clientId, date]
+    )
+    if (activeOnDateRes.rows.length > 0) {
+      resolvedPlanId = activeOnDateRes.rows[0].id
+    }
+  }
+
+  const plan = resolvedPlanId
+    ? await fetchPlanFull(resolvedPlanId, pool)
+    : await getActivePlanFull(clientId)
+
+  if (!plan) {
+    return {
+      date: dateStr,
+      doneMeals: 0,
+      totalMeals: 0,
+      adherencePercent: 0,
+      meals: [],
+    }
+  }
+
+  const meals: MealLogMeal[] = plan.meals.map((meal) => {
+    const items: MealLogItem[] = meal.items.map((item) => ({
+      id: item.id,
+      foodName: item.foodName,
+      foodNameAr: item.foodNameAr,
+      amount: item.amount,
+      unit: item.unit,
+      calories: item.calories,
+      isChosen: chosenSet.has(item.id),
+    }))
+    const isDone = items.some((item) => item.isChosen)
+    return {
+      id: meal.id,
+      name: meal.name,
+      nameAr: meal.nameAr,
+      kind: meal.kind,
+      order: meal.order,
+      isSpare: meal.isSpare,
+      isDone,
+      items,
+    }
+  })
+
+  const mainMeals = meals.filter((m) => !m.isSpare)
+  const doneMeals = mainMeals.filter((m) => m.isDone).length
+  const totalMeals = mainMeals.length
+  const adherencePercent =
+    totalMeals > 0 ? Math.round((doneMeals / totalMeals) * 100) : 0
+
+  return {
+    date: dateStr,
+    doneMeals,
+    totalMeals,
+    adherencePercent,
+    meals,
+  }
+}
+
+export interface DayAdherence {
+  date: string
+  dayLabel: string
+  doneMeals: number
+  totalMeals: number
+  percent: number
+}
+
+export async function getMealAdherence(
+  clientId: string,
+  days = 7
+): Promise<DayAdherence[]> {
+  const plan = await getActivePlanFull(clientId)
+  const totalMeals = plan ? plan.meals.filter((m) => !m.isSpare).length : 0
+
+  const today = todayMidnight()
+  const dates: Date[] = []
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today.getTime() - i * 24 * 60 * 60 * 1000)
+    dates.push(new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())))
+  }
+
+  const startDate = dates[0]
+  const endDate = dates[dates.length - 1]
+
+  const countsRes = await pool.query(
+    `SELECT mc."date", COUNT(DISTINCT m."id")::int AS "done_meals"
+     FROM "MealChoice" mc
+     JOIN "MealItem" mi ON mc."mealItemId" = mi."id"
+     JOIN "Meal" m ON mi."mealId" = m."id"
+     WHERE mc."clientId" = $1 AND mc."date" >= $2 AND mc."date" <= $3 AND m."isSpare" = false
+     GROUP BY mc."date"`,
+    [clientId, startDate, endDate]
+  )
+
+  const countMap = new Map<string, number>()
+  for (const row of countsRes.rows as Array<{ date: Date; done_meals: number }>) {
+    const key = new Date(row.date).toISOString().split("T")[0]
+    countMap.set(key, row.done_meals)
+  }
+
+  const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+  return dates.map((d) => {
+    const key = d.toISOString().split("T")[0]
+    const done = countMap.get(key) ?? 0
+    const percent =
+      totalMeals > 0 ? Math.min(100, Math.round((done / totalMeals) * 100)) : 0
+    return {
+      date: key,
+      dayLabel: DAY_NAMES[d.getUTCDay()],
+      doneMeals: done,
+      totalMeals,
+      percent,
+    }
+  })
 }

@@ -65,7 +65,8 @@ interface TemplateFormProps {
 }
 
 function templateDaysToState(
-  template: TemplateFormProps["template"]
+  template: TemplateFormProps["template"],
+  exercises?: ExerciseOption[]
 ): TrainingSplitDayInput[] {
   if (!template) return []
   return template.days.map((day) => ({
@@ -82,7 +83,7 @@ function templateDaysToState(
         restSeconds: exercise.restSeconds,
         notes: exercise.notes,
         videoUrl: exercise.videoUrl,
-      })
+      }, exercises)
     ),
   }))
 }
@@ -97,7 +98,7 @@ export function TemplateForm({
   const [serverError, setServerError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [days, setDays] = useState<TrainingSplitDayInput[]>(
-    templateDaysToState(template)
+    templateDaysToState(template, exercises)
   )
 
   // Sync form's days value with local state for validation

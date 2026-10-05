@@ -319,6 +319,7 @@ export async function sendMessage(params: {
     }
   } catch {}
 
+  invalidateUnreadCache((conversation as Conversation).trainerId, (conversation as Conversation).clientId)
   return { message, conversationId: (conversation as Conversation).id }
 }
 
@@ -329,10 +330,23 @@ export async function markMessagesAsRead(conversationId: string, readerId: strin
      WHERE "conversationId" = $1 AND "senderRole" = $2::"Role" AND "readAt" IS NULL`,
     [conversationId, oppositeRole]
   )
+  invalidateUnreadCache()
 }
 
-// Unread counters compute directly on indexed queries to ensure consistent counts across all serverless instances
+const unreadCache = new Map<string, { count: number; expires: number }>()
+const UNREAD_CACHE_TTL_MS = 10_000
+
+export function invalidateUnreadCache(trainerId?: string, clientUserId?: string) {
+  if (trainerId) unreadCache.delete(`trainer:${trainerId}`)
+  if (clientUserId) unreadCache.delete(`client:${clientUserId}`)
+  if (!trainerId && !clientUserId) unreadCache.clear()
+}
+
+// Unread counters cached 10s to absorb polling from multiple tabs/clients
 export async function countUnreadForTrainer(trainerId: string): Promise<number> {
+  const cacheKey = `trainer:${trainerId}`
+  const cached = unreadCache.get(cacheKey)
+  if (cached && cached.expires > Date.now()) return cached.count
   try {
     const res = await pool.query(
       `SELECT COUNT(*)::int AS count FROM "Message"
@@ -340,7 +354,9 @@ export async function countUnreadForTrainer(trainerId: string): Promise<number> 
          AND "senderRole" = $2::"Role" AND "readAt" IS NULL`,
       [trainerId, "CLIENT"]
     )
-    return (res.rows[0] as { count?: number })?.count ?? 0
+    const count = (res.rows[0] as { count?: number })?.count ?? 0
+    unreadCache.set(cacheKey, { count, expires: Date.now() + UNREAD_CACHE_TTL_MS })
+    return count
   } catch (err) {
     logger.error("[countUnreadForTrainer] failed", err, { trainerId })
     return 0
@@ -348,6 +364,9 @@ export async function countUnreadForTrainer(trainerId: string): Promise<number> 
 }
 
 export async function countUnreadForClient(userId: string): Promise<number> {
+  const cacheKey = `client:${userId}`
+  const cached = unreadCache.get(cacheKey)
+  if (cached && cached.expires > Date.now()) return cached.count
   try {
     const res = await pool.query(
       `SELECT COUNT(*)::int AS count FROM "Message" m
@@ -356,16 +375,13 @@ export async function countUnreadForClient(userId: string): Promise<number> {
        WHERE cl."userId" = $1 AND m."senderRole" = $2::"Role" AND m."readAt" IS NULL`,
       [userId, "COACH"]
     )
-    return (res.rows[0] as { count?: number })?.count ?? 0
+    const count = (res.rows[0] as { count?: number })?.count ?? 0
+    unreadCache.set(cacheKey, { count, expires: Date.now() + UNREAD_CACHE_TTL_MS })
+    return count
   } catch (err) {
     logger.error("[countUnreadForClient] failed", err, { userId })
     return 0
   }
-}
-
-// In-memory cache removed in favor of direct indexed DB queries
-export function invalidateUnreadCache(_trainerId?: string, _clientUserId?: string) {
-  // No-op: counts are always freshly computed from the database
 }
 
 export async function isClientArchived(clientId: string) {

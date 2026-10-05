@@ -17,31 +17,32 @@ export default async function TrainerLayout({
     redirect("/login")
   }
 
-  // Tenant-isolated branding (no global cache) — per coachId
-  const brandingRaw = session.user.trainerProfileId
-    ? await getCoachBranding(session.user.trainerProfileId)
-    : null
-  const branding = toBranding(brandingRaw, session.user.trainerProfileId)
+  const trainerProfileId = session.user.trainerProfileId
+
+  // Parallelize branding and subscription check
+  const [brandingRaw, subStatus] = await Promise.all([
+    trainerProfileId ? getCoachBranding(trainerProfileId) : null,
+    trainerProfileId
+      ? checkSubscriptionStatus(trainerProfileId)
+      : { hasActiveSubscription: true, status: null, endDate: null, daysRemaining: null, subscriptionId: null },
+  ])
+  const branding = toBranding(brandingRaw, trainerProfileId)
 
   // Centralized guard — blocked coaches see expired screen but data stays intact
-  if (session.user.trainerProfileId) {
-    const subStatus = await checkSubscriptionStatus(session.user.trainerProfileId)
-    
-    if (!subStatus.hasActiveSubscription) {
-      return (
-        <BrandingProvider branding={branding}>
-          <div className="min-h-dvh bg-background">
-            <main className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8 md:py-8">
-              <SubscriptionExpiredView
-                status={subStatus.status}
-                endDate={subStatus.endDate}
-                daysRemaining={subStatus.daysRemaining}
-              />
-            </main>
-          </div>
-        </BrandingProvider>
-      )
-    }
+  if (trainerProfileId && !subStatus.hasActiveSubscription) {
+    return (
+      <BrandingProvider branding={branding}>
+        <div className="min-h-dvh bg-background">
+          <main className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8 md:py-8">
+            <SubscriptionExpiredView
+              status={subStatus.status}
+              endDate={subStatus.endDate}
+              daysRemaining={subStatus.daysRemaining}
+            />
+          </main>
+        </div>
+      </BrandingProvider>
+    )
   }
 
   return (

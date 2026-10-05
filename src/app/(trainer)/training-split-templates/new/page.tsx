@@ -2,7 +2,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { getCurrentSession } from "@/server/auth"
-import { listGlobalExercises } from "@/server/services/exercise.service"
+import { listExercisesForTrainer } from "@/server/services/exercise.service"
 import { Button } from "@/components/ui/button"
 import { TemplateForm } from "@/components/features/training-split/template-form"
 import { getI18n } from "@/lib/i18n"
@@ -19,7 +19,7 @@ export default async function NewTrainingSplitTemplatePage() {
     notFound()
   }
 
-  const exercises = await listGlobalExercises()
+  const exercises = await listExercisesForTrainer(session.user.trainerProfileId)
 
   return (
     <div className="space-y-6">

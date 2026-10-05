@@ -1,6 +1,24 @@
 import { z } from "zod"
+import { extractYoutubeId } from "@/lib/utils/video"
 
 export const MAX_EXERCISES_PER_DAY = 20
+
+export const libraryExerciseSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(120),
+  nameAr: z.string().trim().max(120).optional().or(z.literal("")),
+  muscleGroup: z.string().trim().max(40).optional().or(z.literal("")),
+  equipment: z.string().trim().max(40).optional().or(z.literal("")),
+  youtubeUrl: z
+    .string()
+    .trim()
+    .max(500)
+    .refine((v) => !v || extractYoutubeId(v) !== null, "Invalid YouTube URL")
+    .optional()
+    .or(z.literal("")),
+})
+
+export type LibraryExerciseInput = z.infer<typeof libraryExerciseSchema>
+
 
 function nullableNumber(min: number, max: number, message: string) {
   return z

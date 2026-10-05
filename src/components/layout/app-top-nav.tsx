@@ -24,6 +24,7 @@ import {
   UserRound,
   ChevronDown,
   Bell,
+  Library,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { Role, WorkoutDisplayMode } from "@/lib/db/enums"
@@ -185,10 +186,11 @@ export function AppTopNav({
       label: isAr ? "البرامج" : "Programs",
       href: "/training-split-templates",
       icon: Dumbbell,
-      matchPrefixes: ["/training-split-templates", "/nutrition-templates"],
+      matchPrefixes: ["/training-split-templates", "/nutrition-templates", "/exercise-library"],
       subItems: [
         { label: isAr ? "جداول التمارين" : "Workout Splits", href: "/training-split-templates", icon: Dumbbell },
         { label: isAr ? "الأنظمة الغذائية" : "Nutrition Plans", href: "/nutrition-templates", icon: Apple },
+        { label: isAr ? "مكتبة التمارين" : "Exercise Library", href: "/exercise-library", icon: Library },
       ],
     },
     {

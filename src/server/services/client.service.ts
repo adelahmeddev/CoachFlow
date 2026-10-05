@@ -74,6 +74,7 @@ export async function getTrainerClients(
     q?: string
     goal?: Goal
     status?: ClientStatus
+    addedWithin?: number
     page?: number
     perPage?: number
   }
@@ -81,41 +82,36 @@ export async function getTrainerClients(
   const page = params.page ?? 1
   const perPage = params.perPage ?? 10
 
-  const conditions: string[] = [`"trainerId" = $1`]
-  const countParams: unknown[] = [trainerProfileId]
-  let paramIdx = 2
-
   const whereClauses: string[] = [`"trainerId" = $1`]
   const queryParams: unknown[] = [trainerProfileId]
+  let paramIdx = 2
 
   if (params.q) {
     const qPattern = `%${params.q}%`
     whereClauses.push(`("fullName" ILIKE $${paramIdx} OR "phone" ILIKE $${paramIdx})`)
-    conditions.push(`("fullName" ILIKE $${paramIdx} OR "phone" ILIKE $${paramIdx})`)
     queryParams.push(qPattern)
-    countParams.push(qPattern)
     paramIdx++
   }
   if (params.status) {
     whereClauses.push(`"status" = $${paramIdx}::"ClientStatus"`)
-    conditions.push(`"status" = $${paramIdx}::"ClientStatus"`)
     queryParams.push(params.status)
-    countParams.push(params.status)
     paramIdx++
   }
   if (params.goal) {
     whereClauses.push(`$${paramIdx}::"Goal" = ANY("goals")`)
-    conditions.push(`$${paramIdx}::"Goal" = ANY("goals")`)
     queryParams.push(params.goal)
-    countParams.push(params.goal)
+    paramIdx++
+  }
+  if (params.addedWithin) {
+    whereClauses.push(`"createdAt" >= NOW() - ($${paramIdx} || ' days')::interval`)
+    queryParams.push(params.addedWithin)
     paramIdx++
   }
 
   const whereSql = whereClauses.join(" AND ")
-  const countWhereSql = conditions.join(" AND ")
 
   const [totalRes, clientsRes] = await Promise.all([
-    pool.query(`SELECT COUNT(*)::int AS count FROM "Client" WHERE ${countWhereSql}`, countParams),
+    pool.query(`SELECT COUNT(*)::int AS count FROM "Client" WHERE ${whereSql}`, queryParams),
     pool.query(
       `SELECT "id", "fullName", "phone", "birthDate", "goals", "status", "basicInfoCompletedAt", "createdAt"
        FROM "Client" WHERE ${whereSql}

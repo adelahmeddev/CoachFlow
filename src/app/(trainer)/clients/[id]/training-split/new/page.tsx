@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react"
 import { getCurrentSession } from "@/server/auth"
 import { getOwnedClientForForm } from "@/server/services/training-split.service"
 import { getTemplatesForForm } from "@/server/services/training-split-template.service"
-import { listGlobalExercises } from "@/server/services/exercise.service"
+import { listExercisesForTrainer } from "@/server/services/exercise.service"
 import {
   getClientPainFlags,
   getOtherClientsSplits,
@@ -54,7 +54,7 @@ export default async function NewTrainingSplitPage({
   const [client, exercises, allTemplates, cloneSources, painFlags, weekStartDay] =
     await Promise.all([
       getOwnedClientForForm(id, trainerProfileId),
-      listGlobalExercises(),
+      listExercisesForTrainer(trainerProfileId),
       getTemplatesForForm(trainerProfileId),
       getOtherClientsSplits(id, trainerProfileId),
       getClientPainFlags(id, trainerProfileId),

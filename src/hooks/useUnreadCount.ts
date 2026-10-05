@@ -4,30 +4,25 @@ import { useEffect, useState } from "react";
 
 export function useUnreadCount(role: "COACH" | "CLIENT", id: string | undefined) {
   const [count, setCount] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(id));
 
   useEffect(() => {
-    if (!id) {
-      setCount(0);
-      setLoading(false);
-      return;
-    }
+    if (!id) return;
     
     let cancelled = false;
 
-    let intervalId: NodeJS.Timeout | undefined;
     async function fetchCount() {
       try {
         const resp = await fetch('/api/messages/unread-count', { credentials: 'include' });
         if (resp.status === 401) {
-          if (intervalId) clearInterval(intervalId);
+          clearInterval(intervalId);
           return;
         }
         if (resp.ok) {
           const data = await resp.json();
           if (!cancelled) setCount(data.count as number);
         }
-      } catch (e) {
+      } catch {
         // ignore
       } finally {
         if (!cancelled) setLoading(false);
@@ -35,11 +30,11 @@ export function useUnreadCount(role: "COACH" | "CLIENT", id: string | undefined)
     }
     
     fetchCount();
-    intervalId = setInterval(fetchCount, 60_000);
+    const intervalId = setInterval(fetchCount, 120_000);
     
     return () => {
       cancelled = true;
-      if (intervalId) clearInterval(intervalId);
+      clearInterval(intervalId);
     };
   }, [role, id]);
 

@@ -4,11 +4,14 @@ import {
   getCachedActivePlanFull,
   getPlanHistory,
   getTemplatesForTrainer,
-  getTodayMealChoices,
+  getMealLogForDay,
+  getMealAdherence,
 } from "@/server/services/nutrition.service"
 import { AssignTemplateFromClient } from "@/components/features/nutrition/assign-template-from-client"
 import { RefreshFromTemplateButton } from "@/components/features/nutrition/refresh-plan-button"
 import { ChangePlanDialog } from "@/components/features/nutrition/change-plan-dialog"
+import { CoachMealLog } from "@/components/features/nutrition/coach-meal-log"
+import { ComparePlanDialog } from "@/components/features/nutrition/compare-plan-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,7 +21,13 @@ import { formatDate } from "@/lib/i18n/format"
 import { getPlanStatusLabel, getSubstituteCategoryLabel } from "@/lib/i18n/labels"
 import { Flame, Wheat, Droplets, GlassWater, Apple, UtensilsCrossed, Pill, Shuffle, CheckCircle2, Clock3, Leaf, Sparkles, Dumbbell } from "lucide-react"
 
-export async function NutritionTab({ clientId }: { clientId: string }) {
+export async function NutritionTab({
+  clientId,
+  initialDate,
+}: {
+  clientId: string
+  initialDate?: string
+}) {
   const { t, locale } = await getI18n()
   const isAr = locale === "ar"
   const session = await getCurrentSession()
@@ -31,21 +40,13 @@ export async function NutritionTab({ clientId }: { clientId: string }) {
   }
 
   const trainerProfileId = session.user.trainerProfileId
-  const [plan, todayChoices, history, templates] = await Promise.all([
+  const [plan, history, templates, mealLog, adherence] = await Promise.all([
     getCachedActivePlanFull(clientId),
-    getTodayMealChoices(clientId),
     getPlanHistory(clientId),
     getTemplatesForTrainer(trainerProfileId),
+    getMealLogForDay(clientId, initialDate),
+    getMealAdherence(clientId, 7),
   ])
-
-  const itemLabels = new Map<string, string>()
-  for (const meal of plan?.meals ?? []) {
-    const mealName = isAr && meal.nameAr ? meal.nameAr : meal.name
-    for (const item of meal.items) {
-      const foodName = isAr && item.foodNameAr ? item.foodNameAr : item.foodName
-      itemLabels.set(item.id, `${mealName} · ${foodName}`)
-    }
-  }
 
   // macro percentages for visual bar
   const protein = plan?.proteinGrams ?? 0
@@ -58,6 +59,8 @@ export async function NutritionTab({ clientId }: { clientId: string }) {
 
   return (
     <div className="space-y-6">
+      {/* Rolling daily meal log */}
+      <CoachMealLog clientId={clientId} mealLog={mealLog} adherence={adherence} />
       {!plan ? (
         <AssignTemplateFromClient
           clientId={clientId}
@@ -347,39 +350,6 @@ export async function NutritionTab({ clientId }: { clientId: string }) {
               </div>
             </div>
           </div>
-
-          {/* Today’s choices */}
-          <div className="px-5 pb-5">
-            <div className="rounded-2xl border bg-card shadow-soft overflow-hidden">
-              <div className="flex items-center gap-2 border-b bg-muted/20 p-4">
-                <span className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-performance-500 to-performance-600 text-white shadow-soft">
-                  <CheckCircle2 className="size-4" />
-                </span>
-                <h3 className="text-sm font-bold">{t.nutrition.todayChoices}</h3>
-                {todayChoices.length > 0 && <Badge className="rounded-full bg-performance-500 text-white">{todayChoices.length} {isAr ? "اختيار" : "picked"}</Badge>}
-              </div>
-              <div className="p-4">
-                {todayChoices.length === 0 ? (
-                  <div className="flex flex-col items-center gap-2 py-8 text-center">
-                    <span className="flex size-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
-                      <Clock3 className="size-6" />
-                    </span>
-                    <p className="text-sm text-muted-foreground">{t.nutrition.noChoicesYet}</p>
-                    <p className="text-xs text-muted-foreground/70">{isAr ? "البطل لسه ماخترش وجبته النهاردة" : "No picks yet today"}</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {todayChoices.map((itemId) => (
-                      <div key={itemId} className="flex min-h-[44px] items-center gap-3 rounded-xl border bg-performance-500/5 px-3 ring-1 ring-performance-500/15">
-                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-performance-500 text-white shadow-soft">✓</span>
-                        <span className="text-sm break-words font-medium">{itemLabels.get(itemId) ?? itemId}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
         </>
       )}
 
@@ -402,6 +372,7 @@ export async function NutritionTab({ clientId }: { clientId: string }) {
                     <TableHead>{t.nutrition.plan}</TableHead>
                     <TableHead>{t.admin.subscriptions.columns.status}</TableHead>
                     <TableHead>{t.nutrition.calories}</TableHead>
+                    <TableHead className="text-end">{t.clients.columns.action}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -417,6 +388,17 @@ export async function NutritionTab({ clientId }: { clientId: string }) {
                         </Badge>
                       </TableCell>
                       <TableCell className="tabular-nums text-muted-foreground">{row.calories ?? "—"}</TableCell>
+                      <TableCell className="text-end">
+                        {plan && row.id !== plan.id ? (
+                          <ComparePlanDialog
+                            pastPlanId={row.id}
+                            pastPlanName={row.template?.name ?? t.nutrition.customPlanBadge}
+                            currentPlan={plan}
+                          />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

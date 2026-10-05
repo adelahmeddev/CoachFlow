@@ -75,9 +75,11 @@ const CATEGORY_ORDER: SubstituteCategory[] = ["CARB", "PROTEIN", "FAT", "FRUIT"]
 export function ClientNutritionView({
   plan,
   chosenItemIds,
+  readOnly = false,
 }: {
   plan: ClientPlanView
   chosenItemIds: string[]
+  readOnly?: boolean
 }) {
   const { t, locale } = useI18n()
   const n = t.nutrition
@@ -100,7 +102,7 @@ export function ClientNutritionView({
   }
 
   function toggle(itemId: string) {
-    if (pending) return
+    if (pending || readOnly) return
     startTransition(async () => {
       // Find the meal this item belongs to
       let foundMeal: ClientMealView | undefined
@@ -205,6 +207,13 @@ export function ClientNutritionView({
 
   return (
     <div className={cn("space-y-6", isAr && "font-[var(--font-arabic)]")}>
+      {readOnly && (
+        <div className="flex items-center gap-2.5 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs font-medium text-amber-800 dark:text-amber-200">
+          <Info className="size-4 shrink-0 text-amber-500" />
+          <span>{t.nutritionVersions.readOnlyNotice}</span>
+        </div>
+      )}
+
       {/* Premium nutrition overview HUD */}
       <MacroConcentricRing
         consumedKcal={consumedKcal}
@@ -288,6 +297,7 @@ export function ClientNutritionView({
         pending={pending}
         onToggle={toggle}
         formatAmount={formatAmount}
+        readOnly={readOnly}
       />
 
       {/* Substitutes (anchor target for hero deep-link) */}

@@ -46,13 +46,10 @@ export function invalidate(tags: string[]) {
 }
 
 export function invalidateDashboard(trainerProfileId: string) {
-  const tag = `trainer:${trainerProfileId}:dashboard`
-  try {
-    revalidateTag(tag, "max")
-  } catch {}
-  try {
-    updateTag(tag)
-  } catch {}
+  invalidate([
+    `trainer:${trainerProfileId}:dashboard`,
+    `trainer:${trainerProfileId}:needs-action`,
+  ])
 }
 
 export function toIso(value: Date | null | undefined): string | null {

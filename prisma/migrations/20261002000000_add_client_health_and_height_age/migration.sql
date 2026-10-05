@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "injuries" TEXT;
+ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "healthConditions" TEXT;
+ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "medications" TEXT;
+
+-- AlterTable
+ALTER TABLE "BodyComposition" ADD COLUMN IF NOT EXISTS "heightCm" DOUBLE PRECISION;
+ALTER TABLE "BodyComposition" ADD COLUMN IF NOT EXISTS "age" INTEGER;

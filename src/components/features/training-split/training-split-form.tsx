@@ -140,7 +140,8 @@ interface TrainingSplitFormProps {
 }
 
 function splitDaysToInputs(
-  split: TrainingSplitFormProps["split"]
+  split: TrainingSplitFormProps["split"],
+  exercises?: ExerciseOption[]
 ): TrainingSplitDayInput[] {
   if (!split) {
     const defaultTemplate =
@@ -168,7 +169,7 @@ function splitDaysToInputs(
         restSeconds: exercise.restSeconds,
         notes: exercise.notes,
         videoUrl: exercise.videoUrl,
-      })
+      }, exercises)
     ),
   }))
 }
@@ -194,7 +195,7 @@ export function TrainingSplitForm({
     split?.scheduleMode ?? ScheduleMode.FIXED_WEEKDAYS
   )
   const [days, setDays] = useState<TrainingSplitDayInput[]>(
-    splitDaysToInputs(split)
+    splitDaysToInputs(split, exercises)
   )
   const [conflicts, setConflicts] = useState<ConflictResolution[]>([])
 
@@ -250,7 +251,7 @@ export function TrainingSplitForm({
       splitType: split?.splitType ?? undefined,
       status: split?.status ?? PlanStatus.ACTIVE,
       notes: split?.notes ?? "",
-      days: splitDaysToInputs(split),
+      days: splitDaysToInputs(split, exercises),
     },
   })
 
@@ -324,7 +325,7 @@ export function TrainingSplitForm({
         focus: day.focus,
         customFocus: day.customFocus ?? "",
         notes: "",
-        exercises: (day.exercises ?? []).map((ex) => toExerciseDraft(ex)),
+        exercises: (day.exercises ?? []).map((ex) => toExerciseDraft(ex, exercises)),
       }))
       applyDays(nextDays, template.splitType)
     })
@@ -338,7 +339,7 @@ export function TrainingSplitForm({
         focus: day.focus,
         customFocus: day.customFocus ?? "",
         notes: "",
-        exercises: day.exercises.map((exercise) => toExerciseDraft(exercise)),
+        exercises: day.exercises.map((exercise) => toExerciseDraft(exercise, exercises)),
       }))
       applyDays(nextDays, source.splitType)
     })

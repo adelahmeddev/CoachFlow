@@ -1,11 +1,13 @@
 const YOUTUBE_PATTERNS = [
-  /(?:youtube\.com\/(?:watch\?v=|embed|v|shorts)\/|youtu\.be\/)([a-zA-Z0-9_-]{11})[^&]*/,
+  /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+  /youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]{11})/,
+  /youtube\.com\/(?:embed|shorts|v)\/([a-zA-Z0-9_-]{11})/,
   /^[a-zA-Z0-9_-]{11}$/,
 ]
 
 export function extractYoutubeId(url: string): string | null {
   if (!url) return null
-  const cleanedUrl = url.trim().replace(/\/+/g, "/")
+  const cleanedUrl = url.trim()
   for (const pattern of YOUTUBE_PATTERNS) {
     const match = cleanedUrl.match(pattern)
     if (match) return match[1]

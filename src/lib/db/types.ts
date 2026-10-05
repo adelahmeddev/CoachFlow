@@ -244,6 +244,7 @@ export type WorkoutLog = {
 
 export type Exercise = {
   id: string
+  trainerId: string | null
   name: string
   nameAr: string | null
   muscleGroup: string
@@ -252,9 +253,18 @@ export type Exercise = {
   defaultSets: number | null
   defaultReps: number | null
   defaultRestSeconds: number | null
-  isGlobal: boolean
   youtubeUrl: string | null
   createdAt: Date
+  updatedAt: Date
+}
+
+export type ExerciseOverride = {
+  trainerId: string
+  exerciseId: string
+  name: string | null
+  nameAr: string | null
+  youtubeUrl: string | null
+  hidden: boolean
   updatedAt: Date
 }
 
@@ -353,6 +363,8 @@ export type Meal = {
   order: number
   name: string
   nameAr: string | null
+  isSpare: boolean
+  replacesMealId: string | null
 }
 
 export type MealItem = {

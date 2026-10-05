@@ -38,6 +38,7 @@ export async function createClientManuallyAction(input: {
   invalidate([
     `trainer:${session.user.trainerProfileId}:clients`,
     `trainer:${session.user.trainerProfileId}:dashboard`,
+    `trainer:${session.user.trainerProfileId}:needs-action`,
   ])
 
   return { ok: true as const, clientId: result.clientId }
@@ -67,6 +68,7 @@ export async function deleteClientAction(clientId: string) {
   invalidate([
     `trainer:${session.user.trainerProfileId}:clients`,
     `trainer:${session.user.trainerProfileId}:dashboard`,
+    `trainer:${session.user.trainerProfileId}:needs-action`,
     `client:${clientId}:profile`,
   ])
 

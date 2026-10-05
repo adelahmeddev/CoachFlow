@@ -17,6 +17,7 @@ import {
   UserPlus,
   LogOut,
   Bell,
+  Library,
 } from "lucide-react"
 import { signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
@@ -262,6 +263,20 @@ export function TrainerBottomNav() {
               <div>
                 <p className="font-bold text-xs">{isAr ? "الأنظمة الغذائية" : "Nutrition Plans"}</p>
                 <p className="text-[11px] text-muted-foreground">{isAr ? "خطط الوجبات" : "Meal plans"}</p>
+              </div>
+            </Link>
+
+            <Link
+              href="/exercise-library"
+              onClick={() => setMoreOpen(false)}
+              className="flex flex-col items-start gap-2 rounded-2xl border bg-muted/30 p-3.5 transition-colors hover:bg-brand-500/10 hover:border-brand-500/30"
+            >
+              <span className="flex size-9 items-center justify-center rounded-xl bg-brand-500/15 text-brand-600 dark:text-brand-400">
+                <Library className="size-5" />
+              </span>
+              <div>
+                <p className="font-bold text-xs">{isAr ? "مكتبة التمارين" : "Exercise Library"}</p>
+                <p className="text-[11px] text-muted-foreground">{isAr ? "إدارة التمارين والفيديوهات" : "Videos & exercises"}</p>
               </div>
             </Link>
 

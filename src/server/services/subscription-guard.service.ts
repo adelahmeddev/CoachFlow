@@ -18,6 +18,8 @@ function daysRemaining(endDate: Date | string | null): number | null {
   return diff
 }
 
+import { withCache, toIso } from "@/lib/cache"
+
 /**
  * Centralized guard — single source of truth.
  * ACTIVE with future endDate => hasActiveSubscription true.
@@ -25,35 +27,59 @@ function daysRemaining(endDate: Date | string | null): number | null {
  * Mutates ACTIVE past endDate to EXPIRED.
  */
 export async function checkSubscriptionStatus(coachId: string): Promise<SubscriptionCheckResult> {
-  try {
-    const res = await pool.query(
-      `SELECT "id", "status", "endDate" FROM "CoachSubscription" WHERE "coachId" = $1 LIMIT 1`,
-      [coachId]
-    )
-
-    if (res.rowCount === 0) {
-      return { hasActiveSubscription: false, status: null, endDate: null, daysRemaining: null, subscriptionId: null }
-    }
-
-    const row = res.rows[0] as { id: string; status: CoachSubscriptionStatus; endDate: Date }
-    let status = row.status
-    const endDate = row.endDate ? new Date(row.endDate) : null
-
-    // Auto-expire if past endDate
-    if (status === CoachSubscriptionStatus.ACTIVE && endDate && new Date() > endDate) {
+  const cached = await withCache(
+    async () => {
       try {
-        await pool.query(`UPDATE "CoachSubscription" SET "status" = 'EXPIRED'::"CoachSubscriptionStatus", "updatedAt" = NOW() WHERE "id" = $1`, [row.id])
-      } catch {}
-      status = CoachSubscriptionStatus.EXPIRED
-    }
+        const res = await pool.query(
+          `SELECT "id", "status", "endDate" FROM "CoachSubscription" WHERE "coachId" = $1 LIMIT 1`,
+          [coachId]
+        )
 
-    const remaining = endDate ? daysRemaining(endDate) : null
-    const hasActive = status === CoachSubscriptionStatus.ACTIVE && remaining !== null && remaining >= 0
+        if (res.rowCount === 0) {
+          return { hasActiveSubscription: false, status: null, endDate: null, daysRemaining: null, subscriptionId: null }
+        }
 
-    return { hasActiveSubscription: hasActive, status, endDate, daysRemaining: remaining, subscriptionId: row.id }
-  } catch {
-    // DB unreachable — fail open to avoid blocking coach (other services already fallback)
-    return { hasActiveSubscription: true, status: CoachSubscriptionStatus.ACTIVE, endDate: null, daysRemaining: null, subscriptionId: null }
+        const row = res.rows[0] as { id: string; status: CoachSubscriptionStatus; endDate: Date }
+        let status = row.status
+        const endDate = row.endDate ? new Date(row.endDate) : null
+
+        // Auto-expire if past endDate
+        if (status === CoachSubscriptionStatus.ACTIVE && endDate && new Date() > endDate) {
+          try {
+            await pool.query(`UPDATE "CoachSubscription" SET "status" = 'EXPIRED'::"CoachSubscriptionStatus", "updatedAt" = NOW() WHERE "id" = $1`, [row.id])
+          } catch {}
+          status = CoachSubscriptionStatus.EXPIRED
+        }
+
+        const remaining = endDate ? daysRemaining(endDate) : null
+        const hasActive = status === CoachSubscriptionStatus.ACTIVE && remaining !== null && remaining >= 0
+
+        return {
+          hasActiveSubscription: hasActive,
+          status,
+          endDate: toIso(endDate),
+          daysRemaining: remaining,
+          subscriptionId: row.id,
+        }
+      } catch {
+        // DB unreachable — fail open to avoid blocking coach (other services already fallback)
+        return {
+          hasActiveSubscription: true,
+          status: CoachSubscriptionStatus.ACTIVE,
+          endDate: null,
+          daysRemaining: null,
+          subscriptionId: null,
+        }
+      }
+    },
+    ["coach-subscription-status", coachId],
+    [`coach:${coachId}:subscription`],
+    120
+  )()
+
+  return {
+    ...cached,
+    endDate: cached.endDate ? new Date(cached.endDate) : null,
   }
 }
 

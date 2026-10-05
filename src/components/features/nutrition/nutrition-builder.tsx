@@ -97,7 +97,7 @@ export interface NutritionBuilderData {
 }
 
 type SubmitResult =
-  | { ok: true; id?: string }
+  | { ok: true; id?: string; newPlanId?: string }
   | { ok: false; error?: string }
 
 interface NutritionBuilderProps {
@@ -174,6 +174,7 @@ export function NutritionBuilder({
   const n = t.nutrition
   const isAr = locale === "ar"
 
+  const [currentPlanId, setCurrentPlanId] = useState(planId)
   const [name, setName] = useState(initial.name)
   const [calories, setCalories] = useState(initial.calories?.toString() ?? "")
   const [protein, setProtein] = useState(initial.proteinGrams?.toString() ?? "")
@@ -305,8 +306,8 @@ export function NutritionBuilder({
         result = await updateNutritionTemplateAction(templateId, payload)
       } else if (mode === "template") {
         result = await createNutritionTemplateAction(payload)
-      } else if (planId && clientId) {
-        result = await savePlanContentAction(planId, clientId, payload)
+      } else if (currentPlanId && clientId) {
+        result = await savePlanContentAction(currentPlanId, clientId, payload)
       } else {
         result = { ok: false, error: "MISSING_IDS" }
       }
@@ -314,6 +315,10 @@ export function NutritionBuilder({
       if (!result.ok) {
         toast.error(result.error === "UNAUTHORIZED" ? t.toasts.unauthorized : t.nutrition.genericError)
         return
+      }
+
+      if (result.newPlanId) {
+        setCurrentPlanId(result.newPlanId)
       }
 
       toast.success(

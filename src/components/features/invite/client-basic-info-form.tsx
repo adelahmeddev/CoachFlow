@@ -77,6 +77,8 @@ export function ClientBasicInfoForm({ token }: { token: string }) {
       }
       // Reload the invite page so the account (password) step is shown
       router.replace(`/invite/${token}`)
+    } catch {
+      setServerError("An unexpected error occurred. Please try again.")
     } finally {
       setIsPending(false)
     }

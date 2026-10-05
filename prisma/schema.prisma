@@ -64,6 +64,8 @@ model TrainerProfile {
   avatarFile                  CoachAvatarFile? @relation("CoachAvatar")
   posts                       CoachPost[]
   postImages                  PostImageFile[]
+  exercises                   Exercise[]
+  exerciseOverrides           ExerciseOverride[]
 }
 
 model Client {
@@ -110,6 +112,8 @@ model Client {
 
   @@index([trainerId])
   @@index([status])
+  @@index([trainerId, status])
+  @@index([trainerId, createdAt(sort: Desc)])
 }
 
 model NutritionTemplate {
@@ -135,6 +139,7 @@ model NutritionTemplate {
   supplementDefs   SupplementDef[]
 
   @@index([trainerId])
+  @@index([isGlobal])
 }
 
 model SupplementDef {
@@ -209,6 +214,7 @@ model ClientNutritionPlan {
 
   @@index([clientId])
   @@index([status])
+  @@index([clientId, status])
 }
 
 model TrainingSplit {
@@ -227,6 +233,7 @@ model TrainingSplit {
 
   @@index([clientId])
   @@index([status])
+  @@index([clientId, status])
 }
 
 model TrainingSplitDay {
@@ -269,6 +276,7 @@ model Subscription {
 
   @@index([clientId])
   @@index([status])
+  @@index([status, endDate])
 }
 
 model SubscriptionPlan {
@@ -322,7 +330,8 @@ model WorkoutLog {
 
 model Exercise {
   id                   String                @id @default(cuid())
-  name                 String                @unique
+  trainerId            String?
+  name                 String
   nameAr               String?
   muscleGroup          String
   equipment            String?
@@ -330,14 +339,32 @@ model Exercise {
   defaultSets          Int?
   defaultReps          Int?
   defaultRestSeconds   Int?
-  isGlobal             Boolean               @default(true)
   youtubeUrl           String?
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
+  trainer              TrainerProfile?       @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  overrides            ExerciseOverride[]
   splitDayExercises    SplitDayExercise[]
   templateDayExercises TemplateDayExercise[]
 
+  @@unique([trainerId, name])
+  @@index([trainerId])
   @@index([muscleGroup])
+}
+
+/// Per-coach customization of a GLOBAL exercise (rename / own link / hide).
+model ExerciseOverride {
+  trainerId  String
+  exerciseId String
+  name       String?
+  nameAr     String?
+  youtubeUrl String?
+  hidden     Boolean        @default(false)
+  updatedAt  DateTime       @updatedAt
+  trainer    TrainerProfile @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  exercise   Exercise       @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@id([trainerId, exerciseId])
 }
 
 model TrainingSplitTemplate {
@@ -437,6 +464,7 @@ model ExerciseLog {
   @@index([clientId])
   @@index([clientId, date])
   @@index([date])
+  @@index([splitDayExerciseId])
 }
 
 model DailyLog {
@@ -576,6 +604,7 @@ model Message {
 
   @@index([conversationId, createdAt])
   @@index([senderId])
+  @@index([conversationId, senderRole, readAt])
 }
 
 enum Role {
@@ -673,6 +702,7 @@ enum NotificationType {
   MEDIA_SUBMITTED
   CHECKIN_ACTIVITY
   WORKOUT_STARTED
+  MEAL_LOGGED
 }
 
 enum ProgressMediaType {

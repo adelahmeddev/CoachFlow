@@ -3,7 +3,7 @@ import { notFound } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { getCurrentSession } from "@/server/auth"
 import { getTemplateForEdit } from "@/server/services/training-split-template.service"
-import { listGlobalExercises } from "@/server/services/exercise.service"
+import { listExercisesForTrainer } from "@/server/services/exercise.service"
 import { Button } from "@/components/ui/button"
 import { TemplateForm } from "@/components/features/training-split/template-form"
 import { getI18n } from "@/lib/i18n"
@@ -29,7 +29,7 @@ export default async function EditTrainingSplitTemplatePage({
   const { templateId } = await params
   const [template, exercises] = await Promise.all([
     getTemplateForEdit(templateId, session.user.trainerProfileId),
-    listGlobalExercises(),
+    listExercisesForTrainer(session.user.trainerProfileId),
   ])
 
   if (!template) {

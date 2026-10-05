@@ -74,18 +74,26 @@ const FOCUS_ICONS: Record<string, LucideIcon> = {
 export function toExerciseDraft(
   exercise: {
     exerciseId?: string | null
-    exerciseName: string
+    exerciseName?: string | null
     targetSets?: number | string | null
     targetReps?: number | string | null
     targetWeightKg?: number | string | null
     restSeconds?: number | string | null
     notes?: string | null
     videoUrl?: string | null
-  }
+  },
+  exerciseLibrary?: ExerciseOption[]
 ): SplitDayExerciseInput {
+  const exName = exercise.exerciseName?.trim() ?? ""
+  const match = exerciseLibrary?.find(
+    (item) =>
+      (exercise.exerciseId && item.id === exercise.exerciseId) ||
+      (exName.length > 0 && item.name.toLowerCase() === exName.toLowerCase())
+  )
+
   return {
-    exerciseId: exercise.exerciseId ?? null,
-    exerciseName: exercise.exerciseName,
+    exerciseId: exercise.exerciseId ?? match?.id ?? null,
+    exerciseName: exName,
     targetSets:
       exercise.targetSets == null ? "" : String(exercise.targetSets),
     targetReps: exercise.targetReps == null ? "" : String(exercise.targetReps),
@@ -94,7 +102,7 @@ export function toExerciseDraft(
     restSeconds:
       exercise.restSeconds == null ? "" : String(exercise.restSeconds),
     notes: exercise.notes ?? "",
-    videoUrl: exercise.videoUrl ?? "",
+    videoUrl: exercise.videoUrl || match?.youtubeUrl || "",
   }
 }
 
@@ -106,7 +114,8 @@ export function DaysEditor({
   onExerciseAdded,
   scheduleMode = ScheduleMode.FIXED_WEEKDAYS,
 }: DaysEditorProps) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const isAr = locale === "ar"
   const [collapsedDays, setCollapsedDays] = useState<Record<number, boolean>>({})
   const [batchPickerDayIndex, setBatchPickerDayIndex] = useState<number | null>(null)
   const [singlePickerTarget, setSinglePickerTarget] = useState<{
@@ -239,9 +248,7 @@ export function DaysEditor({
               : exercise.defaultRestSeconds != null
                 ? String(exercise.defaultRestSeconds)
                 : "90",
-            videoUrl: current?.videoUrl
-              ? current.videoUrl
-              : exercise.youtubeUrl ?? "",
+            videoUrl: exercise.youtubeUrl ?? "",
           }
         : ex
     )
@@ -804,6 +811,14 @@ export function DaysEditor({
                                 }
                                 className="h-7 rounded-lg border-white/10 bg-white/[0.03] text-[11px]"
                               />
+                              {exercise.videoUrl &&
+                                exercise.exerciseId &&
+                                exerciseLibrary.find((o) => o.id === exercise.exerciseId)?.youtubeUrl ===
+                                  exercise.videoUrl && (
+                                  <span className="text-[10px] text-brand-600 dark:text-brand-400 font-medium px-1">
+                                    {isAr ? "رابط المكتبة" : "From library"}
+                                  </span>
+                                )}
                             </div>
                           </div>
                         )

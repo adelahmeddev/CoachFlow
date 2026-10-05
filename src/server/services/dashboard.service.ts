@@ -24,6 +24,16 @@ export async function getDashboardData(trainerProfileId: string) {
         FROM "Client"
         WHERE "trainerId" = $1
       `
+      const expiringSoonQuery = `
+        SELECT COUNT(DISTINCT s."clientId")::int AS "expiringSoon"
+        FROM "Subscription" s
+        JOIN "Client" c ON c.id = s."clientId"
+        WHERE c."trainerId" = $1
+          AND s."status" IN ('ACTIVE'::"SubscriptionStatus", 'TRIAL'::"SubscriptionStatus")
+          AND s."endDate" IS NOT NULL
+          AND s."endDate" >= NOW()
+          AND s."endDate" <= NOW() + INTERVAL '7 days'
+      `
       const recentQuery = `
         SELECT "id", "fullName", "phone", "goals", "status", "createdAt"
         FROM "Client"
@@ -41,10 +51,11 @@ export async function getDashboardData(trainerProfileId: string) {
         prevPendingAssessment: number
         prevActiveClients: number
       } | null = null
+      let expiringSoonCount = 0
       let recentClientsRes: { rows: unknown[] } | null = null
 
       try {
-        const [statsRes, recentRes] = await Promise.all([
+        const [statsRes, expiringSoonRes, recentRes] = await Promise.all([
           pool.query(statsQuery, [
             trainerProfileId,
             thirtyDaysAgo,
@@ -52,9 +63,11 @@ export async function getDashboardData(trainerProfileId: string) {
             ClientStatus.PENDING_ASSESSMENT,
             ClientStatus.ACTIVE,
           ]),
+          pool.query(expiringSoonQuery, [trainerProfileId]),
           pool.query(recentQuery, [trainerProfileId]),
         ])
         statsRow = statsRes.rows[0] as typeof statsRow
+        expiringSoonCount = (expiringSoonRes.rows[0] as { expiringSoon: number })?.expiringSoon ?? 0
         recentClientsRes = recentRes
       } catch (err) {
         // Fallback: log and return degraded data instead of crashing DashboardPage
@@ -100,6 +113,7 @@ export async function getDashboardData(trainerProfileId: string) {
           pendingAssessment,
           activeClients,
           recentlyAdded,
+          expiringSoon: expiringSoonCount,
           // Deltas: positive = up, negative = down, null = no previous data
           deltas: {
             // Total clients: new this period vs new last period
@@ -110,6 +124,8 @@ export async function getDashboardData(trainerProfileId: string) {
             activeClients: activeClients - prevActiveClients,
             // Recently added: current period vs previous period
             recentlyAdded: recentlyAdded - prevPeriodAdded,
+            // Expiring soon: zero delta baseline
+            expiringSoon: 0,
           },
         },
         recentClients: recentClients.map((client) => ({

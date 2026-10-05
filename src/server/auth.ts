@@ -141,8 +141,6 @@ export function recordLoginSuccess(identifier: string) {
 // making actions feel slow. Cache is per-process and short-lived; stale after DB reset
 // is resolved within 60s or on next cache miss.
 const CACHE_TTL_MS = 60_000
-const trainerValidationCache = new Map<string, { value: string | undefined; expires: number }>()
-const clientValidationCache = new Map<string, { value: string | undefined; expires: number }>()
 const nameCache = new Map<string, { value: string | undefined; expires: number }>()
 
 export function invalidateNameCache(userId: string) {
@@ -336,201 +334,17 @@ export const authOptions: NextAuthOptions = {
           }
         }
       }
-      // Re-validate trainerProfileId — cached 60s to avoid DB on every poll (was 2-3 queries per request)
-      if (token.role === "COACH") {
-        const trainerProfileId = token.trainerProfileId as string | undefined;
-        const userId = token.id as string | undefined;
-        if (userId) {
-          const cacheKey = `${userId}:${trainerProfileId ?? "none"}`;
-          const cached = trainerValidationCache.get(cacheKey);
-          if (cached && cached.expires > Date.now()) {
-            token.trainerProfileId = cached.value;
-          } else {
-            let querySucceeded = false;
-            try {
-              if (trainerProfileId) {
-                const existsRes = await pool.query(
-                  `SELECT "id" FROM "TrainerProfile" WHERE "id"=$1 LIMIT 1`,
-                  [trainerProfileId]
-                );
-                const exists = existsRes.rows[0] as { id: string } | undefined;
-                if (!exists) {
-                  const byUserRes = await pool.query(
-                    `SELECT "id" FROM "TrainerProfile" WHERE "userId"=$1 LIMIT 1`,
-                    [userId]
-                  );
-                  const byUser = byUserRes.rows[0] as { id: string } | undefined;
-                  if (byUser) {
-                    token.trainerProfileId = byUser.id;
-                  } else {
-                    const userRes = await pool.query(
-                      `SELECT "username", "phone" FROM "User" WHERE "id"=$1 LIMIT 1`,
-                      [userId]
-                    );
-                    const user = userRes.rows[0] as
-                      | { username: string | null; phone: string | null }
-                      | undefined;
-                    if (user) {
-                      const id = generateId();
-                      const fullName =
-                        (user as unknown as { username?: string }).username ??
-                        user.phone ??
-                        "Trainer";
-                      const phone = user.phone ?? "";
-                      try {
-                        const createdRes = await pool.query(
-                          `INSERT INTO "TrainerProfile" ("id","userId","fullName","phone","createdAt","updatedAt") VALUES ($1,$2,$3,$4,NOW(),NOW()) RETURNING *`,
-                          [id, userId, fullName, phone]
-                        );
-                        const created = createdRes.rows[0] as { id: string };
-                        token.trainerProfileId = created.id;
-                        try { updateTag(`trainer:${created.id}:dashboard`); } catch {}
-                      } catch {
-                        const retryRes = await pool.query(
-                          `SELECT "id" FROM "TrainerProfile" WHERE "userId"=$1 LIMIT 1`,
-                          [userId]
-                        );
-                        const retry = retryRes.rows[0] as { id: string } | undefined;
-                        if (retry) token.trainerProfileId = retry.id;
-                        else {
-                          token.trainerProfileId = undefined;
-                          token.role = undefined; // Invalidate ghost session
-                        }
-                      }
-                    } else {
-                      token.trainerProfileId = undefined;
-                      token.role = undefined; // User deleted from DB -> Invalidate ghost session
-                    }
-                  }
-                }
-              } else {
-                const byUserRes = await pool.query(
-                  `SELECT "id" FROM "TrainerProfile" WHERE "userId"=$1 LIMIT 1`,
-                  [userId]
-                );
-                const byUser = byUserRes.rows[0] as { id: string } | undefined;
-                if (byUser) {
-                  token.trainerProfileId = byUser.id;
-                } else {
-                  // Self-healing: auto-create a missing TrainerProfile (mirrors
-                  // authorize() and the stale-id branch above). Without this, a
-                  // COACH whose profile row was lost (manual DB edit, branch
-                  // switch/restore, reseed) keeps a profile-less session and sees
-                  // only empty states until their next full re-login.
-                  const userRes = await pool.query(
-                    `SELECT "username", "phone" FROM "User" WHERE "id"=$1 LIMIT 1`,
-                    [userId]
-                  );
-                  const user = userRes.rows[0] as
-                    | { username: string | null; phone: string | null }
-                    | undefined;
-                  if (user) {
-                    const id = generateId();
-                    const fullName =
-                      (user as unknown as { username?: string }).username ??
-                      user.phone ??
-                      "Trainer";
-                    const phone = user.phone ?? "";
-                    try {
-                      const createdRes = await pool.query(
-                        `INSERT INTO "TrainerProfile" ("id","userId","fullName","phone","createdAt","updatedAt") VALUES ($1,$2,$3,$4,NOW(),NOW()) RETURNING "id"`,
-                        [id, userId, fullName, phone]
-                      );
-                      const created = createdRes.rows[0] as { id: string } | undefined;
-                      if (created) {
-                        token.trainerProfileId = created.id;
-                        try { updateTag(`trainer:${created.id}:dashboard`); } catch {}
-                      }
-                    } catch {
-                      // Concurrent request may have created it first — adopt it.
-                      const retryRes = await pool.query(
-                        `SELECT "id" FROM "TrainerProfile" WHERE "userId"=$1 LIMIT 1`,
-                        [userId]
-                      );
-                      const retry = retryRes.rows[0] as { id: string } | undefined;
-                      if (retry) token.trainerProfileId = retry.id;
-                    }
-                  } else {
-                    // No User row: ghost session (account wiped/reseeded while
-                    // the 30-day JWT survived). Invalidate so the proxy clears
-                    // the cookie and routes to /login instead of stranding the
-                    // coach in an empty app shell with no profile.
-                    token.trainerProfileId = undefined;
-                    token.role = undefined; // Invalidate ghost session
-                  }
-                }
-              }
-              querySucceeded = true;
-            } catch {
-              // Do not block auth on DB errors; leave token as-is
-            }
-            if (querySucceeded) {
-              trainerValidationCache.set(cacheKey, {
-                value: token.trainerProfileId as string | undefined,
-                expires: Date.now() + CACHE_TTL_MS,
-              });
-            }
-          }
-        }
-      }
-      // Re-validate clientProfileId — cached 60s (was 1-2 queries per request)
-      if (token.role === "CLIENT") {
-        const clientProfileId = token.clientProfileId as string | undefined;
-        const userId = token.id as string | undefined;
-        if (userId) {
-          const cacheKey = `${userId}:${clientProfileId ?? "none"}`;
-          const cached = clientValidationCache.get(cacheKey);
-          if (cached && cached.expires > Date.now()) {
-            token.clientProfileId = cached.value;
-          } else {
-            let querySucceeded = false;
-            try {
-              if (clientProfileId) {
-                const existsRes = await pool.query(
-                  `SELECT "id" FROM "Client" WHERE "id"=$1 LIMIT 1`,
-                  [clientProfileId]
-                );
-                const exists = existsRes.rows[0] as { id: string } | undefined;
-                if (!exists) {
-                  const byUserRes = await pool.query(
-                    `SELECT "id" FROM "Client" WHERE "userId"=$1 LIMIT 1`,
-                    [userId]
-                  );
-                  const byUser = byUserRes.rows[0] as { id: string } | undefined;
-                  if (byUser) {
-                    token.clientProfileId = byUser.id;
-                  } else {
-                    const userRes = await pool.query(`SELECT "id" FROM "User" WHERE "id"=$1 LIMIT 1`, [userId]);
-                    if (!userRes.rows[0]) token.role = undefined;
-                    token.clientProfileId = undefined;
-                  }
-                }
-              } else {
-                const byUserRes = await pool.query(
-                  `SELECT "id" FROM "Client" WHERE "userId"=$1 LIMIT 1`,
-                  [userId]
-                );
-                const byUser = byUserRes.rows[0] as { id: string } | undefined;
-                if (byUser) {
-                  token.clientProfileId = byUser.id;
-                } else {
-                  const userRes = await pool.query(`SELECT "id" FROM "User" WHERE "id"=$1 LIMIT 1`, [userId]);
-                  if (!userRes.rows[0]) token.role = undefined;
-                  token.clientProfileId = undefined;
-                }
-              }
-              querySucceeded = true;
-            } catch {
-              // Do not block auth on DB errors
-            }
-            if (querySucceeded) {
-              clientValidationCache.set(cacheKey, {
-                value: token.clientProfileId as string | undefined,
-                expires: Date.now() + CACHE_TTL_MS,
-              });
-            }
-          }
-        }
+      // Fallback: If for any reason profile IDs are missing on an existing session, do a one-time lookup
+      if (token.role === "COACH" && !token.trainerProfileId && userId) {
+        try {
+          const pRes = await pool.query(`SELECT "id" FROM "TrainerProfile" WHERE "userId"=$1 LIMIT 1`, [userId])
+          if (pRes.rows[0]) token.trainerProfileId = (pRes.rows[0] as { id: string }).id
+        } catch {}
+      } else if (token.role === "CLIENT" && !token.clientProfileId && userId) {
+        try {
+          const cRes = await pool.query(`SELECT "id" FROM "Client" WHERE "userId"=$1 LIMIT 1`, [userId])
+          if (cRes.rows[0]) token.clientProfileId = (cRes.rows[0] as { id: string }).id
+        } catch {}
       }
       return token;
     },

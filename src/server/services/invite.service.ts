@@ -183,32 +183,40 @@ export async function submitClientBasicInfo(
       ? STATUS_MAP[(parsed.data as unknown as { status: keyof typeof STATUS_MAP }).status] ?? ClientStatus.PENDING_ASSESSMENT
       : ClientStatus.PENDING_ASSESSMENT
 
-  const goalsArray = `{${(goals as string[]).join(",")}}`
-  await pool.query(
-    `UPDATE "Client" SET "fullName" = $1, "birthDate" = $2, "phone" = $3, "goals" = $4::"Goal"[], "status" = $5::"ClientStatus", "basicInfoCompletedAt" = $6, "updatedAt" = NOW(), "injuries" = $8, "healthConditions" = $9, "medications" = $10 WHERE "id" = $7`,
-    [fullName, new Date(`${birthDate}T00:00:00Z`), phone, goalsArray, statusValue, new Date(), invite.clientId, injuries ?? null, healthConditions ?? null, medications ?? null]
-  )
+  try {
+    const goalsArray = `{${(goals as string[]).join(",")}}`
+    await pool.query(
+      `UPDATE "Client" SET "fullName" = $1, "birthDate" = $2, "phone" = $3, "goals" = $4::"Goal"[], "status" = $5::"ClientStatus", "basicInfoCompletedAt" = $6, "updatedAt" = NOW(), "injuries" = $8, "healthConditions" = $9, "medications" = $10 WHERE "id" = $7`,
+      [fullName, new Date(`${birthDate}T00:00:00Z`), phone, goalsArray, statusValue, new Date(), invite.clientId, injuries ?? null, healthConditions ?? null, medications ?? null]
+    )
 
-  if (hasInBodyMeasurements(inbody)) {
-    await createBodyComposition(invite.clientId, {
-      date: new Date(),
-      source: BodyCompositionSource.CLIENT,
-      heightCm: inbody!.heightCm ?? null,
-      age: inbody!.age ?? null,
-      weightKg: inbody!.weightKg ?? null,
-      muscleMassKg: inbody!.muscleMassKg ?? null,
-      bodyFatKg: inbody!.bodyFatKg ?? null,
-      bodyWaterPct: inbody!.bodyWaterPct ?? null,
-      fatControlKg: inbody!.fatControlKg ?? null,
-      bmrKcal: inbody!.bmrKcal ?? null,
-      fitnessScore: inbody!.fitnessScore ?? null,
-      waistHipRatio: inbody!.waistHipRatio ?? null,
-      visceralFatLevel: inbody!.visceralFatLevel ?? null,
-      notes: inbody!.notes ?? null,
-    })
+    if (hasInBodyMeasurements(inbody)) {
+      await createBodyComposition(invite.clientId, {
+        date: new Date(),
+        source: BodyCompositionSource.CLIENT,
+        heightCm: inbody!.heightCm ?? null,
+        age: inbody!.age ?? null,
+        weightKg: inbody!.weightKg ?? null,
+        muscleMassKg: inbody!.muscleMassKg ?? null,
+        bodyFatKg: inbody!.bodyFatKg ?? null,
+        bodyWaterPct: inbody!.bodyWaterPct ?? null,
+        fatControlKg: inbody!.fatControlKg ?? null,
+        bmrKcal: inbody!.bmrKcal ?? null,
+        fitnessScore: inbody!.fitnessScore ?? null,
+        waistHipRatio: inbody!.waistHipRatio ?? null,
+        visceralFatLevel: inbody!.visceralFatLevel ?? null,
+        notes: inbody!.notes ?? null,
+      })
+    }
+
+    return { ok: true }
+  } catch (error) {
+    console.error("submitClientBasicInfo error:", error)
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to submit information. Please try again.",
+    }
   }
-
-  return { ok: true }
 }
 
 export async function getOrCreateInviteSlug(trainerProfileId: string): Promise<string> {
@@ -362,7 +370,11 @@ export async function submitJoinClient(
         fieldErrors: { phone: ["Phone already registered"] },
       }
     }
-    throw error
+    console.error("submitJoinClient error:", error)
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to complete registration. Please try again.",
+    }
   }
 }
 
@@ -463,7 +475,11 @@ export async function submitClientAccountInfo(
         error: "An account with this phone number already exists.",
       }
     }
-    throw error
+    console.error("submitClientAccountInfo error:", error)
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to create account. Please try again.",
+    }
   }
 }
 

@@ -1,4 +1,4 @@
-﻿import { Suspense } from "react"
+import { Suspense } from "react"
 import { getCurrentSession } from "@/server/auth"
 import { getTrainerClients } from "@/server/services/client.service"
 import { clientsListQuerySchema } from "@/lib/validations/client"
@@ -27,14 +27,21 @@ export default async function ClientsPage({
   const trainerProfileId = session?.user.trainerProfileId
 
   const rawParams = await searchParams
-  const parsed = clientsListQuerySchema.safeParse({
-    q: rawParams.q,
-    goal: rawParams.goal,
-    status: rawParams.status,
-    page: rawParams.page,
-    perPage: rawParams.perPage,
-  })
-  const params = parsed.success ? parsed.data : { page: 1, perPage: 10 }
+  const qParsed = typeof rawParams.q === "string" ? rawParams.q.trim().slice(0, 100) : undefined
+  const goalResult = clientsListQuerySchema.shape.goal.safeParse(rawParams.goal)
+  const statusResult = clientsListQuerySchema.shape.status.safeParse(rawParams.status)
+  const addedWithinResult = clientsListQuerySchema.shape.addedWithin.safeParse(rawParams.addedWithin)
+  const pageResult = clientsListQuerySchema.shape.page.safeParse(rawParams.page)
+  const perPageResult = clientsListQuerySchema.shape.perPage.safeParse(rawParams.perPage)
+
+  const params = {
+    q: qParsed || undefined,
+    goal: goalResult.success ? goalResult.data : undefined,
+    status: statusResult.success ? statusResult.data : undefined,
+    addedWithin: addedWithinResult.success ? addedWithinResult.data : undefined,
+    page: pageResult.success ? pageResult.data : 1,
+    perPage: perPageResult.success ? perPageResult.data : 10,
+  }
 
   if (!trainerProfileId) {
     return (
@@ -47,7 +54,11 @@ export default async function ClientsPage({
 
   const result = await getTrainerClients(trainerProfileId, params)
 
-  const hasFilters = Boolean(params.q) || Boolean(params.goal) || Boolean(params.status)
+  const hasFilters =
+    Boolean(params.q) ||
+    Boolean(params.goal) ||
+    Boolean(params.status) ||
+    Boolean(params.addedWithin)
   const showNoResults = hasFilters && result.clients.length === 0
   const showNoClients = !hasFilters && result.total === 0
 

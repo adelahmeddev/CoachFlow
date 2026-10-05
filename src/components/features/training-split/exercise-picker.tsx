@@ -46,10 +46,7 @@ export function ExercisePicker({
     const filtered = exercises.filter((exercise) => {
       const q = query.trim().toLowerCase()
       if (!q) return true
-      return (
-        exercise.name.toLowerCase().includes(q) ||
-        (exercise.nameAr ?? "").toLowerCase().includes(q)
-      )
+      return exercise.name.toLowerCase().includes(q)
     })
     const map = new Map<string, ExerciseOption[]>()
     for (const exercise of filtered) {

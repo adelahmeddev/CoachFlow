@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState } from "react"
 import { useForm } from "react-hook-form"
@@ -80,6 +80,7 @@ export function InviteAccountForm({
       })
     } catch {
       toast.error("Something went wrong. Please try again.")
+    } finally {
       setIsPending(false)
     }
   }

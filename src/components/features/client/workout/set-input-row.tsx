@@ -33,7 +33,7 @@ export function SetInputRow({
       <CardContent className="space-y-3 p-4">
         <div className="flex items-center justify-between gap-3">
           <p className="font-medium min-w-0 flex-1">
-            <span className="line-clamp-2 break-words">{isAr && exercise.exerciseNameAr ? exercise.exerciseNameAr : exercise.exerciseName}</span>
+            <span className="line-clamp-2 break-words">{exercise.exerciseName}</span>
             <span className="ms-2 text-xs text-muted-foreground block truncate">
               {isAr ? `المجموعة ${setNumber + 1} من ${exercise.sets}` : `Set ${setNumber + 1} / ${exercise.sets}`}
             </span>

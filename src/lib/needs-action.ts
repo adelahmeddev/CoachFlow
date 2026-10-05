@@ -7,17 +7,20 @@
 
 export type ActionPriority = "HIGH" | "MEDIUM" | "LOW"
 
-export type NeedActionKind =
-  | "inactive_5d"
-  | "inactive_3d"
-  | "sub_expired"
-  | "sub_expiring"
-  | "no_inbody"
-  | "payment_pending"
-  | "missed_checkin"
-  | "checkin_today"
-  | "media_pending"
-  | "goal_deadline"
+export const NEED_ACTION_KINDS = [
+  "inactive_5d",
+  "inactive_3d",
+  "sub_expired",
+  "sub_expiring",
+  "no_inbody",
+  "payment_pending",
+  "missed_checkin",
+  "checkin_today",
+  "media_pending",
+  "goal_deadline",
+] as const
+
+export type NeedActionKind = (typeof NEED_ACTION_KINDS)[number]
 
 export interface NeedActionItem {
   clientId: string

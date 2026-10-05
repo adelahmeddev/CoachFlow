@@ -49,13 +49,19 @@ export function ClientsFilters() {
   const currentStatus = searchParams.get("status") ?? "ALL"
   const currentGoal = searchParams.get("goal") ?? "ALL"
   const currentQ = searchParams.get("q") ?? ""
+  const currentAddedWithin = searchParams.get("addedWithin")
 
   const hasFilters =
-    currentQ !== "" || currentStatus !== "ALL" || currentGoal !== "ALL"
+    currentQ !== "" ||
+    currentStatus !== "ALL" ||
+    currentGoal !== "ALL" ||
+    Boolean(currentAddedWithin)
 
-  const activeCount = [currentStatus, currentGoal].filter(
-    (v) => v !== "ALL"
-  ).length
+  const activeCount = [
+    currentStatus !== "ALL" ? currentStatus : null,
+    currentGoal !== "ALL" ? currentGoal : null,
+    currentAddedWithin,
+  ].filter(Boolean).length
 
   const updateParams = useCallback(
     (patch: Record<string, string | null>) => {
@@ -112,6 +118,22 @@ export function ClientsFilters() {
         </SelectContent>
       </Select>
 
+      {currentAddedWithin && (
+        <Badge
+          variant="secondary"
+          className="h-9 gap-1.5 cursor-pointer px-2.5 text-xs font-normal border hover:bg-muted"
+          onClick={() => updateParams({ addedWithin: null })}
+          title={locale === "ar" ? "إزالة التصفية" : "Remove filter"}
+        >
+          <span>
+            {locale === "ar"
+              ? `أضيفوا آخر ${currentAddedWithin} يوم`
+              : `Added last ${currentAddedWithin}d`}
+          </span>
+          <span className="text-muted-foreground ms-0.5 hover:text-foreground">✕</span>
+        </Badge>
+      )}
+
       {hasFilters && (
         <Button
           type="button"
@@ -119,7 +141,7 @@ export function ClientsFilters() {
           size="sm"
           className="gap-1.5"
           onClick={() =>
-            updateParams({ q: null, status: null, goal: null })
+            updateParams({ q: null, status: null, goal: null, addedWithin: null })
           }
         >
           <RotateCcw className="size-3.5" aria-hidden="true" />

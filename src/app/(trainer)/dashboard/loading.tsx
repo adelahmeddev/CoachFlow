@@ -1,31 +1,29 @@
-﻿import { Skeleton } from "@/components/ui/skeleton"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { StatCardSkeleton } from "@/components/features/dashboard/stat-card"
-import { RecentClientsSkeleton } from "@/components/features/dashboard/recent-clients"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function DashboardLoading() {
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-4 w-80" />
-      </div>
+    <div className="space-y-6 animate-pulse">
+      {/* Hero Header Skeleton */}
+      <Skeleton className="h-44 w-full rounded-[24px]" />
 
+      {/* 4 Stat Cards Skeleton */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCardSkeleton />
-        <StatCardSkeleton />
-        <StatCardSkeleton />
-        <StatCardSkeleton />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-32 rounded-2xl" />
+        ))}
       </div>
 
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-5 w-36" />
-        </CardHeader>
-        <CardContent>
-          <RecentClientsSkeleton />
-        </CardContent>
-      </Card>
+      {/* Focus & Today Gym Skeleton */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Skeleton className="h-64 lg:col-span-2 rounded-2xl" />
+        <Skeleton className="h-64 rounded-2xl" />
+      </div>
+
+      {/* Needs Action & Recent Clients Skeleton */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Skeleton className="h-72 lg:col-span-2 rounded-2xl" />
+        <Skeleton className="h-72 rounded-2xl" />
+      </div>
     </div>
   )
 }
