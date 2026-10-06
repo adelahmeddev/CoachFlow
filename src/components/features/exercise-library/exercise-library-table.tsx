@@ -7,6 +7,7 @@ import {
   Play,
   AlertCircle,
   ExternalLink,
+  Layers,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -28,7 +29,53 @@ import { useI18n } from "@/lib/i18n/client"
 import { extractYoutubeId, getThumbnailUrl } from "@/lib/utils/video"
 import { ExerciseFormDialog } from "@/components/features/exercise-library/exercise-form-dialog"
 import { RemoveExerciseButton } from "@/components/features/exercise-library/remove-exercise-button"
+import { MUSCLE_GROUPS } from "@/lib/constants"
+import { getMuscleGroupLabel } from "@/lib/i18n/labels"
+import { cn } from "@/lib/utils"
 import type { LibraryExercise } from "@/server/services/exercise.service"
+
+const MUSCLE_ACCENTS: Record<string, { border: string; bg: string; text: string }> = {
+  CHEST: {
+    border: "border-amber-500/30",
+    bg: "bg-amber-500/10",
+    text: "text-amber-600 dark:text-amber-400",
+  },
+  BACK: {
+    border: "border-sky-500/30",
+    bg: "bg-sky-500/10",
+    text: "text-sky-600 dark:text-sky-400",
+  },
+  SHOULDERS: {
+    border: "border-fuchsia-500/30",
+    bg: "bg-fuchsia-500/10",
+    text: "text-fuchsia-600 dark:text-fuchsia-400",
+  },
+  ARMS: {
+    border: "border-blue-500/30",
+    bg: "bg-blue-500/10",
+    text: "text-blue-600 dark:text-blue-400",
+  },
+  LEGS: {
+    border: "border-purple-500/30",
+    bg: "bg-purple-500/10",
+    text: "text-purple-600 dark:text-purple-400",
+  },
+  GLUTES: {
+    border: "border-rose-500/30",
+    bg: "bg-rose-500/10",
+    text: "text-rose-600 dark:text-rose-400",
+  },
+  CORE: {
+    border: "border-emerald-500/30",
+    bg: "bg-emerald-500/10",
+    text: "text-emerald-600 dark:text-emerald-400",
+  },
+  CARDIO: {
+    border: "border-red-500/30",
+    bg: "bg-red-500/10",
+    text: "text-red-600 dark:text-red-400",
+  },
+}
 
 interface ExerciseLibraryTableProps {
   initialExercises: LibraryExercise[]
@@ -40,6 +87,7 @@ export function ExerciseLibraryTable({ initialExercises }: ExerciseLibraryTableP
 
   const [query, setQuery] = useState("")
   const [videoFilter, setVideoFilter] = useState("ALL") // ALL | HAS_VIDEO | NO_VIDEO
+  const [muscleFilter, setMuscleFilter] = useState("ALL") // ALL | chest | back ...
   const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null)
 
   // Filtered exercises
@@ -48,6 +96,13 @@ export function ExerciseLibraryTable({ initialExercises }: ExerciseLibraryTableP
       if (query.trim()) {
         const q = query.trim().toLowerCase()
         if (!ex.name.toLowerCase().includes(q)) return false
+      }
+
+      // Muscle filter
+      if (muscleFilter !== "ALL") {
+        if ((ex.muscleGroup || "").toLowerCase() !== muscleFilter.toLowerCase()) {
+          return false
+        }
       }
 
       // Video filter
@@ -59,7 +114,7 @@ export function ExerciseLibraryTable({ initialExercises }: ExerciseLibraryTableP
 
       return true
     })
-  }, [initialExercises, query, videoFilter])
+  }, [initialExercises, query, muscleFilter, videoFilter])
 
   return (
     <div className="space-y-4">
@@ -76,6 +131,23 @@ export function ExerciseLibraryTable({ initialExercises }: ExerciseLibraryTableP
               className="h-9 ps-9 bg-card shadow-soft"
             />
           </div>
+
+          {/* Muscle Category filter */}
+          <Select value={muscleFilter} onValueChange={setMuscleFilter}>
+            <SelectTrigger className="h-9 w-full sm:w-[160px] bg-card shadow-soft">
+              <SelectValue placeholder={t.exerciseLibrary.filterMuscleGroup} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">
+                {isAr ? "كل المجموعات العضلية" : "All Muscle Groups"}
+              </SelectItem>
+              {MUSCLE_GROUPS.map((group) => (
+                <SelectItem key={group} value={group}>
+                  {getMuscleGroupLabel(group, locale)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           {/* Video filter */}
           <Select value={videoFilter} onValueChange={setVideoFilter}>
@@ -112,6 +184,7 @@ export function ExerciseLibraryTable({ initialExercises }: ExerciseLibraryTableP
               <thead>
                 <tr className="border-b bg-muted/40 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   <th className="py-3 px-4 text-start">{isAr ? "التمرين" : "Exercise"}</th>
+                  <th className="py-3 px-4 text-start">{t.exerciseLibrary.form.muscleGroup}</th>
                   <th className="py-3 px-4 text-start">{isAr ? "النوع" : "Origin"}</th>
                   <th className="py-3 px-4 text-start">{isAr ? "الفيديو" : "Video"}</th>
                   <th className="py-3 px-4 text-end">{isAr ? "الإجراءات" : "Actions"}</th>
@@ -121,6 +194,7 @@ export function ExerciseLibraryTable({ initialExercises }: ExerciseLibraryTableP
                 {filteredExercises.map((exercise) => {
                   const youtubeId = exercise.youtubeUrl ? extractYoutubeId(exercise.youtubeUrl) : null
                   const hasVideo = Boolean(youtubeId)
+                  const accent = MUSCLE_ACCENTS[exercise.muscleGroup.toUpperCase()]
 
                   return (
                     <tr
@@ -134,6 +208,21 @@ export function ExerciseLibraryTable({ initialExercises }: ExerciseLibraryTableP
                             {exercise.name}
                           </p>
                         </div>
+                      </td>
+
+                      {/* Muscle Group Badge */}
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-xs font-medium border",
+                            accent?.border || "border-border",
+                            accent?.bg || "bg-muted/50",
+                            accent?.text || "text-foreground"
+                          )}
+                        >
+                          {getMuscleGroupLabel(exercise.muscleGroup, locale)}
+                        </Badge>
                       </td>
 
                       {/* Origin Badge */}

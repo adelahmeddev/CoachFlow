@@ -8,10 +8,11 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
 function useCountUp(target: number, duration = 900) {
+  const safeTarget = typeof target === "number" && Number.isFinite(target) ? target : 0
   const [value, setValue] = useState(0)
   useEffect(() => {
     if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setValue(target)
+      setValue(safeTarget)
       return
     }
     let raf = 0
@@ -20,13 +21,13 @@ function useCountUp(target: number, duration = 900) {
       const p = Math.min(1, (now - start) / duration)
       // easeOutCubic
       const eased = 1 - Math.pow(1 - p, 3)
-      setValue(Math.round(eased * target))
+      setValue(Math.round(eased * safeTarget))
       if (p < 1) raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [target, duration])
-  return value
+  }, [safeTarget, duration])
+  return Number.isFinite(value) ? value : 0
 }
 
 type StatIconName = "users" | "clock" | "check" | "calendar" | "alert"
@@ -43,7 +44,7 @@ interface StatCardProps {
 }
 
 function DeltaBadge({ delta }: { delta: number }) {
-  if (delta === 0) {
+  if (typeof delta !== "number" || !Number.isFinite(delta) || delta === 0) {
     return (
       <span
         className="inline-flex items-center gap-0.5 rounded-md bg-muted/60 px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground"
@@ -87,7 +88,8 @@ const iconMap = {
 } as const
 
 export function StatCard({ label, value, iconName, delta, variant = "brand", sublabel, href }: StatCardProps) {
-  const animated = useCountUp(value)
+  const safeValue = typeof value === "number" && Number.isFinite(value) ? value : 0
+  const animated = useCountUp(safeValue)
   const Icon = iconMap[iconName]
   const gradientMap = {
     brand: "from-brand-500 to-brand-600 ring-brand-600/20 dark:from-brand-500 dark:to-brand-600",

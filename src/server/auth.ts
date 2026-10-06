@@ -16,10 +16,11 @@ if (!process.env.NEXTAUTH_URL && process.env.VERCEL_URL) {
 }
 
 function getSecureCookie() {
-  if (process.env.NODE_ENV === "production") return true;
   const host = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
     : process.env.NEXTAUTH_URL || "";
+  if (host.startsWith("http://localhost") || host.startsWith("http://127.0.0.1")) return false;
+  if (process.env.NODE_ENV === "production") return true;
   return host.startsWith("https://");
 }
 

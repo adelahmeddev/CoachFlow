@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { GlassSheen } from "./liquid-glass/glass-sheen"
 import { YouTubePlayer } from "@/components/ui/youtube-player"
 import { useI18n } from "@/lib/i18n/client"
-import { getExerciseName, getMuscleGroupLabel, getEquipmentLabel } from "@/lib/i18n/labels"
+import { getExerciseName, getMuscleGroupLabel } from "@/lib/i18n/labels"
 import type { ExerciseOption } from "@/lib/exercise-safety"
 import { cn } from "@/lib/utils"
 import {
@@ -137,7 +137,7 @@ export function BatchExercisePicker({
   const muscleGroups = useMemo(() => {
     const set = new Set<string>()
     for (const ex of exercises) {
-      if (ex.muscleGroup) set.add(ex.muscleGroup)
+      if (ex.muscleGroup) set.add(ex.muscleGroup.toLowerCase())
     }
     return Array.from(set).sort()
   }, [exercises])
@@ -146,14 +146,14 @@ export function BatchExercisePicker({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return exercises.filter((ex) => {
-      if (activeMuscleGroup !== "ALL" && ex.muscleGroup !== activeMuscleGroup) {
+      const exMuscle = (ex.muscleGroup || "").toLowerCase()
+      if (activeMuscleGroup !== "ALL" && exMuscle !== activeMuscleGroup.toLowerCase()) {
         return false
       }
       if (!q) return true
       return (
         ex.name.toLowerCase().includes(q) ||
-        ex.muscleGroup.toLowerCase().includes(q) ||
-        (ex.equipment ?? "").toLowerCase().includes(q)
+        exMuscle.includes(q)
       )
     })
   }, [exercises, query, activeMuscleGroup])
@@ -283,7 +283,7 @@ export function BatchExercisePicker({
               <Search className="absolute start-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 autoFocus
-                placeholder={`${t.trainingSplit.searchExercise} (by name, muscle, or equipment)...`}
+                placeholder={`${t.trainingSplit.searchExercise} (by exercise name or muscle group)...`}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="h-10 ps-10 pe-9 rounded-2xl border-white/15 bg-white/[0.04] backdrop-blur-md text-sm transition-all focus:border-brand-400 focus:ring-1 focus:ring-brand-400/50"
@@ -329,7 +329,9 @@ export function BatchExercisePicker({
             </button>
             {muscleGroups.map((group) => {
               const label = getMuscleGroupLabel(group, locale)
-              const count = exercises.filter((e) => e.muscleGroup === group).length
+              const count = exercises.filter(
+                (e) => (e.muscleGroup || "").toLowerCase() === group.toLowerCase()
+              ).length
               const isCurrent = activeMuscleGroup === group
               const accent = MUSCLE_ACCENTS[group.toUpperCase()]
 
@@ -375,7 +377,6 @@ export function BatchExercisePicker({
                 {filtered.map((exercise) => {
                   const isSelected = selectedMap.has(exercise.id)
                   const muscleLabel = getMuscleGroupLabel(exercise.muscleGroup, locale)
-                  const equipmentLabel = getEquipmentLabel(exercise.equipment, locale)
                   const accent = MUSCLE_ACCENTS[exercise.muscleGroup.toUpperCase()]
 
                   return (
@@ -426,14 +427,9 @@ export function BatchExercisePicker({
                         </h4>
                       </div>
 
-                      {/* Card Footer: Target sets/reps, equipment, and video preview button */}
+                      {/* Card Footer: Target sets/reps and video preview button */}
                       <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between gap-2 text-xs">
                         <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                          {equipmentLabel && (
-                            <span className="rounded-md bg-white/[0.04] px-1.5 py-0.5 border border-white/5 truncate max-w-[90px]">
-                              {equipmentLabel}
-                            </span>
-                          )}
                           <span className="font-mono font-medium text-foreground/80">
                             {exercise.defaultSets ?? 3}×{exercise.defaultReps ?? 10}
                             {exercise.defaultRestSeconds ? ` · ${exercise.defaultRestSeconds}s` : ""}
@@ -503,11 +499,6 @@ export function BatchExercisePicker({
                     <Badge variant="outline" className="text-[10px]">
                       {getMuscleGroupLabel(previewExercise.muscleGroup, locale)}
                     </Badge>
-                    {previewExercise.equipment && (
-                      <span className="text-xs text-muted-foreground">
-                        {previewExercise.equipment}
-                      </span>
-                    )}
                   </div>
                 </div>
 

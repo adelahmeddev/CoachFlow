@@ -166,9 +166,9 @@ export default async function DashboardPage() {
         <StaggerItem>
           <StatCard
             label={t.dashboard.totalClients}
-            value={stats.totalClients}
+            value={stats.totalClients ?? 0}
             iconName="users"
-            delta={stats.deltas.totalClients}
+            delta={stats.deltas?.totalClients}
             variant="brand"
             sublabel={isAr ? "إجمالي الأبطال" : "total athletes"}
             href="/clients"
@@ -177,9 +177,9 @@ export default async function DashboardPage() {
         <StaggerItem>
           <StatCard
             label={t.dashboard.pendingAssessment}
-            value={stats.pendingAssessment}
+            value={stats.pendingAssessment ?? 0}
             iconName="clock"
-            delta={stats.deltas.pendingAssessment}
+            delta={stats.deltas?.pendingAssessment}
             variant="muscle"
             sublabel={isAr ? "في انتظار التقييم" : "awaiting assessment"}
             href="/clients?status=PENDING_ASSESSMENT"
@@ -188,9 +188,9 @@ export default async function DashboardPage() {
         <StaggerItem>
           <StatCard
             label={t.dashboard.expiringSoon}
-            value={stats.expiringSoon}
+            value={stats.expiringSoon ?? 0}
             iconName="alert"
-            delta={stats.deltas.expiringSoon}
+            delta={stats.deltas?.expiringSoon}
             variant="energy"
             sublabel={isAr ? "خلال 7 أيام" : "within 7 days"}
             href="/needs-action?kind=sub_expiring"
@@ -199,9 +199,9 @@ export default async function DashboardPage() {
         <StaggerItem>
           <StatCard
             label={t.dashboard.recentlyAdded}
-            value={stats.recentlyAdded}
+            value={stats.recentlyAdded ?? 0}
             iconName="calendar"
-            delta={stats.deltas.recentlyAdded}
+            delta={stats.deltas?.recentlyAdded}
             variant="energy"
             sublabel={isAr ? "جداد آخر 30 يوم" : "last 30 days"}
             href="/clients?addedWithin=30"

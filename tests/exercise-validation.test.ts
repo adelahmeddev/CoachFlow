@@ -179,3 +179,40 @@ describe("toExerciseDraft workout builder auto-fill", async () => {
     assert.strictEqual(draftUndefined.videoUrl, "")
   })
 })
+
+describe("Exercise category heuristics & constants", async () => {
+  const { MUSCLE_GROUPS } = await import("../src/lib/constants")
+  const { guessMuscleGroup } = await import("../scripts/migrate-exercise-categories")
+
+  it("exports all 8 canonical muscle groups", () => {
+    assert.strictEqual(MUSCLE_GROUPS.length, 8)
+    assert.ok(MUSCLE_GROUPS.includes("chest"))
+    assert.ok(MUSCLE_GROUPS.includes("back"))
+    assert.ok(MUSCLE_GROUPS.includes("shoulders"))
+    assert.ok(MUSCLE_GROUPS.includes("arms"))
+    assert.ok(MUSCLE_GROUPS.includes("legs"))
+    assert.ok(MUSCLE_GROUPS.includes("glutes"))
+    assert.ok(MUSCLE_GROUPS.includes("core"))
+    assert.ok(MUSCLE_GROUPS.includes("cardio"))
+  })
+
+  it("correctly guesses muscle groups from English and Arabic keywords", () => {
+    assert.strictEqual(guessMuscleGroup("Barbell Incline Bench Press"), "chest")
+    assert.strictEqual(guessMuscleGroup("تفتيح صدر بالدمبل"), "chest")
+    assert.strictEqual(guessMuscleGroup("Lat Pulldown"), "back")
+    assert.strictEqual(guessMuscleGroup("سحب ظهر أمامي"), "back")
+    assert.strictEqual(guessMuscleGroup("Dumbbell Lateral Raise"), "shoulders")
+    assert.strictEqual(guessMuscleGroup("رفرفة كتف جانبي"), "shoulders")
+    assert.strictEqual(guessMuscleGroup("Barbell Bicep Curl"), "arms")
+    assert.strictEqual(guessMuscleGroup("ترايسبس كابل مستقيم"), "arms")
+    assert.strictEqual(guessMuscleGroup("Barbell Back Squat"), "legs")
+    assert.strictEqual(guessMuscleGroup("سكوات بالأوزان"), "legs")
+    assert.strictEqual(guessMuscleGroup("Barbell Hip Thrust"), "glutes")
+    assert.strictEqual(guessMuscleGroup("جسر حوض للأرداف"), "glutes")
+    assert.strictEqual(guessMuscleGroup("Hanging Leg Raise"), "core")
+    assert.strictEqual(guessMuscleGroup("بلانك لشد البطن"), "core")
+    assert.strictEqual(guessMuscleGroup("Treadmill Running"), "cardio")
+    assert.strictEqual(guessMuscleGroup("كارديو دراجة هوائية"), "cardio")
+  })
+})
+

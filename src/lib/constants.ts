@@ -303,3 +303,30 @@ export const SPLIT_TYPE_DEFAULT_TEMPLATES: Record<SplitType, SplitTypeTemplate> 
 
 export const MAX_TRAINING_DAYS = 7
 export const MIN_TRAINING_DAYS = 1
+
+export const MUSCLE_GROUPS = [
+  "chest",
+  "back",
+  "shoulders",
+  "arms",
+  "legs",
+  "glutes",
+  "core",
+  "cardio",
+] as const
+
+export type MuscleGroup = (typeof MUSCLE_GROUPS)[number]
+
+export const EQUIPMENT_OPTIONS = [
+  "barbell",
+  "dumbbell",
+  "machine",
+  "cable",
+  "bodyweight",
+  "band",
+  "kettlebell",
+  "cardio",
+] as const
+
+export type EquipmentOption = (typeof EQUIPMENT_OPTIONS)[number]
+

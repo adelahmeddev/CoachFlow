@@ -91,21 +91,23 @@ export async function getDashboardData(trainerProfileId: string) {
         recentClientsRes = recentClientsRes ?? { rows: [] as unknown[] }
       }
 
-      const totalClients = statsRow!.totalClients
-      const pendingAssessment = statsRow!.pendingAssessment
-      const activeClients = statsRow!.activeClients
-      const recentlyAdded = statsRow!.recentlyAdded
-      const prevPeriodAdded = statsRow!.prevPeriodAdded
-      const prevPendingAssessment = statsRow!.prevPendingAssessment
-      const prevActiveClients = statsRow!.prevActiveClients
-      const recentClients = (recentClientsRes!.rows as unknown) as {
+      const totalClients = Number(statsRow?.totalClients) || 0
+      const pendingAssessment = Number(statsRow?.pendingAssessment) || 0
+      const activeClients = Number(statsRow?.activeClients) || 0
+      const recentlyAdded = Number(statsRow?.recentlyAdded) || 0
+      const prevPeriodAdded = Number(statsRow?.prevPeriodAdded) || 0
+      const prevPendingAssessment = Number(statsRow?.prevPendingAssessment) || 0
+      const prevActiveClients = Number(statsRow?.prevActiveClients) || 0
+      const expiringSoon = Number(expiringSoonCount) || 0
+
+      const recentClients = (recentClientsRes?.rows as unknown as {
         id: string
         fullName: string | null
         phone: string | null
         goals: Goal[]
         status: ClientStatus
         createdAt: Date
-      }[]
+      }[]) ?? []
 
       return {
         stats: {
@@ -113,7 +115,7 @@ export async function getDashboardData(trainerProfileId: string) {
           pendingAssessment,
           activeClients,
           recentlyAdded,
-          expiringSoon: expiringSoonCount,
+          expiringSoon,
           // Deltas: positive = up, negative = down, null = no previous data
           deltas: {
             // Total clients: new this period vs new last period

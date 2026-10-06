@@ -46,13 +46,17 @@ export function ExercisePicker({
     const filtered = exercises.filter((exercise) => {
       const q = query.trim().toLowerCase()
       if (!q) return true
-      return exercise.name.toLowerCase().includes(q)
+      return (
+        exercise.name.toLowerCase().includes(q) ||
+        (exercise.muscleGroup || "").toLowerCase().includes(q)
+      )
     })
     const map = new Map<string, ExerciseOption[]>()
     for (const exercise of filtered) {
-      const list = map.get(exercise.muscleGroup) ?? []
+      const groupKey = (exercise.muscleGroup || "chest").toLowerCase()
+      const list = map.get(groupKey) ?? []
       list.push(exercise)
-      map.set(exercise.muscleGroup, list)
+      map.set(groupKey, list)
     }
     return [...map.entries()]
   }, [exercises, query, open])

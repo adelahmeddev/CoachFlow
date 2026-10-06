@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2, Plus, Pencil, Video } from "lucide-react"
+import { Loader2, Plus, Pencil, Video, Layers } from "lucide-react"
 import { toast } from "sonner"
 import {
   Sheet,
@@ -15,6 +15,13 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { YouTubePlayer } from "@/components/ui/youtube-player"
 import {
   libraryExerciseSchema,
@@ -25,6 +32,8 @@ import {
   updateExerciseAction,
 } from "@/server/actions/exercise-library"
 import { useI18n } from "@/lib/i18n/client"
+import { MUSCLE_GROUPS } from "@/lib/constants"
+import { getMuscleGroupLabel } from "@/lib/i18n/labels"
 import type { LibraryExercise } from "@/server/services/exercise.service"
 
 interface ExerciseFormDialogProps {
@@ -48,28 +57,26 @@ export function ExerciseFormDialog({
     register,
     handleSubmit,
     watch,
+    setValue,
     reset,
     formState: { errors },
   } = useForm<LibraryExerciseInput>({
     resolver: zodResolver(libraryExerciseSchema),
     defaultValues: {
       name: exercise?.name ?? "",
-      nameAr: exercise?.nameAr ?? "",
-      muscleGroup: exercise?.muscleGroup ?? "general",
-      equipment: exercise?.equipment ?? "",
+      muscleGroup: exercise?.muscleGroup ?? "chest",
       youtubeUrl: exercise?.youtubeUrl ?? "",
     },
   })
 
   const currentYoutubeUrl = watch("youtubeUrl")
+  const currentMuscleGroup = watch("muscleGroup") || "chest"
 
   useEffect(() => {
     if (open) {
       reset({
         name: exercise?.name ?? "",
-        nameAr: exercise?.nameAr ?? "",
-        muscleGroup: exercise?.muscleGroup ?? "general",
-        equipment: exercise?.equipment ?? "",
+        muscleGroup: exercise?.muscleGroup ?? "chest",
         youtubeUrl: exercise?.youtubeUrl ?? "",
       })
     }
@@ -160,6 +167,42 @@ export function ExerciseFormDialog({
               {errors.name && (
                 <p className="text-xs font-medium text-destructive">
                   {errors.name.message}
+                </p>
+              )}
+            </div>
+
+            {/* Muscle Group (Category) */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="muscleGroup"
+                className="flex items-center gap-2 text-sm font-semibold"
+              >
+                <Layers className="size-4 text-brand-500" />
+                <span>{t.exerciseLibrary.form.muscleGroup}</span>
+              </Label>
+              <Select
+                value={currentMuscleGroup}
+                onValueChange={(val) =>
+                  setValue("muscleGroup", val, { shouldValidate: true })
+                }
+              >
+                <SelectTrigger
+                  id="muscleGroup"
+                  className="h-11 rounded-xl text-sm sm:text-base px-4 bg-muted/20 focus:bg-background transition-colors"
+                >
+                  <SelectValue placeholder={t.exerciseLibrary.form.selectMuscleGroup} />
+                </SelectTrigger>
+                <SelectContent>
+                  {MUSCLE_GROUPS.map((group) => (
+                    <SelectItem key={group} value={group}>
+                      {getMuscleGroupLabel(group, locale)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.muscleGroup && (
+                <p className="text-xs font-medium text-destructive">
+                  {errors.muscleGroup.message}
                 </p>
               )}
             </div>

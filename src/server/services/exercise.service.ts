@@ -1,5 +1,6 @@
 import { pool, generateId, withTransaction } from "@/lib/db"
 import { withCache, invalidate } from "@/lib/cache"
+import { MUSCLE_GROUPS } from "@/lib/constants"
 import type { LibraryExerciseInput } from "@/lib/validations/exercise"
 
 export interface LibraryExercise {
@@ -25,7 +26,7 @@ export async function listExercisesForTrainer(trainerId: string): Promise<Librar
         `SELECT e.id,
                 COALESCE(o.name, e.name) AS name,
                 COALESCE(o."nameAr", e."nameAr") AS "nameAr",
-                e."muscleGroup",
+                COALESCE(o."muscleGroup", e."muscleGroup") AS "muscleGroup",
                 e.equipment,
                 e.tags,
                 e."defaultSets",
@@ -38,7 +39,7 @@ export async function listExercisesForTrainer(trainerId: string): Promise<Librar
          FROM "Exercise" e
          LEFT JOIN "ExerciseOverride" o ON o."exerciseId" = e.id AND o."trainerId" = $1
          WHERE (e."trainerId" IS NULL AND COALESCE(o.hidden, false) = false) OR e."trainerId" = $1
-         ORDER BY e."muscleGroup" ASC, name ASC`,
+         ORDER BY COALESCE(o."muscleGroup", e."muscleGroup") ASC, name ASC`,
         [trainerId]
       )
       return res.rows as LibraryExercise[]
@@ -51,11 +52,11 @@ export async function listExercisesForTrainer(trainerId: string): Promise<Librar
 
 export async function listHiddenExercises(trainerId: string) {
   const res = await pool.query(
-    `SELECT e.id, e.name, e."nameAr", e."muscleGroup", e.equipment, e."youtubeUrl"
+    `SELECT e.id, e.name, e."nameAr", COALESCE(o."muscleGroup", e."muscleGroup") AS "muscleGroup", e.equipment, e."youtubeUrl"
      FROM "Exercise" e
      JOIN "ExerciseOverride" o ON o."exerciseId" = e.id AND o."trainerId" = $1
      WHERE o.hidden = true
-     ORDER BY e."muscleGroup" ASC, e.name ASC`,
+     ORDER BY COALESCE(o."muscleGroup", e."muscleGroup") ASC, e.name ASC`,
     [trainerId]
   )
   return res.rows as {
@@ -90,7 +91,11 @@ export async function createExercise(
     return { ok: false, error: "NAME_TAKEN" }
   }
 
-  const muscleGroup = input.muscleGroup?.trim() || "general"
+  const rawMuscle = input.muscleGroup?.trim().toLowerCase()
+  const muscleGroup =
+    rawMuscle && (MUSCLE_GROUPS as readonly string[]).includes(rawMuscle)
+      ? rawMuscle
+      : "chest"
 
   const id = generateId()
   await pool.query(
@@ -135,7 +140,11 @@ export async function updateExercise(
   input: LibraryExerciseInput
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const name = input.name.trim()
-  const muscleGroup = input.muscleGroup?.trim() || "general"
+  const rawMuscle = input.muscleGroup?.trim().toLowerCase()
+  const muscleGroup =
+    rawMuscle && (MUSCLE_GROUPS as readonly string[]).includes(rawMuscle)
+      ? rawMuscle
+      : "chest"
   const exRes = await pool.query(
     `SELECT e.id, e."trainerId", e.name, e."youtubeUrl"
      FROM "Exercise" e
@@ -186,11 +195,12 @@ export async function updateExercise(
     } else if (ex.trainerId === null) {
       // Global exercise override
       await client.query(
-        `INSERT INTO "ExerciseOverride" ("trainerId", "exerciseId", "name", "nameAr", "youtubeUrl", "hidden", "updatedAt")
-         VALUES ($1, $2, $3, $4, $5, false, NOW())
+        `INSERT INTO "ExerciseOverride" ("trainerId", "exerciseId", "name", "nameAr", "muscleGroup", "youtubeUrl", "hidden", "updatedAt")
+         VALUES ($1, $2, $3, $4, $5, $6, false, NOW())
          ON CONFLICT ("trainerId", "exerciseId")
          DO UPDATE SET "name" = EXCLUDED."name",
                        "nameAr" = EXCLUDED."nameAr",
+                       "muscleGroup" = EXCLUDED."muscleGroup",
                        "youtubeUrl" = EXCLUDED."youtubeUrl",
                        "hidden" = false,
                        "updatedAt" = NOW()`,
@@ -199,6 +209,7 @@ export async function updateExercise(
           exerciseId,
           name,
           input.nameAr?.trim() || null,
+          muscleGroup,
           newUrl,
         ]
       )
