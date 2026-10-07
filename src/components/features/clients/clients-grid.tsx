@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
-import { ChevronRight, Trash2, Flame, Target, Trophy, MessageCircle, Dumbbell, Calendar, User } from "lucide-react"
+import { ChevronRight, Trash2, Flame, Target, Trophy, MessageCircle, Dumbbell, Calendar, User, Scale } from "lucide-react"
 import { toast } from "sonner"
 import { useI18n } from "@/lib/i18n/client"
 import { formatDate, interpolate } from "@/lib/i18n/format"
@@ -156,6 +156,27 @@ export function ClientsGrid({ clients }: ClientsGridProps) {
                     <div className="mt-2 flex flex-wrap items-center gap-1">
                       <ClientGoalBadge goals={client.goals} />
                       <ClientStatusBadge status={client.status} />
+                      {client.hasInbodyAlert && (
+                        <span
+                          title={
+                            client.inbodyNeverLogged
+                              ? (isAr ? "لم يسجل أي تحليل InBody حتى الآن" : "Never logged InBody")
+                              : (isAr ? `متأخر في تحليل InBody (منذ ${client.daysSinceInBody} يوم)` : `InBody overdue (${client.daysSinceInBody}d ago)`)
+                          }
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border transition-colors ${
+                            client.inbodyNeverLogged
+                              ? "bg-muscle-500/15 text-muscle-700 dark:text-muscle-300 border-muscle-500/30"
+                              : "bg-energy-500/15 text-energy-700 dark:text-energy-400 border-energy-500/30"
+                          }`}
+                        >
+                          <Scale className="size-2.5" />
+                          <span>
+                            {client.inbodyNeverLogged
+                              ? (isAr ? "InBody مطلوب" : "InBody Needed")
+                              : (isAr ? `InBody متأخر (${client.daysSinceInBody}ي)` : `InBody Overdue (${client.daysSinceInBody}d)`)}
+                          </span>
+                        </span>
+                      )}
                     </div>
                   </div>
                   {streak > 0 && (

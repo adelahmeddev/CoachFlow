@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowLeft, MessageCircle, UserPlus, Flame, Dumbbell, Package, Timer } from "lucide-react"
+import { ArrowLeft, MessageCircle, UserPlus, Flame, Dumbbell, Package, Timer, Scale } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -33,6 +33,11 @@ export async function ClientProfileHeader({ profile }: ClientProfileHeaderProps)
   const portalUrl = `${getAppUrl()}/client/home`
   const whatsappUrl = normalizedPhone ? buildWhatsAppUrl(normalizedPhone, name, portalUrl, locale) : null
   const whatsappLabel = isAr ? "واتساب للبطل" : "WhatsApp"
+  const latestInBody = profile.latestBodyComposition
+  const daysSinceInBody = latestInBody?.date
+    ? Math.floor((Date.now() - new Date(latestInBody.date).getTime()) / (24 * 60 * 60 * 1000))
+    : null
+  const hasInbodyAlert = client.status === "ACTIVE" && (latestInBody === null || (daysSinceInBody !== null && daysSinceInBody > 30))
   // mock streak & goal progress
   const mockStreak = (() => {
     let h = 0
@@ -136,6 +141,24 @@ export async function ClientProfileHeader({ profile }: ClientProfileHeaderProps)
                   <span className="rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
                     {isAr ? "ناقص بيانات" : "missing info"}
                   </span>
+                )}
+                {hasInbodyAlert && (
+                  <Link href={`/clients/${client.id}?tab=body-composition`}>
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border transition-colors hover:brightness-110 ${
+                        latestInBody === null
+                          ? "bg-muscle-500/15 text-muscle-700 dark:text-muscle-300 border-muscle-500/30"
+                          : "bg-energy-500/15 text-energy-700 dark:text-energy-400 border-energy-500/30"
+                      }`}
+                    >
+                      <Scale className="size-3" />
+                      <span>
+                        {latestInBody === null
+                          ? (isAr ? "تنبيه: لم يسجل InBody" : "Alert: No InBody")
+                          : (isAr ? `تنبيه: InBody متأخر (${daysSinceInBody} يوم)` : `Alert: InBody overdue (${daysSinceInBody}d)`)}
+                      </span>
+                    </span>
+                  </Link>
                 )}
               </div>
             </div>

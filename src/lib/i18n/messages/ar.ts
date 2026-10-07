@@ -3,6 +3,13 @@ import { en, type Dictionary } from "./en"
 export const ar: Dictionary = {
   ...en,
 
+  clientPortal: {
+    completeProfileBanner: {
+      title: "أكمل ملفك الشخصي",
+      description: "يرجى إكمال قياسات جسمك وتاريخك الطبي لمساعدة مدربك في تخصيص خطتك.",
+      button: "إكمال الملف الشخصي"
+    },
+  },
   common: {
     save: "حفظ",
     saving: "جاري الحفظ...",
@@ -277,6 +284,22 @@ export const ar: Dictionary = {
   },
 
   clients: {
+    create: {
+      title: "إضافة متدرب",
+      subtitle: "إنشاء حساب متدرب جديد يدوياً.",
+      form: {
+        accountInfo: "معلومات الحساب",
+        measurements: "قياسات الجسم (اختياري)",
+        medicalHistory: "التاريخ الطبي (اختياري)",
+        generatePassword: "توليد تلقائي",
+        password: "كلمة المرور",
+        phone: "رقم الهاتف (اسم المستخدم)",
+        fullName: "الاسم الكامل",
+        successTitle: "تم إنشاء المتدرب بنجاح",
+        successDescription: "تم إنشاء الحساب. أرسل معلومات تسجيل الدخول إلى المتدرب.",
+        sendWhatsApp: "إرسال عبر واتساب",
+      },
+    },
     title: "عملائي",
     subtitle: "كل أبطالك في مكان واحد — تابع تقدمهم أول بأول",
     searchPlaceholder: "دوّر على بطل بالاسم أو التليفون...",
@@ -1806,6 +1829,8 @@ export const ar: Dictionary = {
     subExpired: "اشتراك {name} انتهى",
     subExpiring: "اشتراك {name} ينتهي خلال {n} أيام",
     noInbody: "{name} ما عملش InBody من فترة",
+    noInbodyNever: "{name} لم يسجل أي تحليل InBody حتى الآن",
+    noInbodyOverdue: "{name} متأخر في تحليل InBody (منذ {n} يوم)",
     paymentPending: "{name} عنده {n} إثبات دفع مستني",
     missedCheckin: "{name} فوّت تسجيلات قريبة",
     checkinToday: "{name} ما سجّلش النهاردة",

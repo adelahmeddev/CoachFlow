@@ -32,9 +32,19 @@ export function QuickActionDialog({ open, onOpenChange }: QuickActionDialogProps
 
   const actions = [
     {
+      key: "create-client",
+      titleAr: "إضافة متدرب يدوياً",
+      titleEn: "Add Client Manually",
+      descAr: "سجّل بيانات المتدرب وولّد كلمة مرور فورية وأرسلها عبر واتساب",
+      descEn: "Register client directly and share credentials via WhatsApp",
+      href: "/clients?new=true",
+      icon: UserPlus,
+      color: "from-brand-600 to-energy-500 text-white shadow-brand-500/25",
+    },
+    {
       key: "invite",
-      titleAr: "دعوة بطل جديد",
-      titleEn: "Invite New Athlete",
+      titleAr: "دعوة بطل برابط أو QR",
+      titleEn: "Invite Athlete via Link/QR",
       descAr: "انسخ رابط الانضمام أو رمز QR وشاركه مع البطل",
       descEn: "Share your invite link or QR code with the athlete",
       href: "/onboarding",

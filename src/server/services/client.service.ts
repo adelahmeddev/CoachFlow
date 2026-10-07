@@ -140,17 +140,32 @@ export async function getTrainerClients(
     status: SubscriptionStatus
     createdAt: Date
   }[] = []
+  let latestInBodies: {
+    clientId: string
+    lastInBodyAt: Date
+  }[] = []
+
   if (clients.length > 0) {
     const clientIds = clients.map((c) => c.id)
     const placeholders = clientIds.map((_, i) => `$${i + 1}`).join(",")
-    const subRes = await pool.query(
-      `SELECT "id", "clientId", "planName", "status", "createdAt"
-       FROM "Subscription"
-       WHERE "clientId" IN (${placeholders}) AND "status" IN ('ACTIVE','TRIAL')
-       ORDER BY "createdAt" DESC`,
-      clientIds
-    )
+    const [subRes, inbodyRes] = await Promise.all([
+      pool.query(
+        `SELECT "id", "clientId", "planName", "status", "createdAt"
+         FROM "Subscription"
+         WHERE "clientId" IN (${placeholders}) AND "status" IN ('ACTIVE','TRIAL')
+         ORDER BY "createdAt" DESC`,
+        clientIds
+      ),
+      pool.query(
+        `SELECT "clientId", MAX("date") AS "lastInBodyAt"
+         FROM "BodyComposition"
+         WHERE "clientId" IN (${placeholders})
+         GROUP BY "clientId"`,
+        clientIds
+      ),
+    ])
     subscriptions = subRes.rows as typeof subscriptions
+    latestInBodies = inbodyRes.rows as typeof latestInBodies
   }
 
   const subscriptionsByClient = new Map<string, typeof subscriptions>()
@@ -160,10 +175,30 @@ export async function getTrainerClients(
     }
   }
 
+  const inbodyByClient = new Map<string, Date>()
+  for (const b of latestInBodies) {
+    inbodyByClient.set(b.clientId, b.lastInBodyAt)
+  }
+
+  const nowMs = Date.now()
   const rows = clients.map((client) => {
     const subs = subscriptionsByClient.get(client.id) ?? []
     const preferred = subs[0] ?? null
-    return { ...client, goals: parseGoals(client.goals), subscription: preferred }
+    const lastInBodyDate = inbodyByClient.get(client.id) ?? null
+    const daysSinceInBody = lastInBodyDate
+      ? Math.floor((nowMs - new Date(lastInBodyDate).getTime()) / (24 * 60 * 60 * 1000))
+      : null
+    const hasInbodyAlert = client.status === "ACTIVE" && (lastInBodyDate === null || daysSinceInBody! > 30)
+
+    return {
+      ...client,
+      goals: parseGoals(client.goals),
+      subscription: preferred,
+      lastInBodyAt: lastInBodyDate ? new Date(lastInBodyDate).toISOString() : null,
+      daysSinceInBody,
+      hasInbodyAlert,
+      inbodyNeverLogged: client.status === "ACTIVE" && lastInBodyDate === null,
+    }
   })
 
   return {

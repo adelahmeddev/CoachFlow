@@ -25,6 +25,7 @@ import {
   ChevronDown,
   Bell,
   Library,
+  Share2,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { Role, WorkoutDisplayMode } from "@/lib/db/enums"
@@ -178,7 +179,8 @@ export function AppTopNav({
       matchPrefixes: ["/clients", "/onboarding"],
       subItems: [
         { label: isAr ? "كل الأبطال" : "All Athletes", href: "/clients", icon: Users },
-        { label: isAr ? "إضافة بطل" : "Onboarding", href: "/onboarding", icon: UserPlus },
+        { label: isAr ? "إضافة متدرب يدوياً" : "Add Athlete Manually", href: "/clients?new=true", icon: UserPlus },
+        { label: isAr ? "رابط الدعوة و QR" : "Invite Link & QR", href: "/onboarding", icon: Share2 },
       ],
     },
     {

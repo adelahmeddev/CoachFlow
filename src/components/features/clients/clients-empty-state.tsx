@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { PopIn } from "@/components/motion"
 import { getI18n } from "@/lib/i18n"
+import { CreateClientDrawer } from "@/components/features/clients/create-client-drawer"
 
 export async function ClientsEmptyState({
   variant,
@@ -58,16 +59,18 @@ export async function ClientsEmptyState({
           <p className="text-xs text-muted-foreground/70">{locale === "ar" ? "ابدأ بدعوة أول بطل — هتشوف الفرق" : "Invite your first athlete to get started"}</p>
         </div>
         <div className="flex flex-wrap justify-center gap-3">
+          <CreateClientDrawer
+            trigger={
+              <Button variant="outline" className="rounded-xl shadow-soft gap-2">
+                <UserPlus className="size-4" />
+                {t.clients.newClient ?? (locale === "ar" ? "إضافة متدرب يدوياً" : "Add Client Manually")}
+              </Button>
+            }
+          />
           <Button asChild className="rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 gap-2">
             <Link href="/onboarding">
               <UserPlus className="size-4" />
               {t.clients.inviteClient}
-            </Link>
-          </Button>
-          <Button asChild variant="outline" className="rounded-xl bg-card">
-            <Link href="/clients">
-              <Users className="size-4" />
-              {t.dashboard.viewClients}
             </Link>
           </Button>
         </div>

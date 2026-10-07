@@ -18,7 +18,9 @@ export function actionText(item: NeedActionItem, t: T): string {
     case "sub_expiring":
       return interpolate(t.needsAction.subExpiring, { name, n: item.days ?? 0 })
     case "no_inbody":
-      return interpolate(t.needsAction.noInbody, { name })
+      return item.days === null
+        ? interpolate(t.needsAction.noInbodyNever, { name })
+        : interpolate(t.needsAction.noInbodyOverdue, { name, n: item.days })
     case "payment_pending":
       return interpolate(t.needsAction.paymentPending, { name, n: item.count ?? 0 })
     case "missed_checkin":
@@ -47,7 +49,7 @@ export function getKindBadgeLabel(kind: NeedActionKind, isAr: boolean): string {
     case "sub_expiring":
       return isAr ? "اشتراك يوشك على الانتهاء" : "Subscription expiring"
     case "no_inbody":
-      return isAr ? "InBody متأخر" : "No InBody"
+      return isAr ? "تحليل InBody مطلوب" : "InBody Required"
     case "payment_pending":
       return isAr ? "إثبات دفع معلق" : "Payment pending"
     case "missed_checkin":

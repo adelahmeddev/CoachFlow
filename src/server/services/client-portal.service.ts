@@ -48,6 +48,7 @@ export async function getClientHomeData(clientId: string) {
     goals: string[]
     status: string
     userId: string | null
+    basicInfoCompletedAt: Date | null
   }
 
   const [
@@ -108,6 +109,20 @@ export async function getClientHomeData(clientId: string) {
 
   const totalWorkouts = (totalWorkoutsRes.rows[0] as { count: number } | undefined)?.count ?? exerciseLogs.length
 
+  const nowMs = Date.now()
+  const lastInBodyDate = latestBodyComposition?.date ? new Date(latestBodyComposition.date) : null
+  const daysSinceInBody = lastInBodyDate
+    ? Math.floor((nowMs - lastInBodyDate.getTime()) / (24 * 60 * 60 * 1000))
+    : null
+  const isOverdue = latestBodyComposition === null || (daysSinceInBody !== null && daysSinceInBody > 30)
+
+  const inbodyMission = {
+    isOverdue,
+    neverLogged: latestBodyComposition === null,
+    daysSince: daysSinceInBody,
+    lastDate: lastInBodyDate ? lastInBodyDate.toISOString() : null,
+  }
+
   return {
     client: {
       id: client.id,
@@ -117,7 +132,9 @@ export async function getClientHomeData(clientId: string) {
       goals: parseGoals(client.goals),
       status: client.status,
       streak: dailyLogsRes.rows.length > 0 ? 1 : 0,
+      basicInfoCompletedAt: client.basicInfoCompletedAt,
     },
+    inbodyMission,
     todayWorkout,
     week: {
       summary: weekBoard.summary,

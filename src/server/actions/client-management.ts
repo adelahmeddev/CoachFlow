@@ -4,7 +4,8 @@ import { hashPassword } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 import { invalidate } from "@/lib/cache"
 import { getCurrentSession } from "@/server/auth"
-import { pool } from "@/lib/db"
+import { pool, generateId } from "@/lib/db"
+import { createClientManuallySchema, type CreateClientManuallyInput } from "@/lib/validations/client"
 
 export async function resetClientPasswordAction(
   clientId: string,
@@ -52,4 +53,106 @@ export async function resetClientPasswordAction(
   revalidatePath(`/clients/${clientId}`)
   invalidate([`client:${clientId}:profile`])
   return { ok: true }
+}
+
+export async function createClientManuallyAction(data: CreateClientManuallyInput) {
+  const session = await getCurrentSession()
+  if (!session?.user?.trainerProfileId) {
+    return { ok: false, error: "UNAUTHORIZED" }
+  }
+  const trainerId = session.user.trainerProfileId
+
+  const parsed = createClientManuallySchema.safeParse(data)
+  if (!parsed.success) {
+    return { ok: false, error: "INVALID_INPUT" }
+  }
+
+  const input = parsed.data
+
+  // Check if phone exists
+  const existingRes = await pool.query(`SELECT "id" FROM "User" WHERE "phone" = $1 LIMIT 1`, [input.phone])
+  if (existingRes.rows.length > 0) {
+    return { ok: false, error: "PHONE_EXISTS" }
+  }
+
+  const passwordHash = await hashPassword(input.password)
+
+  // Start transaction
+  const clientDb = await pool.connect()
+  try {
+    await clientDb.query("BEGIN")
+
+    const userId = generateId()
+    // Create User
+    await clientDb.query(
+      `INSERT INTO "User" ("id", "username", "phone", "passwordHash", "role", "mustChangePassword", "createdAt", "updatedAt") 
+       VALUES ($1, $2, $3, $4, 'CLIENT', false, NOW(), NOW())`,
+      [userId, input.phone, input.phone, passwordHash]
+    )
+
+    const clientId = generateId()
+    // Create Client
+    await clientDb.query(
+      `INSERT INTO "Client" (
+        "id", "trainerId", "userId", "fullName", "phone", "status", 
+        "injuries", "healthConditions", "medications", 
+        "neckPain", "shoulderPain", "backPain", "kneePain",
+        "goals", "coachingMode",
+        "createdAt", "updatedAt"
+      ) VALUES (
+        $1, $2, $3, $4, $5, 'ACTIVE',
+        $6, $7, $8, $9, $10, $11, $12,
+        $13, $14,
+        NOW(), NOW()
+      )`,
+      [
+        clientId, trainerId, userId, input.fullName, input.phone,
+        input.injuries || null, input.healthConditions || null, input.medications || null,
+        input.neckPain || false, input.shoulderPain || false, input.backPain || false, input.kneePain || false,
+        input.goals || [], input.coachingMode || "ONLINE",
+      ]
+    )
+
+    // Create BodyComposition if any measurements provided
+    const hasInBody = input.weightKg || input.heightCm || input.bodyFatKg || input.muscleMassKg || input.bodyWaterPct || input.fatControlKg || input.bmrKcal || input.fitnessScore || input.waistHipRatio || input.visceralFatLevel
+    if (hasInBody) {
+      await clientDb.query(
+        `INSERT INTO "BodyComposition" (
+          "id", "clientId", "date", "source", 
+          "weightKg", "heightCm", "bodyFatKg", "muscleMassKg",
+          "bodyWaterPct", "fatControlKg", "bmrKcal", "fitnessScore",
+          "waistHipRatio", "visceralFatLevel",
+          "createdAt", "updatedAt"
+        ) VALUES (
+          $1, $2, NOW(), 'COACH',
+          $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
+          NOW(), NOW()
+        )`,
+        [
+          generateId(), clientId, 
+          input.weightKg || null, 
+          input.heightCm || null, 
+          input.bodyFatKg || null, 
+          input.muscleMassKg || null,
+          input.bodyWaterPct || null,
+          input.fatControlKg || null,
+          input.bmrKcal || null,
+          input.fitnessScore || null,
+          input.waistHipRatio || null,
+          input.visceralFatLevel || null,
+        ]
+      )
+    }
+
+    await clientDb.query("COMMIT")
+    revalidatePath("/clients")
+    invalidate([`trainer:${trainerId}:clients`, `trainer:${trainerId}:dashboard`])
+    return { ok: true, clientId }
+  } catch (err) {
+    await clientDb.query("ROLLBACK")
+    console.error(err)
+    return { ok: false, error: "INTERNAL_ERROR" }
+  } finally {
+    clientDb.release()
+  }
 }

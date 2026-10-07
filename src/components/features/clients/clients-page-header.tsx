@@ -1,7 +1,8 @@
-﻿import Link from "next/link"
+import Link from "next/link"
 import { UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getI18n } from "@/lib/i18n"
+import { CreateClientDrawer } from "@/components/features/clients/create-client-drawer"
 
 export async function ClientsPageHeader() {
   const { t, locale } = await getI18n()
@@ -25,12 +26,22 @@ export async function ClientsPageHeader() {
           </h1>
           <p className="max-w-[60ch] text-sm leading-relaxed text-muted-foreground sm:hidden">{t.clients.subtitle}</p>
         </div>
-        <Button asChild className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 shadow-soft hover:brightness-110 gap-2">
-          <Link href="/onboarding">
-            <UserPlus className="size-4" aria-hidden="true" />
-            {t.clients.inviteClient}
-          </Link>
-        </Button>
+        <div className="flex w-full flex-col sm:flex-row sm:w-auto gap-2">
+          <CreateClientDrawer
+            trigger={
+              <Button className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 shadow-soft hover:brightness-110 gap-2">
+                <UserPlus className="size-4" aria-hidden="true" />
+                {isAr ? "إضافة متدرب يدوياً" : "Add Client Manually"}
+              </Button>
+            }
+          />
+          <Button asChild variant="outline" className="w-full sm:w-auto rounded-xl shadow-soft gap-2">
+            <Link href="/onboarding">
+              <UserPlus className="size-4" aria-hidden="true" />
+              {t.clients.inviteClient}
+            </Link>
+          </Button>
+        </div>
       </div>
     </div>
   )

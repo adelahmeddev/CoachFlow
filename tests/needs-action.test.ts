@@ -61,8 +61,9 @@ describe("evaluateClientActions", () => {
     )
   })
 
-  it("flags stale InBody and missed check-ins as LOW", () => {
-    assert.ok(kinds({ ...healthy(), daysSinceInBody: 45 }).includes("LOW:no_inbody"))
+  it("flags stale InBody as MEDIUM, never InBody as HIGH, and missed check-ins as LOW", () => {
+    assert.ok(kinds({ ...healthy(), daysSinceInBody: 45 }).includes("MEDIUM:no_inbody"))
+    assert.ok(kinds({ ...healthy(), daysSinceInBody: null }).includes("HIGH:no_inbody"))
     assert.ok(kinds({ ...healthy(), daysSinceCheckin: 3 }).includes("LOW:missed_checkin"))
     assert.ok(!kinds({ ...healthy(), daysSinceCheckin: 1 }).includes("LOW:missed_checkin"))
   })
@@ -96,6 +97,7 @@ describe("evaluateClientActions", () => {
         daysSinceInBody: 60,
         pendingProofs: 1,
         latestSubscription: { status: "EXPIRED", endDate: iso(-1) },
+        daysSinceCheckin: 3,
       },
       NOW
     )

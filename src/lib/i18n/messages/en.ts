@@ -1,6 +1,14 @@
 export type Dictionary = typeof en
 
 export const en = {
+
+  clientPortal: {
+    completeProfileBanner: {
+      title: "Complete Your Profile",
+      description: "Please complete your body measurements and medical history to help your coach tailor your plan.",
+      button: "Complete Profile"
+    },
+  },
   common: {
     save: "Save",
     saving: "Saving...",
@@ -277,6 +285,22 @@ export const en = {
   clients: {
     title: "Clients",
     subtitle: "Manage your clients and their programs",
+    create: {
+      title: "Add Client",
+      subtitle: "Manually create a new client account.",
+      form: {
+        accountInfo: "Account Info",
+        measurements: "Body Measurements (Optional)",
+        medicalHistory: "Medical History (Optional)",
+        generatePassword: "Auto-generate",
+        password: "Password",
+        phone: "Phone (Username)",
+        fullName: "Full Name",
+        successTitle: "Client created successfully",
+        successDescription: "The account has been created. Send the login info to the client.",
+        sendWhatsApp: "Send via WhatsApp",
+      },
+    },
     searchPlaceholder: "Search by name or phone...",
     filterStatus: "Filter by status",
     filterGoal: "Goal",
@@ -1804,6 +1828,8 @@ export const en = {
     subExpired: "{name}'s subscription expired",
     subExpiring: "{name}'s subscription expires in {n}d",
     noInbody: "{name} has no recent InBody update",
+    noInbodyNever: "{name} has never logged an InBody scan",
+    noInbodyOverdue: "{name} is overdue for an InBody scan ({n} days ago)",
     paymentPending: "{name} has {n} payment proof(s) waiting",
     missedCheckin: "{name} missed recent check-ins",
     checkinToday: "{name} hasn't checked in today",

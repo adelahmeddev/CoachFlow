@@ -109,7 +109,7 @@ export function evaluateClientActions(
       items.push({
         ...base,
         kind: "no_inbody",
-        priority: "LOW",
+        priority: snap.daysSinceInBody === null ? "HIGH" : "MEDIUM",
         days: snap.daysSinceInBody,
         count: null,
         title: null,
