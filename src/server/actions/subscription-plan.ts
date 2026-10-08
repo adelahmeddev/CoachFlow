@@ -12,6 +12,7 @@ import {
   createSubscriptionPlan,
   deleteSubscriptionPlan,
   duplicateSubscriptionPlan,
+  getTrainerSubscriptionPlans,
   updateSubscriptionPlan,
 } from "@/server/services/subscription-plan.service"
 
@@ -142,3 +143,14 @@ export async function assignSubscriptionPlanAction(
   revalidatePath(`/clients/${clientId}?tab=subscription`)
   return { ok: true as const, subscriptionId: subscription.id }
 }
+
+export async function getTrainerSubscriptionPlansAction() {
+  const session = await getCurrentSession()
+  if (!isAuthorized(session)) {
+    return { ok: false as const, error: "Unauthorized", plans: [] }
+  }
+  const trainerProfileId = session!.user!.trainerProfileId!
+  const plans = await getTrainerSubscriptionPlans(trainerProfileId)
+  return { ok: true as const, plans }
+}
+

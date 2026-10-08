@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { PopIn } from "@/components/motion"
 import { getI18n } from "@/lib/i18n"
+import { getCurrentSession } from "@/server/auth"
+import { getTrainerSubscriptionPlans } from "@/server/services/subscription-plan.service"
 import { CreateClientDrawer } from "@/components/features/clients/create-client-drawer"
 
 export async function ClientsEmptyState({
@@ -12,6 +14,10 @@ export async function ClientsEmptyState({
   variant: "no-clients" | "no-results"
 }) {
   const { t, locale } = await getI18n()
+  const session = await getCurrentSession()
+  const plans = session?.user?.trainerProfileId
+    ? await getTrainerSubscriptionPlans(session.user.trainerProfileId)
+    : []
 
   if (variant === "no-results") {
     return (
@@ -60,6 +66,7 @@ export async function ClientsEmptyState({
         </div>
         <div className="flex flex-wrap justify-center gap-3">
           <CreateClientDrawer
+            plans={plans}
             trigger={
               <Button variant="outline" className="rounded-xl shadow-soft gap-2">
                 <UserPlus className="size-4" />

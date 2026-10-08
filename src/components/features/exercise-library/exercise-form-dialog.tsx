@@ -65,6 +65,7 @@ export function ExerciseFormDialog({
     resolver: zodResolver(libraryExerciseSchema),
     defaultValues: {
       name: exercise?.name ?? "",
+      nameAr: exercise?.nameAr ?? "",
       muscleGroup: exercise?.muscleGroup ?? "chest",
       youtubeUrl: exercise?.youtubeUrl ?? "",
     },
@@ -77,6 +78,7 @@ export function ExerciseFormDialog({
     if (open) {
       reset({
         name: exercise?.name ?? "",
+        nameAr: exercise?.nameAr ?? "",
         muscleGroup: exercise?.muscleGroup ?? "chest",
         youtubeUrl: exercise?.youtubeUrl ?? "",
       })
@@ -173,6 +175,24 @@ export function ExerciseFormDialog({
               {errors.name && (
                 <p className="text-xs font-medium text-destructive">
                   {errors.name.message}
+                </p>
+              )}
+            </div>
+
+            {/* Exercise Name AR (Optional) */}
+            <div className="space-y-2">
+              <Label htmlFor="nameAr" className="text-sm font-semibold">
+                {isAr ? "اسم التمرين بالعربية (اختياري)" : "Arabic Exercise Name (Optional)"}
+              </Label>
+              <Input
+                id="nameAr"
+                placeholder={isAr ? "مثال: بنش برس مستوي بالبار" : "e.g. Barbell Bench Press"}
+                className="h-11 rounded-xl text-sm sm:text-base px-4 bg-muted/20 focus:bg-background transition-colors"
+                {...register("nameAr")}
+              />
+              {errors.nameAr && (
+                <p className="text-xs font-medium text-destructive">
+                  {errors.nameAr.message}
                 </p>
               )}
             </div>

@@ -51,8 +51,16 @@ export const createClientManuallySchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters").max(100),
   phone: z.string().min(10, "Phone number must be at least 10 digits").max(20),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  birthDate: z.string().optional().nullable(),
   goals: z.array(z.nativeEnum(Goal)).optional().default([]),
   coachingMode: z.nativeEnum(CoachingMode).optional().default(CoachingMode.ONLINE),
+
+  // Subscription assignment (optional)
+  subscriptionPlanId: z.string().optional().nullable(),
+  subscriptionPlanType: z.enum(["PERIOD", "SESSIONS"]).optional().nullable(),
+  subscriptionDurationDays: optionalNumber,
+  subscriptionSessionsCount: optionalNumber,
+  subscriptionStartDate: z.string().optional().nullable(),
   
   // InBody metrics (all optional, safe against NaN and empty strings)
   weightKg: optionalNumber,

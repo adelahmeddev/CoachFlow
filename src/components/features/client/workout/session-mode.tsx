@@ -275,19 +275,22 @@ export function SessionMode({
     setSavingId(current.id)
     try {
       const ticksArr = setTicks[current.id] ?? []
-      const parseNum = (v: string): number | null =>
-        v.trim() === "" ? null : Number(v)
-      let setsPayload = values.sets
+      const parseNum = (v?: string | null): number | null => {
+        if (!v || v.trim() === "") return null
+        const n = Number(v)
+        return Number.isNaN(n) ? null : n
+      }
+      let setsPayload = (values.sets || [])
         .map((sv) => ({
-          weightKg: parseNum(sv.weightKg),
-          reps: parseNum(sv.reps),
+          weightKg: parseNum(sv?.weightKg),
+          reps: parseNum(sv?.reps),
         }))
         .filter((_, i) => ticksArr[i])
-      if (setsPayload.length === 0 && values.sets[0]) {
+      if (setsPayload.length === 0 && values?.sets?.[0]) {
         setsPayload = [
           {
-            weightKg: parseNum(values.sets[0].weightKg),
-            reps: parseNum(values.sets[0].reps),
+            weightKg: parseNum(values.sets[0]?.weightKg),
+            reps: parseNum(values.sets[0]?.reps),
           },
         ]
       }

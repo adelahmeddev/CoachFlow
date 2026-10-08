@@ -66,7 +66,7 @@ function defaultDayId(days: SessionSplitDay[]): string {
   const weekday = (new Date().getDay() + 6) % 7
   const dayNumber = (weekday % days.length) + 1
   return (
-    days.find((day) => day.dayNumber === dayNumber)?.id ?? days[0].id
+    days.find((day) => day.dayNumber === dayNumber)?.id ?? days[0]?.id ?? ""
   )
 }
 

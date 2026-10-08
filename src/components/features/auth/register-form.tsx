@@ -78,6 +78,8 @@ export function RegisterForm() {
       toast.success("Account created. Welcome aboard!")
       router.replace("/onboarding")
       router.refresh()
+    } catch {
+      setFormError("حدث خطأ غير متوقع. حاول مرة أخرى.")
     } finally {
       setIsPending(false)
     }

@@ -12,12 +12,15 @@ const TRAINER_PATHS = [
   "/training-split-templates",
   "/subscription-plans",
   "/subscription",
+  "/exercise-library",
+  "/needs-action",
   "/blog",
   "/settings",
 ];
 
 const CLIENT_PATHS = [
   "/client/home",
+  "/client/week",
   "/client/workout",
   "/client/nutrition",
   "/client/profile",
@@ -25,6 +28,7 @@ const CLIENT_PATHS = [
   "/client/media",
   "/client/notifications",
   "/client/blog",
+  "/client/change-password",
 ];
 
 const AUTH_PATHS = ["/login", "/register", "/client/login"];

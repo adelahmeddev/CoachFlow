@@ -2,10 +2,16 @@ import Link from "next/link"
 import { UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getI18n } from "@/lib/i18n"
+import { getCurrentSession } from "@/server/auth"
+import { getTrainerSubscriptionPlans } from "@/server/services/subscription-plan.service"
 import { CreateClientDrawer } from "@/components/features/clients/create-client-drawer"
 
 export async function ClientsPageHeader() {
   const { t, locale } = await getI18n()
+  const session = await getCurrentSession()
+  const plans = session?.user?.trainerProfileId
+    ? await getTrainerSubscriptionPlans(session.user.trainerProfileId)
+    : []
   const isAr = locale === "ar"
   return (
     <div className="relative overflow-hidden rounded-[20px] border bg-card p-6 shadow-soft">
@@ -28,6 +34,7 @@ export async function ClientsPageHeader() {
         </div>
         <div className="flex w-full flex-col sm:flex-row sm:w-auto gap-2">
           <CreateClientDrawer
+            plans={plans}
             trigger={
               <Button className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 shadow-soft hover:brightness-110 gap-2">
                 <UserPlus className="size-4" aria-hidden="true" />

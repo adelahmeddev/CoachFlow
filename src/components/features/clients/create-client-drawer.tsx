@@ -31,6 +31,12 @@ import {
   User,
   Target,
   Sparkle,
+  Calendar,
+  CreditCard,
+  Clock,
+  Ticket,
+  Pencil,
+  ClipboardCheck,
 } from "lucide-react"
 
 import {
@@ -50,6 +56,7 @@ import { useI18n } from "@/lib/i18n/client"
 import { Goal, CoachingMode } from "@/lib/db/enums"
 import { createClientManuallySchema, type CreateClientManuallyInput } from "@/lib/validations/client"
 import { createClientManuallyAction } from "@/server/actions/client-management"
+import { getTrainerSubscriptionPlansAction } from "@/server/actions/subscription-plan"
 import { cn } from "@/lib/utils"
 
 function generateRandomPassword(length = 8) {
@@ -69,16 +76,26 @@ function generateRandomPassword(length = 8) {
   return pass
 }
 
+export interface AvailablePlanItem {
+  id: string
+  name: string
+  planType: string
+  durationDays?: number | null
+  sessionsCount?: number | null
+}
+
 interface CreateClientDrawerProps {
   trigger?: React.ReactNode
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  plans?: AvailablePlanItem[]
 }
 
 export function CreateClientDrawer({
   trigger,
   open: controlledOpen,
   onOpenChange: setControlledOpen,
+  plans: propPlans,
 }: CreateClientDrawerProps) {
   const { t, locale } = useI18n()
   const isAr = locale === "ar"
@@ -90,14 +107,37 @@ export function CreateClientDrawer({
   const isControlled = controlledOpen !== undefined
   const isOpen = isControlled ? controlledOpen : internalOpen
 
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [availablePlans, setAvailablePlans] = useState<AvailablePlanItem[]>(propPlans || [])
+  const [selectedSubMode, setSelectedSubMode] = useState<"NONE" | "30_DAYS" | "90_DAYS" | "CUSTOM">("30_DAYS")
   const [createdData, setCreatedData] = useState<{
     phone: string
     password: string
     fullName: string
+    subscriptionInfo?: string | null
   } | null>(null)
+
+  // Sync propPlans
+  useEffect(() => {
+    if (propPlans && propPlans.length > 0) {
+      setAvailablePlans(propPlans)
+    }
+  }, [propPlans])
+
+  // Fetch plans if not provided when drawer opens
+  useEffect(() => {
+    if (isOpen && (!propPlans || propPlans.length === 0)) {
+      getTrainerSubscriptionPlansAction()
+        .then((res) => {
+          if (res.ok && res.plans) {
+            setAvailablePlans(res.plans as AvailablePlanItem[])
+          }
+        })
+        .catch(() => {})
+    }
+  }, [isOpen, propPlans])
 
   // Auto-open if ?new=true is in the URL
   useEffect(() => {
@@ -122,6 +162,7 @@ export function CreateClientDrawer({
       setTimeout(() => {
         setStep(1)
         setCreatedData(null)
+        setSelectedSubMode("30_DAYS")
         form.reset()
       }, 300)
     }
@@ -133,8 +174,13 @@ export function CreateClientDrawer({
       fullName: "",
       phone: "",
       password: "",
+      birthDate: "",
       goals: [],
       coachingMode: CoachingMode.ONLINE,
+      subscriptionPlanId: null,
+      subscriptionDurationDays: 30,
+      subscriptionSessionsCount: null,
+      subscriptionStartDate: new Date().toISOString().split("T")[0],
       weightKg: undefined,
       heightCm: undefined,
       muscleMassKg: undefined,
@@ -177,18 +223,40 @@ export function CreateClientDrawer({
     }
   }
 
-  // Submit form at step 3
+  // Validate step 1 and jump to Review
+  async function goToReview() {
+    const valid = await form.trigger(["fullName", "phone", "password"])
+    if (valid) {
+      setStep(4)
+    } else {
+      toast.error(isAr ? "يرجى ملء البيانات الإلزامية في الخطوة الأولى أولاً" : "Please fill required account fields first")
+    }
+  }
+
+  // Submit form at review step
   async function onSubmit(values: CreateClientManuallyInput) {
     setIsSubmitting(true)
     try {
       const res = await createClientManuallyAction(values)
       if (res.ok) {
+        let subSummary: string | null = null
+        if (values.subscriptionPlanId) {
+          const matchedPlan = availablePlans.find((p) => p.id === values.subscriptionPlanId)
+          subSummary = matchedPlan ? matchedPlan.name : (isAr ? "باقة اشتراك" : "Subscription Plan")
+        } else if (values.subscriptionDurationDays) {
+          const d = values.subscriptionDurationDays
+          subSummary = d === 30 ? (isAr ? "شهر (30 يوم)" : "1 Month (30 days)") : d === 90 ? (isAr ? "3 شهور (90 يوم)" : "3 Months (90 days)") : `${d} ${isAr ? "يوم" : "days"}`
+        } else if (values.subscriptionSessionsCount) {
+          subSummary = `${values.subscriptionSessionsCount} ${isAr ? "جلسات" : "sessions"}`
+        }
+
         setCreatedData({
           phone: values.phone,
           password: values.password,
           fullName: values.fullName,
+          subscriptionInfo: subSummary,
         })
-        setStep(4)
+        setStep(5)
         toast.success(isAr ? "تم إنشاء حساب المتدرب بنجاح!" : "Client created successfully!", {
           icon: <CheckCircle2 className="size-4 text-emerald-500" />
         })
@@ -221,10 +289,16 @@ export function CreateClientDrawer({
   const loginUrl = `${appUrl.replace(/\/$/, "")}/login`
   const waPhone = createdData ? formatWhatsAppPhone(createdData.phone) : ""
 
+  const subText = createdData?.subscriptionInfo
+    ? isAr
+      ? `\n💳 الاشتراك المفعّل: ${createdData.subscriptionInfo}`
+      : `\n💳 Active Subscription: ${createdData.subscriptionInfo}`
+    : ""
+
   const waMessage = createdData
     ? isAr
-      ? `📱 اسم المستخدم (رقم الهاتف): ${createdData.phone}\n🔑 كلمة المرور المؤقتة: ${createdData.password}\n\n🔗 رابط تسجيل الدخول المباشر:\n${loginUrl}`
-      : `📱 Username (Phone Number): ${createdData.phone}\n🔑 Temporary Password: ${createdData.password}\n\n🔗 Direct Login Link:\n${loginUrl}`
+      ? `📱 اسم المستخدم (رقم الهاتف): ${createdData.phone}\n🔑 كلمة المرور المؤقتة: ${createdData.password}${subText}\n\n🔗 رابط تسجيل الدخول المباشر:\n${loginUrl}`
+      : `📱 Username (Phone Number): ${createdData.phone}\n🔑 Temporary Password: ${createdData.password}${subText}\n\n🔗 Direct Login Link:\n${loginUrl}`
     : ""
 
   const waLink = `https://wa.me/${waPhone}?text=${encodeURIComponent(waMessage)}`
@@ -257,33 +331,36 @@ export function CreateClientDrawer({
                 </span>
                 <div>
                   <SheetTitle className="text-base font-extrabold text-foreground leading-tight">
-                    {step === 4 
+                    {step === 5 
                       ? (isAr ? "تم إنشاء حساب البطل! 🎉" : "Athlete Created! 🎉") 
+                      : step === 4
+                      ? (isAr ? "مراجعة وتأكيد البيانات" : "Review & Confirm")
                       : (isAr ? "إضافة متدرب يدوياً" : "Add Athlete Manually")}
                   </SheetTitle>
                   <SheetDescription className="text-[11px] text-muted-foreground leading-none mt-0.5">
-                    {step === 1 && (isAr ? "بيانات الحساب وتسجيل الدخول" : "Login credentials")}
+                    {step === 1 && (isAr ? "بيانات الحساب والاشتراك" : "Login credentials & plan")}
                     {step === 2 && (isAr ? "قياسات الـ InBody (اختياري)" : "InBody metrics (optional)")}
                     {step === 3 && (isAr ? "التاريخ الطبي وآلام المفاصل (اختياري)" : "Medical history (optional)")}
-                    {step === 4 && (isAr ? "رسالة الواتساب جاهزة للإرسال" : "WhatsApp message ready")}
+                    {step === 4 && (isAr ? "راجع وتأكد من البيانات أو عدّلها قبل الحفظ" : "Review or edit data before saving")}
+                    {step === 5 && (isAr ? "رسالة الواتساب جاهزة للإرسال" : "WhatsApp message ready")}
                   </SheetDescription>
                 </div>
               </div>
 
               <Badge variant="outline" className="text-[10px] font-semibold border-brand-500/30 text-brand-500 bg-brand-500/10 shrink-0">
-                {step === 4 ? (isAr ? "مكتمل" : "Completed") : `${isAr ? "مرحلة" : "Step"} ${step}/3`}
+                {step === 5 ? (isAr ? "مكتمل" : "Completed") : `${isAr ? "مرحلة" : "Step"} ${step}/4`}
               </Badge>
             </div>
           </SheetHeader>
 
-          {/* Compact 3-Step Pill Bar */}
-          {step < 4 && (
-            <div className="grid grid-cols-3 gap-1.5 mt-2.5">
+          {/* Compact 4-Step Pill Bar */}
+          {step < 5 && (
+            <div className="grid grid-cols-4 gap-1.5 mt-2.5">
               <button
                 type="button"
                 onClick={() => setStep(1)}
                 className={cn(
-                  "flex items-center justify-center gap-1.5 py-1 px-2 rounded-lg text-[11px] font-bold transition-all border",
+                  "flex items-center justify-center gap-1 py-1 px-1 rounded-lg text-[11px] font-bold transition-all border",
                   step === 1
                     ? "bg-brand-500 text-white border-brand-500 shadow-xs"
                     : "bg-muted/40 text-muted-foreground border-transparent hover:bg-muted"
@@ -302,7 +379,7 @@ export function CreateClientDrawer({
                 type="button"
                 onClick={() => goToStep2()}
                 className={cn(
-                  "flex items-center justify-center gap-1.5 py-1 px-2 rounded-lg text-[11px] font-bold transition-all border",
+                  "flex items-center justify-center gap-1 py-1 px-1 rounded-lg text-[11px] font-bold transition-all border",
                   step === 2
                     ? "bg-brand-500 text-white border-brand-500 shadow-xs"
                     : "bg-muted/40 text-muted-foreground border-transparent hover:bg-muted"
@@ -324,7 +401,7 @@ export function CreateClientDrawer({
                   if (valid) setStep(3)
                 }}
                 className={cn(
-                  "flex items-center justify-center gap-1.5 py-1 px-2 rounded-lg text-[11px] font-bold transition-all border",
+                  "flex items-center justify-center gap-1 py-1 px-1 rounded-lg text-[11px] font-bold transition-all border",
                   step === 3
                     ? "bg-brand-500 text-white border-brand-500 shadow-xs"
                     : "bg-muted/40 text-muted-foreground border-transparent hover:bg-muted"
@@ -337,6 +414,25 @@ export function CreateClientDrawer({
                   3
                 </span>
                 <span className="truncate">{isAr ? "الصحة" : "Health"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => goToReview()}
+                className={cn(
+                  "flex items-center justify-center gap-1 py-1 px-1 rounded-lg text-[11px] font-bold transition-all border",
+                  step === 4
+                    ? "bg-brand-500 text-white border-brand-500 shadow-xs"
+                    : "bg-muted/40 text-muted-foreground border-transparent hover:bg-muted"
+                )}
+              >
+                <span className={cn(
+                  "size-4 rounded-full flex items-center justify-center text-[10px]",
+                  step === 4 ? "bg-white/25 text-white" : "bg-muted text-foreground"
+                )}>
+                  4
+                </span>
+                <span className="truncate">{isAr ? "مراجعة" : "Review"}</span>
               </button>
             </div>
           )}
@@ -376,22 +472,32 @@ export function CreateClientDrawer({
                       <Phone className="size-3.5 text-brand-500" />
                       <span>{isAr ? "رقم الهاتف (اسم المستخدم للدخول) *" : "Phone Number (Login Username) *"}</span>
                     </Label>
-                    <div className="relative">
-                      <Input
-                        id="drawer-phone"
-                        type="tel"
-                        dir="ltr"
-                        placeholder="01xxxxxxxxx"
-                        {...form.register("phone")}
-                        className="rounded-xl h-11 text-sm bg-background border-border focus-visible:ring-brand-500 text-left font-mono"
-                      />
-                      <span className="absolute inset-y-0 end-3 flex items-center text-xs text-muted-foreground pointer-events-none">
-                        🇪🇬
-                      </span>
-                    </div>
+                    <Input
+                      id="drawer-phone"
+                      type="tel"
+                      dir="ltr"
+                      placeholder="01xxxxxxxxx"
+                      {...form.register("phone")}
+                      className="rounded-xl h-11 text-sm bg-background border-border text-foreground font-mono focus-visible:ring-brand-500 text-left px-3.5"
+                    />
                     {errors.phone && (
                       <p className="text-xs text-destructive font-medium">{errors.phone.message}</p>
                     )}
+                  </div>
+
+                  {/* Date of Birth */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="drawer-birthDate" className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <Calendar className="size-3.5 text-brand-500" />
+                      <span>{isAr ? "تاريخ الميلاد (اختياري)" : "Date of Birth (Optional)"}</span>
+                    </Label>
+                    <Input
+                      id="drawer-birthDate"
+                      type="date"
+                      max={new Date().toISOString().split("T")[0]}
+                      {...form.register("birthDate")}
+                      className="rounded-xl h-11 text-sm bg-background border-border text-foreground focus-visible:ring-brand-500 px-3.5"
+                    />
                   </div>
 
                   {/* Password with Auto-generate Button */}
@@ -510,6 +616,199 @@ export function CreateClientDrawer({
                         )
                       })}
                     </div>
+                  </div>
+                </div>
+
+                {/* Subscription Assignment Card */}
+                <div className="p-4 rounded-2xl border border-border bg-muted/20 space-y-3.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <CreditCard className="size-3.5 text-brand-500" />
+                      <span>{isAr ? "خطة الاشتراك للمتدرب" : "Assign Subscription"}</span>
+                    </Label>
+                    <Badge variant="outline" className="text-[10px] font-semibold border-brand-500/30 text-brand-500 bg-brand-500/10">
+                      {isAr ? "اختياري" : "Optional"}
+                    </Badge>
+                  </div>
+
+                  {/* Mode / Preset selection */}
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedSubMode("30_DAYS")
+                          setValue("subscriptionPlanId", null)
+                          setValue("subscriptionDurationDays", 30)
+                          setValue("subscriptionSessionsCount", null)
+                        }}
+                        className={cn(
+                          "py-2 px-2.5 rounded-xl border text-xs font-bold transition-all text-center",
+                          selectedSubMode === "30_DAYS"
+                            ? "border-brand-500 bg-brand-500/10 text-brand-500 shadow-xs"
+                            : "border-border bg-background text-muted-foreground hover:bg-muted"
+                        )}
+                      >
+                        {isAr ? "شهر (30 يوم)" : "1 Month"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedSubMode("90_DAYS")
+                          setValue("subscriptionPlanId", null)
+                          setValue("subscriptionDurationDays", 90)
+                          setValue("subscriptionSessionsCount", null)
+                        }}
+                        className={cn(
+                          "py-2 px-2.5 rounded-xl border text-xs font-bold transition-all text-center",
+                          selectedSubMode === "90_DAYS"
+                            ? "border-brand-500 bg-brand-500/10 text-brand-500 shadow-xs"
+                            : "border-border bg-background text-muted-foreground hover:bg-muted"
+                        )}
+                      >
+                        {isAr ? "3 شهور (90 يوم)" : "3 Months"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedSubMode("CUSTOM")
+                          setValue("subscriptionPlanId", null)
+                        }}
+                        className={cn(
+                          "py-2 px-2.5 rounded-xl border text-xs font-bold transition-all text-center",
+                          selectedSubMode === "CUSTOM"
+                            ? "border-brand-500 bg-brand-500/10 text-brand-500 shadow-xs"
+                            : "border-border bg-background text-muted-foreground hover:bg-muted"
+                        )}
+                      >
+                        {isAr ? "مخصص / باقاتك" : "Custom / Plans"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedSubMode("NONE")
+                          setValue("subscriptionPlanId", null)
+                          setValue("subscriptionDurationDays", null)
+                          setValue("subscriptionSessionsCount", null)
+                        }}
+                        className={cn(
+                          "py-2 px-2.5 rounded-xl border text-xs font-bold transition-all text-center",
+                          selectedSubMode === "NONE"
+                            ? "border-brand-500 bg-brand-500/10 text-brand-500 shadow-xs"
+                            : "border-border bg-background text-muted-foreground hover:bg-muted"
+                        )}
+                      >
+                        {isAr ? "بدون اشتراك" : "No Plan"}
+                      </button>
+                    </div>
+
+                    {/* Custom details / Saved plans */}
+                    {selectedSubMode === "CUSTOM" && (
+                      <div className="p-3 rounded-xl bg-background border border-border space-y-3 animate-in fade-in-50 duration-200">
+                        {availablePlans.length > 0 && (
+                          <div className="space-y-1.5">
+                            <Label className="text-[11px] font-semibold text-muted-foreground">
+                              {isAr ? "باقاتك المسجلة:" : "Your saved plans:"}
+                            </Label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {availablePlans.map((p) => {
+                                const isSelected = watchedValues.subscriptionPlanId === p.id
+                                return (
+                                  <button
+                                    key={p.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setValue("subscriptionPlanId", p.id)
+                                      setValue("subscriptionDurationDays", p.durationDays || null)
+                                      setValue("subscriptionSessionsCount", p.sessionsCount || null)
+                                    }}
+                                    className={cn(
+                                      "p-2.5 rounded-xl border text-start text-xs font-bold transition-all flex items-center justify-between",
+                                      isSelected
+                                        ? "border-brand-500 bg-brand-500/10 text-brand-600 dark:text-brand-400 ring-1 ring-brand-500"
+                                        : "border-border bg-card text-foreground hover:bg-muted"
+                                    )}
+                                  >
+                                    <span className="truncate">{p.name}</span>
+                                    <Badge variant="secondary" className="text-[10px] shrink-0 ms-1">
+                                      {p.planType === "SESSIONS"
+                                        ? `${p.sessionsCount} ${isAr ? "جلسات" : "sessions"}`
+                                        : `${p.durationDays} ${isAr ? "يوم" : "days"}`}
+                                    </Badge>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/60">
+                          <div className="space-y-1">
+                            <Label htmlFor="drawer-customDays" className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                              <Clock className="size-3" />
+                              <span>{isAr ? "مدة بالأيام (مخصص):" : "Custom days:"}</span>
+                            </Label>
+                            <Input
+                              id="drawer-customDays"
+                              type="number"
+                              min={1}
+                              max={1000}
+                              placeholder={isAr ? "مثال: 60" : "e.g. 60"}
+                              value={watchedValues.subscriptionDurationDays ?? ""}
+                              onChange={(e) => {
+                                const val = e.target.value === "" ? null : Number(e.target.value)
+                                setValue("subscriptionDurationDays", val)
+                                setValue("subscriptionPlanId", null)
+                                setValue("subscriptionSessionsCount", null)
+                              }}
+                              className="h-9 rounded-lg text-xs"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label htmlFor="drawer-customSessions" className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                              <Ticket className="size-3" />
+                              <span>{isAr ? "عدد جلسات (مخصص):" : "Custom sessions:"}</span>
+                            </Label>
+                            <Input
+                              id="drawer-customSessions"
+                              type="number"
+                              min={1}
+                              max={500}
+                              placeholder={isAr ? "مثال: 12" : "e.g. 12"}
+                              value={watchedValues.subscriptionSessionsCount ?? ""}
+                              onChange={(e) => {
+                                const val = e.target.value === "" ? null : Number(e.target.value)
+                                setValue("subscriptionSessionsCount", val)
+                                setValue("subscriptionPlanId", null)
+                                setValue("subscriptionDurationDays", null)
+                              }}
+                              className="h-9 rounded-lg text-xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Subscription Start Date */}
+                    {selectedSubMode !== "NONE" && (
+                      <div className="flex items-center gap-2 pt-1">
+                        <Label htmlFor="drawer-subStartDate" className="text-[11px] font-semibold text-muted-foreground shrink-0 flex items-center gap-1">
+                          <Calendar className="size-3 text-brand-500" />
+                          <span>{isAr ? "تاريخ بدء الاشتراك:" : "Start Date:"}</span>
+                        </Label>
+                        <Input
+                          id="drawer-subStartDate"
+                          type="date"
+                          defaultValue={new Date().toISOString().split("T")[0]}
+                          {...form.register("subscriptionStartDate")}
+                          className="h-8 rounded-lg text-xs w-auto bg-background"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -733,9 +1032,346 @@ export function CreateClientDrawer({
             )}
 
             {/* ========================================================= */}
-            {/* STEP 4: SUCCESS & WHATSAPP DELIVERY STATE */}
+            {/* STEP 4: REVIEW & MODIFICATION BEFORE FINAL SAVE */}
             {/* ========================================================= */}
-            {step === 4 && createdData && (
+            {step === 4 && (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                
+                {/* Review intro notice */}
+                <div className="p-3.5 rounded-2xl bg-brand-500/10 border border-brand-500/20 flex items-start gap-3">
+                  <div className="size-8 rounded-xl bg-brand-500/20 text-brand-500 flex items-center justify-center shrink-0 mt-0.5">
+                    <ClipboardCheck className="size-4" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <h4 className="text-xs font-bold text-foreground">
+                      {isAr ? "مراجعة وتأكيد البيانات قبل الإضافة" : "Review Athlete Information"}
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      {isAr
+                        ? "تأكد من صحة البيانات المسجلة، يمكنك الضغط على 'تعديل' بجانب أي قسم للرجوع وتعديله قبل الحفظ النهائي."
+                        : "Verify all data before saving. Click 'Edit' beside any section to modify its fields."}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Card 1: Account & Profile Details */}
+                <div className="p-4 rounded-2xl border border-border bg-card space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-border/60">
+                    <div className="flex items-center gap-2">
+                      <div className="size-6 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                        <User className="size-3.5" />
+                      </div>
+                      <span className="text-xs font-black text-foreground">
+                        {isAr ? "بيانات الحساب والتدريب" : "Account & Coaching Info"}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setStep(1)}
+                      className="h-7 px-2.5 rounded-lg text-[11px] font-bold text-brand-500 hover:text-brand-600 hover:bg-brand-500/10 gap-1.5"
+                    >
+                      <Pencil className="size-3" />
+                      <span>{isAr ? "تعديل" : "Edit"}</span>
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-2.5 rounded-xl bg-muted/30 border border-border/40">
+                      <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "الاسم بالكامل" : "Full Name"}</span>
+                      <span className="font-bold text-foreground truncate block mt-0.5">{watchedValues.fullName || "-"}</span>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-muted/30 border border-border/40">
+                      <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "رقم الهاتف" : "Phone"}</span>
+                      <span className="font-mono font-bold text-foreground truncate block mt-0.5 dir-ltr text-start">{watchedValues.phone || "-"}</span>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-muted/30 border border-border/40">
+                      <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "كلمة المرور المؤقتة" : "Password"}</span>
+                      <span className="font-mono font-bold text-brand-500 truncate block mt-0.5 dir-ltr text-start">{watchedValues.password || "-"}</span>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-muted/30 border border-border/40">
+                      <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "تاريخ الميلاد" : "Date of Birth"}</span>
+                      <span className="font-bold text-foreground truncate block mt-0.5">
+                        {watchedValues.birthDate || (isAr ? "غير محدد" : "Not specified")}
+                      </span>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-muted/30 border border-border/40">
+                      <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "طريقة التدريب" : "Coaching Mode"}</span>
+                      <span className="font-bold text-foreground block mt-0.5">
+                        {watchedValues.coachingMode === CoachingMode.ONLINE
+                          ? (isAr ? "🌐 أونلاين" : "Online")
+                          : watchedValues.coachingMode === CoachingMode.IN_PERSON
+                          ? (isAr ? "🏋️‍♂️ حضوري" : "In-Person")
+                          : (isAr ? "هجين" : "Hybrid")}
+                      </span>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-muted/30 border border-border/40">
+                      <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "الأهداف المحددة" : "Goals"}</span>
+                      {watchedValues.goals && watchedValues.goals.length > 0 ? (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {watchedValues.goals.map((g) => {
+                            const label =
+                              g === Goal.WEIGHT_LOSS
+                                ? (isAr ? "إنقاص وزن" : "Weight Loss")
+                                : g === Goal.MUSCLE_BUILDING
+                                ? (isAr ? "بناء عضلات" : "Muscle")
+                                : g === Goal.STRENGTH
+                                ? (isAr ? "زيادة قوة" : "Strength")
+                                : g === Goal.GENERAL_FITNESS
+                                ? (isAr ? "صحة ولياقة" : "Fitness")
+                                : g
+                            return (
+                              <Badge key={g} variant="secondary" className="text-[9px] py-0 px-1.5 font-bold">
+                                {label}
+                              </Badge>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground block mt-0.5">{isAr ? "غير محدد" : "None"}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 2: Subscription Plan */}
+                <div className="p-4 rounded-2xl border border-border bg-card space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-border/60">
+                    <div className="flex items-center gap-2">
+                      <div className="size-6 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                        <CreditCard className="size-3.5" />
+                      </div>
+                      <span className="text-xs font-black text-foreground">
+                        {isAr ? "الاشتراك والعضوية" : "Subscription & Plan"}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setStep(1)}
+                      className="h-7 px-2.5 rounded-lg text-[11px] font-bold text-brand-500 hover:text-brand-600 hover:bg-brand-500/10 gap-1.5"
+                    >
+                      <Pencil className="size-3" />
+                      <span>{isAr ? "تعديل" : "Edit"}</span>
+                    </Button>
+                  </div>
+
+                  {(() => {
+                    const matchedPlan = watchedValues.subscriptionPlanId 
+                      ? availablePlans.find((p) => p.id === watchedValues.subscriptionPlanId)
+                      : null
+                    const subName = matchedPlan
+                      ? matchedPlan.name
+                      : watchedValues.subscriptionDurationDays
+                      ? (watchedValues.subscriptionDurationDays === 30
+                          ? (isAr ? "شهر (30 يوم)" : "1 Month (30 days)")
+                          : watchedValues.subscriptionDurationDays === 90
+                          ? (isAr ? "3 شهور (90 يوم)" : "3 Months (90 days)")
+                          : `${watchedValues.subscriptionDurationDays} ${isAr ? "يوم" : "days"}`)
+                      : watchedValues.subscriptionSessionsCount
+                      ? `${watchedValues.subscriptionSessionsCount} ${isAr ? "جلسات" : "sessions"}`
+                      : (isAr ? "بدون اشتراك حالياً" : "No Plan")
+                    
+                    return (
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="p-2.5 rounded-xl bg-muted/30 border border-border/40">
+                          <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "الاشتراك المفعّل" : "Plan"}</span>
+                          <span className="font-bold text-emerald-500 block mt-0.5 truncate">{subName}</span>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-muted/30 border border-border/40">
+                          <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "تاريخ البداية" : "Start Date"}</span>
+                          <span className="font-mono font-bold text-foreground block mt-0.5 dir-ltr text-start">
+                            {watchedValues.subscriptionStartDate || new Date().toISOString().split("T")[0]}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </div>
+
+                {/* Card 3: InBody & Body Metrics */}
+                <div className="p-4 rounded-2xl border border-border bg-card space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-border/60">
+                    <div className="flex items-center gap-2">
+                      <div className="size-6 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                        <Scale className="size-3.5" />
+                      </div>
+                      <span className="text-xs font-black text-foreground">
+                        {isAr ? "قياسات الـ InBody والجسم" : "InBody & Body Metrics"}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setStep(2)}
+                      className="h-7 px-2.5 rounded-lg text-[11px] font-bold text-brand-500 hover:text-brand-600 hover:bg-brand-500/10 gap-1.5"
+                    >
+                      <Pencil className="size-3" />
+                      <span>{isAr ? "تعديل" : "Edit"}</span>
+                    </Button>
+                  </div>
+
+                  {(!watchedValues.weightKg && !watchedValues.heightCm && !watchedValues.muscleMassKg && !watchedValues.bodyFatKg) ? (
+                    <div className="p-3 rounded-xl bg-muted/20 text-center text-xs text-muted-foreground">
+                      {isAr ? "لم يتم إدخال قياسات InBody (تم التخطي - يمكن إضافتها لاحقاً)" : "No InBody metrics entered (skipped)"}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      {watchedValues.weightKg !== undefined && (
+                        <div className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
+                          <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "الوزن" : "Weight"}</span>
+                          <span className="font-black text-foreground">{watchedValues.weightKg} كجم</span>
+                        </div>
+                      )}
+                      {watchedValues.heightCm !== undefined && (
+                        <div className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
+                          <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "الطول" : "Height"}</span>
+                          <span className="font-black text-foreground">{watchedValues.heightCm} سم</span>
+                        </div>
+                      )}
+                      {watchedValues.muscleMassKg !== undefined && (
+                        <div className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
+                          <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "العضلات" : "Muscle"}</span>
+                          <span className="font-black text-foreground">{watchedValues.muscleMassKg} كجم</span>
+                        </div>
+                      )}
+                      {watchedValues.bodyFatKg !== undefined && (
+                        <div className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
+                          <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "الدهون" : "Body Fat"}</span>
+                          <span className="font-black text-foreground">{watchedValues.bodyFatKg} كجم</span>
+                        </div>
+                      )}
+                      {watchedValues.bodyWaterPct !== undefined && (
+                        <div className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
+                          <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "نسبة الماء" : "Water %"}</span>
+                          <span className="font-black text-foreground">{watchedValues.bodyWaterPct}%</span>
+                        </div>
+                      )}
+                      {watchedValues.fatControlKg !== undefined && (
+                        <div className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
+                          <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "التحكم بالدهون" : "Fat Control"}</span>
+                          <span className="font-black text-foreground">{watchedValues.fatControlKg} كجم</span>
+                        </div>
+                      )}
+                      {watchedValues.bmrKcal !== undefined && (
+                        <div className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
+                          <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "الأيض BMR" : "BMR"}</span>
+                          <span className="font-black text-foreground">{watchedValues.bmrKcal}</span>
+                        </div>
+                      )}
+                      {watchedValues.fitnessScore !== undefined && (
+                        <div className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
+                          <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "نقاط اللياقة" : "Score"}</span>
+                          <span className="font-black text-foreground">{watchedValues.fitnessScore}/100</span>
+                        </div>
+                      )}
+                      {watchedValues.visceralFatLevel !== undefined && (
+                        <div className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
+                          <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "الدهون الحشوية" : "Visceral Fat"}</span>
+                          <span className="font-black text-foreground">{watchedValues.visceralFatLevel}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Card 4: Health & Joint Pains */}
+                <div className="p-4 rounded-2xl border border-border bg-card space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-border/60">
+                    <div className="flex items-center gap-2">
+                      <div className="size-6 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center">
+                        <HeartPulse className="size-3.5" />
+                      </div>
+                      <span className="text-xs font-black text-foreground">
+                        {isAr ? "الحالة الصحية والمفاصل" : "Health & Injuries"}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setStep(3)}
+                      className="h-7 px-2.5 rounded-lg text-[11px] font-bold text-brand-500 hover:text-brand-600 hover:bg-brand-500/10 gap-1.5"
+                    >
+                      <Pencil className="size-3" />
+                      <span>{isAr ? "تعديل" : "Edit"}</span>
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2 text-xs">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block font-bold mb-1">
+                        {isAr ? "آلام المفاصل:" : "Joint Pains:"}
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {watchedValues.neckPain && (
+                          <Badge variant="destructive" className="text-[10px] py-0.5">
+                            {isAr ? "ألم الرقبة" : "Neck Pain"}
+                          </Badge>
+                        )}
+                        {watchedValues.shoulderPain && (
+                          <Badge variant="destructive" className="text-[10px] py-0.5">
+                            {isAr ? "ألم الكتف" : "Shoulder Pain"}
+                          </Badge>
+                        )}
+                        {watchedValues.backPain && (
+                          <Badge variant="destructive" className="text-[10px] py-0.5">
+                            {isAr ? "ألم أسفل الظهر" : "Back Pain"}
+                          </Badge>
+                        )}
+                        {watchedValues.kneePain && (
+                          <Badge variant="destructive" className="text-[10px] py-0.5">
+                            {isAr ? "ألم الركبة" : "Knee Pain"}
+                          </Badge>
+                        )}
+                        {!watchedValues.neckPain && !watchedValues.shoulderPain && !watchedValues.backPain && !watchedValues.kneePain && (
+                          <span className="text-muted-foreground text-[11px]">
+                            {isAr ? "لا توجد آلام مفاصل محددة" : "No joint pains reported"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {(watchedValues.injuries || watchedValues.healthConditions || watchedValues.medications) && (
+                      <div className="pt-2 border-t border-border/50 space-y-1.5 text-[11px]">
+                        {watchedValues.injuries && (
+                          <div>
+                            <span className="font-bold text-foreground">{isAr ? "إصابات سابقة: " : "Injuries: "}</span>
+                            <span className="text-muted-foreground">{watchedValues.injuries}</span>
+                          </div>
+                        )}
+                        {watchedValues.healthConditions && (
+                          <div>
+                            <span className="font-bold text-foreground">{isAr ? "حالات صحية: " : "Conditions: "}</span>
+                            <span className="text-muted-foreground">{watchedValues.healthConditions}</span>
+                          </div>
+                        )}
+                        {watchedValues.medications && (
+                          <div>
+                            <span className="font-bold text-foreground">{isAr ? "أدوية منتظمة: " : "Medications: "}</span>
+                            <span className="text-muted-foreground">{watchedValues.medications}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            )}
+
+            {/* ========================================================= */}
+            {/* STEP 5: SUCCESS & WHATSAPP DELIVERY STATE */}
+            {/* ========================================================= */}
+            {step === 5 && createdData && (
               <div className="space-y-5 animate-in zoom-in-95 duration-200">
                 
                 {/* Celebration Card */}
@@ -750,7 +1386,7 @@ export function CreateClientDrawer({
                 </div>
 
                 {/* Credentials Quick Info Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className={cn("grid gap-2.5", createdData.subscriptionInfo ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-1 sm:grid-cols-3")}>
                   <div className="p-3 rounded-xl border border-border bg-card">
                     <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "اسم المستخدم (الهاتف)" : "Username (Phone)"}</span>
                     <span className="text-xs font-mono font-bold text-foreground block mt-0.5 dir-ltr text-start">{createdData.phone}</span>
@@ -759,6 +1395,12 @@ export function CreateClientDrawer({
                     <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "كلمة المرور المؤقتة" : "Password"}</span>
                     <span className="text-xs font-mono font-bold text-brand-500 block mt-0.5 dir-ltr text-start">{createdData.password}</span>
                   </div>
+                  {createdData.subscriptionInfo && (
+                    <div className="p-3 rounded-xl border border-border bg-card">
+                      <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "الاشتراك المفعّل" : "Subscription"}</span>
+                      <span className="text-xs font-bold text-emerald-500 block mt-0.5 truncate">{createdData.subscriptionInfo}</span>
+                    </div>
+                  )}
                   <div className="p-3 rounded-xl border border-border bg-card">
                     <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "رابط تسجيل الدخول" : "Login URL"}</span>
                     <span className="text-xs font-mono text-muted-foreground block mt-0.5 truncate dir-ltr text-start">{loginUrl}</span>
@@ -824,14 +1466,24 @@ export function CreateClientDrawer({
               >
                 {isAr ? "إلغاء" : "Cancel"}
               </Button>
-              <Button
-                type="button"
-                onClick={goToStep2}
-                className="rounded-xl px-5 bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold flex items-center gap-2 shadow-sm"
-              >
-                <span>{isAr ? "التالي: قياسات الـ InBody" : "Next: InBody"}</span>
-                <NextIcon className="size-3.5" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={goToReview}
+                  className="rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground"
+                >
+                  {isAr ? "تخطي للمراجعة" : "Skip to Review"}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={goToStep2}
+                  className="rounded-xl px-5 bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold flex items-center gap-2 shadow-sm"
+                >
+                  <span>{isAr ? "التالي: قياسات الـ InBody" : "Next: InBody"}</span>
+                  <NextIcon className="size-3.5" />
+                </Button>
+              </div>
             </>
           )}
 
@@ -851,10 +1503,10 @@ export function CreateClientDrawer({
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={() => setStep(3)}
-                  className="rounded-xl text-xs font-semibold text-muted-foreground"
+                  onClick={() => setStep(4)}
+                  className="rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground"
                 >
-                  {isAr ? "تخطي هذه الخطوة" : "Skip this step"}
+                  {isAr ? "تخطي للمراجعة" : "Skip to Review"}
                 </Button>
                 <Button
                   type="button"
@@ -882,6 +1534,29 @@ export function CreateClientDrawer({
               
               <Button
                 type="button"
+                onClick={() => setStep(4)}
+                className="rounded-xl px-5 bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold flex items-center gap-2 shadow-sm"
+              >
+                <span>{isAr ? "التالي: مراجعة وتأكيد البيانات" : "Next: Review & Confirm"}</span>
+                <NextIcon className="size-3.5" />
+              </Button>
+            </>
+          )}
+
+          {step === 4 && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setStep(3)}
+                className="rounded-xl text-xs font-bold border-border"
+              >
+                <PrevIcon className="size-3.5 me-1.5" />
+                <span>{isAr ? "السابق" : "Back"}</span>
+              </Button>
+
+              <Button
+                type="button"
                 onClick={() => {
                   form.handleSubmit(
                     (values) => onSubmit(values),
@@ -903,13 +1578,13 @@ export function CreateClientDrawer({
                   )()
                 }}
                 disabled={isSubmitting}
-                className="rounded-xl px-6 bg-gradient-to-r from-brand-600 to-brand-500 text-white text-xs font-black flex items-center gap-2 shadow-md hover:brightness-110"
+                className="rounded-xl px-6 bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-600 text-white text-xs font-black flex items-center gap-2 shadow-md hover:brightness-110"
               >
                 {isSubmitting ? (
                   <span>{isAr ? "جاري الحفظ والإنشاء..." : "Creating Client..."}</span>
                 ) : (
                   <>
-                    <span>{isAr ? "حفظ وإنشاء المتدرب" : "Create Athlete"}</span>
+                    <span>{isAr ? "تأكيد وإنشاء المتدرب" : "Confirm & Create Athlete"}</span>
                     <Sparkles className="size-3.5" />
                   </>
                 )}
@@ -917,7 +1592,7 @@ export function CreateClientDrawer({
             </>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <Button
               type="button"
               onClick={() => handleOpenChange(false)}

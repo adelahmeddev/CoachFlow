@@ -105,7 +105,7 @@ export function InBodyMissionCard({ mission }: InBodyMissionCardProps) {
                 <Link href="/client/profile?tab=inbody">
                   <Sparkles className="size-4" />
                   <span>{isAr ? "تحديث فحص InBody الآن" : "Update InBody Now"}</span>
-                  <ArrowIcon className="size-4 rtl:-scale-x-100" />
+                  <ArrowIcon className="size-4" />
                 </Link>
               </Button>
             </div>

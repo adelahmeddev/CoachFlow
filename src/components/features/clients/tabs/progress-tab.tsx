@@ -114,7 +114,8 @@ export async function ProgressTab({ clientId }: ProgressTabProps) {
     : []
 
   const sessionViews: SessionView[] = allSessions.map((session) => {
-    const firstRaw = rawByLogId.get(session.logs[0].id)
+    const firstLogId = session.logs[0]?.id
+    const firstRaw = firstLogId ? rawByLogId.get(firstLogId) : undefined
     const day = firstRaw?.splitDayExercise.splitDay
     const dayLabel = day
       ? `${t.sessions.dayPrefix} ${day.dayNumber} · ${

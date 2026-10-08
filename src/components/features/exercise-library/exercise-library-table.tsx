@@ -97,7 +97,9 @@ export function ExerciseLibraryTable({ initialExercises }: ExerciseLibraryTableP
     return list.filter((ex) => {
       if (query.trim()) {
         const q = query.trim().toLowerCase()
-        if (ex.name && !ex.name.toLowerCase().includes(q)) return false
+        const matchName = ex.name ? ex.name.toLowerCase().includes(q) : false
+        const matchNameAr = ex.nameAr ? ex.nameAr.toLowerCase().includes(q) : false
+        if (!matchName && !matchNameAr) return false
       }
 
       // Muscle filter

@@ -64,7 +64,7 @@ export function DashboardActionCard({ client, data }: DashboardActionCardProps) 
   const { t, locale } = useI18n()
   const isAr = locale === "ar"
   const streak = data.client.streak
-  const hasWorkoutToday = data.todayWorkout?.day !== null
+  const hasWorkoutToday = Boolean(data.todayWorkout?.day)
   const workoutDone = data.week.summary.done
   const workoutPlanned = data.week.summary.planned
   const adherence = data.progress.latestAdherence
@@ -95,7 +95,9 @@ export function DashboardActionCard({ client, data }: DashboardActionCardProps) 
         : (isAr ? "تواصل مع مدربك لجدولة تمرين" : "Contact your coach to schedule a workout"),
       icon: Dumbbell,
       color: "from-brand-500 to-energy-500",
-      href: hasWorkoutToday && !isDayNameOnly ? `/client/workout/today?dayId=${data.todayWorkout.day?.id}` : "/client/week",
+      href: hasWorkoutToday && data.todayWorkout?.day?.id && !isDayNameOnly
+        ? `/client/workout/today?dayId=${data.todayWorkout.day.id}`
+        : "/client/week",
       variant: hasWorkoutToStart ? "primary" : "secondary",
       badge: hasWorkoutToStart ? (isAr ? "جاهز" : "Ready") : undefined,
       badgeColor: "bg-emerald-500",
