@@ -32,7 +32,11 @@ export default async function ExerciseLibraryPage() {
   try {
     exercises = await listExercisesForTrainer(trainerProfileId)
   } catch (err) {
-    console.error("Failed to list cached exercises for trainer, falling back to direct query:", err)
+    console.error("Failed to list cached exercises for trainer:", err)
+  }
+
+  // Robust fallback: if cache is empty or failed, fetch directly from DB
+  if (!exercises || exercises.length === 0) {
     try {
       const res = await pool.query<LibraryExercise>(
         `SELECT e.id,
@@ -54,10 +58,11 @@ export default async function ExerciseLibraryPage() {
          ORDER BY COALESCE(o."muscleGroup", e."muscleGroup") ASC, name ASC`,
         [trainerProfileId]
       )
-      exercises = res.rows
+      if (res.rows && res.rows.length > 0) {
+        exercises = res.rows
+      }
     } catch (dbErr) {
       console.error("Direct query failed in ExerciseLibraryPage:", dbErr)
-      exercises = []
     }
   }
 
