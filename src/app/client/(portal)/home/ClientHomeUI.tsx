@@ -101,29 +101,6 @@ export function ClientHomeUI({ data, checkin, posts }: ClientHomeUIProps) {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-8">
-      {/* NUDGE — Complete profile banner */}
-      {data.client.basicInfoCompletedAt === null && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 dark:bg-amber-500/10 dark:border-amber-500/20 p-4 shadow-soft">
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-              <div>
-                <h3 className="font-semibold text-amber-800 dark:text-amber-400">
-                  {isAr ? "أكمل ملفك الشخصي" : "Complete Your Profile"}
-                </h3>
-                <p className="text-sm text-amber-700 dark:text-amber-500/80 mt-1">
-                  {isAr ? "يرجى إكمال قياسات جسمك وتاريخك الطبي لمساعدة مدربك في تخصيص خطتك." : "Please complete your body measurements and medical history to help your coach tailor your plan."}
-                </p>
-              </div>
-              <a
-                href="/client/profile"
-                className="shrink-0 rounded-xl bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-colors"
-              >
-                {isAr ? "إكمال الملف الشخصي" : "Complete Profile"}
-              </a>
-            </div>
-          </div>
-        </motion.div>
-      )}
 
       {/* HERO — full-bleed coach banner with greeting actions */}
       <CoachHeroSection latestPost={posts[0] ?? null} />

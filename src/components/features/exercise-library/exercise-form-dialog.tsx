@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -145,6 +146,11 @@ export function ExerciseFormDialog({
               ? t.exerciseLibrary.editExercise
               : t.exerciseLibrary.addExercise}
           </SheetTitle>
+          <SheetDescription className="sr-only">
+            {isEditing
+              ? t.exerciseLibrary.editExercise
+              : t.exerciseLibrary.addExercise}
+          </SheetDescription>
         </SheetHeader>
 
         <form

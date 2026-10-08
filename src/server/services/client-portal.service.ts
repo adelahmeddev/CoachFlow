@@ -112,9 +112,9 @@ export async function getClientHomeData(clientId: string) {
   const nowMs = Date.now()
   const lastInBodyDate = latestBodyComposition?.date ? new Date(latestBodyComposition.date) : null
   const daysSinceInBody = lastInBodyDate
-    ? Math.floor((nowMs - lastInBodyDate.getTime()) / (24 * 60 * 60 * 1000))
+    ? Math.max(0, Math.floor((nowMs - lastInBodyDate.getTime()) / (24 * 60 * 60 * 1000)))
     : null
-  const isOverdue = latestBodyComposition === null || (daysSinceInBody !== null && daysSinceInBody > 30)
+  const isOverdue = latestBodyComposition === null || (daysSinceInBody !== null && daysSinceInBody >= 30)
 
   const inbodyMission = {
     isOverdue,

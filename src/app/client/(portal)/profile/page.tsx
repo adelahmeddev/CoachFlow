@@ -19,7 +19,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export default async function ClientProfilePage() {
+interface ClientProfilePageProps {
+  searchParams?: Promise<{ tab?: string }>
+}
+
+export default async function ClientProfilePage(props: ClientProfilePageProps) {
   const { t, locale } = await getI18n()
   const isAr = locale === "ar"
   const session = await getCurrentSession()
@@ -35,13 +39,19 @@ export default async function ClientProfilePage() {
     redirect("/client/login")
   }
 
+  const searchParams = props.searchParams ? await props.searchParams : undefined
+  const validTabs = ["info", "inbody", "goals", "subscription", "settings"]
+  const initialTab = searchParams?.tab && validTabs.includes(searchParams.tab)
+    ? searchParams.tab
+    : "info"
+
   // BodyComposition is source of truth; client.goal is canonical
   const bodyCompositionsRes = await pool.query<BodyComposition>(`SELECT * FROM "BodyComposition" WHERE "clientId" = $1 ORDER BY "date" DESC`, [client.id])
   const bodyCompositions = bodyCompositionsRes.rows as BodyComposition[]
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-8">
-      <Tabs defaultValue="info">
+      <Tabs key={initialTab} defaultValue={initialTab}>
         <TabsList className="!h-auto flex-wrap">
           <TabsTrigger value="info">{isAr ? "بياناتي" : "My Info"}</TabsTrigger>
           <TabsTrigger value="inbody">{isAr ? "تكوين الجسم" : "Body Composition"}</TabsTrigger>
@@ -72,8 +82,8 @@ export default async function ClientProfilePage() {
         <TabsContent value="inbody" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>تكوين الجسم | InBody — إضافة تحليل</CardTitle>
-              <CardDescription>Add new InBody entry — date required, other fields optional</CardDescription>
+              <CardTitle>{isAr ? "تكوين الجسم | InBody — إضافة تحليل" : "Body Composition | InBody — Add Scan"}</CardTitle>
+              <CardDescription>{isAr ? "إضافة فحص InBody جديد — التاريخ إلزامي وباقي الحقول اختيارية" : "Add new InBody entry — date required, other fields optional"}</CardDescription>
             </CardHeader>
             <CardContent>
               <BodyCompositionForm clientId={client.id} />

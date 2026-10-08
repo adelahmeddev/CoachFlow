@@ -151,26 +151,21 @@ export function getExerciseName(
 }
 
 export function getMuscleGroupLabel(
-  muscleGroup: string,
+  muscleGroup: string | null | undefined,
   locale: Locale
 ): string {
-  return (
-    getDictionary(locale).templates.muscleGroups[
-      muscleGroup.toLowerCase() as keyof typeof en.templates.muscleGroups
-    ] ?? muscleGroup
-  )
+  if (!muscleGroup) return ""
+  const dict = getDictionary(locale).templates?.muscleGroups as Record<string, string> | undefined
+  return dict?.[muscleGroup.toLowerCase()] ?? muscleGroup
 }
 
 export function getEquipmentLabel(
-  equipment: string | null,
+  equipment: string | null | undefined,
   locale: Locale
 ): string {
   if (!equipment) return ""
-  return (
-    getDictionary(locale).templates.equipment[
-      equipment.toLowerCase() as keyof typeof en.templates.equipment
-    ] ?? equipment
-  )
+  const dict = getDictionary(locale).templates?.equipment as Record<string, string> | undefined
+  return dict?.[equipment.toLowerCase()] ?? equipment
 }
 
 export function getSubstituteCategoryLabel(

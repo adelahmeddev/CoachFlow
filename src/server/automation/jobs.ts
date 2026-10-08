@@ -359,7 +359,7 @@ export async function runAutomationJobs(now: Date = new Date()): Promise<Automat
         }
         const lastBc = lastInbody.get(client.id)
         const staleDays = lastBc ? Math.floor((today.getTime() - lastBc.getTime()) / DAY_MS) : null
-        if (staleDays === null || staleDays > 30) {
+        if (staleDays === null || staleDays >= 30) {
           await insertReminder(
             tx,
             {
@@ -368,7 +368,7 @@ export async function runAutomationJobs(now: Date = new Date()): Promise<Automat
               titleKey: "progressReminderTitle",
               bodyKey: "progressReminderBody",
               params: {},
-              link: "/client/profile",
+              link: "/client/profile?tab=inbody",
               dedupeKey: `rem:progress:${client.id}:${weekKey}`,
             },
             counters,

@@ -21,6 +21,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -92,10 +93,11 @@ export function ExerciseLibraryTable({ initialExercises }: ExerciseLibraryTableP
 
   // Filtered exercises
   const filteredExercises = useMemo(() => {
-    return initialExercises.filter((ex) => {
+    const list = Array.isArray(initialExercises) ? initialExercises : []
+    return list.filter((ex) => {
       if (query.trim()) {
         const q = query.trim().toLowerCase()
-        if (!ex.name.toLowerCase().includes(q)) return false
+        if (ex.name && !ex.name.toLowerCase().includes(q)) return false
       }
 
       // Muscle filter
@@ -194,7 +196,8 @@ export function ExerciseLibraryTable({ initialExercises }: ExerciseLibraryTableP
                 {filteredExercises.map((exercise) => {
                   const youtubeId = exercise.youtubeUrl ? extractYoutubeId(exercise.youtubeUrl) : null
                   const hasVideo = Boolean(youtubeId)
-                  const accent = MUSCLE_ACCENTS[exercise.muscleGroup.toUpperCase()]
+                  const muscleKey = (exercise.muscleGroup || "chest").toUpperCase()
+                  const accent = MUSCLE_ACCENTS[muscleKey] || MUSCLE_ACCENTS.CHEST
 
                   return (
                     <tr
@@ -325,6 +328,9 @@ export function ExerciseLibraryTable({ initialExercises }: ExerciseLibraryTableP
               <Video className="size-5 text-rose-500" />
               <span>{isAr ? "معاينة تمرين الفيديو" : "Exercise Video Preview"}</span>
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              {isAr ? "معاينة تمرين الفيديو" : "Exercise video preview player"}
+            </DialogDescription>
           </DialogHeader>
           <div className="overflow-hidden rounded-xl pt-2">
             {previewVideoUrl && (
