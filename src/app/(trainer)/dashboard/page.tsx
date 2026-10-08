@@ -4,6 +4,7 @@ import { getCurrentSession } from "@/server/auth"
 import { getDashboardData } from "@/server/services/dashboard.service"
 import { getNeedsAction } from "@/server/services/needs-action.service"
 import { StatCard } from "@/components/features/dashboard/stat-card"
+import { CoachingModePieChart } from "@/components/features/dashboard/coaching-mode-pie-chart"
 import { RecentClientsVisual } from "@/components/features/dashboard/recent-clients"
 import { NeedsActionSection } from "@/components/features/dashboard/needs-action-section"
 import { CheckinOverviewCard } from "@/components/features/checkin/checkin-overview-card"
@@ -67,6 +68,8 @@ export default async function DashboardPage() {
       activeClients: 0,
       recentlyAdded: 0,
       expiringSoon: 0,
+      onlineClients: 0,
+      inPersonClients: 0,
       deltas: { totalClients: 0, pendingAssessment: 0, activeClients: 0, recentlyAdded: 0, expiringSoon: 0 },
     }
     recentClients = []
@@ -208,6 +211,14 @@ export default async function DashboardPage() {
           />
         </StaggerItem>
       </StaggerList>
+
+      {/* COACHING MODE BREAKDOWN — Online vs In-Person Pie Chart */}
+      <FadeIn delay={0.12}>
+        <CoachingModePieChart
+          onlineCount={stats.onlineClients ?? 0}
+          inPersonCount={stats.inPersonClients ?? 0}
+        />
+      </FadeIn>
 
       {/* COACH FOCUS — two cards */}
       <FadeIn delay={0.15}>

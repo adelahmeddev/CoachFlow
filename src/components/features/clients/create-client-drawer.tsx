@@ -181,6 +181,7 @@ export function CreateClientDrawer({
       subscriptionDurationDays: 30,
       subscriptionSessionsCount: null,
       subscriptionStartDate: new Date().toISOString().split("T")[0],
+      inbodyDate: new Date().toISOString().split("T")[0],
       weightKg: undefined,
       heightCm: undefined,
       muscleMassKg: undefined,
@@ -831,6 +832,21 @@ export function CreateClientDrawer({
                     </Badge>
                   </div>
 
+                  {/* InBody Measurement Date */}
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/80 px-3 py-2">
+                    <Label htmlFor="drawer-inbodyDate" className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <Calendar className="size-3.5 text-emerald-500" />
+                      <span>{isAr ? "تاريخ قياس الـ InBody:" : "Measurement Date:"}</span>
+                    </Label>
+                    <Input
+                      id="drawer-inbodyDate"
+                      type="date"
+                      defaultValue={new Date().toISOString().split("T")[0]}
+                      {...form.register("inbodyDate")}
+                      className="h-9 rounded-lg text-xs w-auto bg-background font-bold"
+                    />
+                  </div>
+
                   {/* 10 InBody Fields Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     
@@ -1224,7 +1240,12 @@ export function CreateClientDrawer({
                       {isAr ? "لم يتم إدخال قياسات InBody (تم التخطي - يمكن إضافتها لاحقاً)" : "No InBody metrics entered (skipped)"}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-muted/30 border border-border/40 text-xs">
+                        <span className="text-[10px] text-muted-foreground font-bold">{isAr ? "تاريخ القياس:" : "Measurement Date:"}</span>
+                        <span className="font-mono font-bold text-foreground dir-ltr">{watchedValues.inbodyDate || new Date().toISOString().split("T")[0]}</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-xs">
                       {watchedValues.weightKg !== undefined && (
                         <div className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
                           <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "الوزن" : "Weight"}</span>
@@ -1279,6 +1300,7 @@ export function CreateClientDrawer({
                           <span className="font-black text-foreground">{watchedValues.visceralFatLevel}</span>
                         </div>
                       )}
+                      </div>
                     </div>
                   )}
                 </div>

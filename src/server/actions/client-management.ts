@@ -214,6 +214,9 @@ export async function createClientManuallyAction(data: CreateClientManuallyInput
     // Create BodyComposition if any measurements provided
     const hasInBody = input.weightKg || input.heightCm || input.bodyFatKg || input.muscleMassKg || input.bodyWaterPct || input.fatControlKg || input.bmrKcal || input.fitnessScore || input.waistHipRatio || input.visceralFatLevel
     if (hasInBody) {
+      const inbodyDate = input.inbodyDate
+        ? new Date(`${input.inbodyDate}T00:00:00Z`)
+        : new Date()
       await clientDb.query(
         `INSERT INTO "BodyComposition" (
           "id", "clientId", "date", "source", 
@@ -222,12 +225,12 @@ export async function createClientManuallyAction(data: CreateClientManuallyInput
           "waistHipRatio", "visceralFatLevel",
           "createdAt", "updatedAt"
         ) VALUES (
-          $1, $2, NOW(), 'COACH',
-          $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
+          $1, $2, $3, 'COACH',
+          $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
           NOW(), NOW()
         )`,
         [
-          generateId(), clientId, 
+          generateId(), clientId, inbodyDate,
           input.weightKg || null, 
           input.heightCm || null, 
           input.bodyFatKg || null, 

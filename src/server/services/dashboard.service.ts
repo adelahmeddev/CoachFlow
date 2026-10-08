@@ -20,7 +20,9 @@ export async function getDashboardData(trainerProfileId: string) {
           COUNT(*) FILTER (WHERE "createdAt" >= $2::timestamptz)::int AS "recentlyAdded",
           COUNT(*) FILTER (WHERE "createdAt" >= $3::timestamptz AND "createdAt" < $2::timestamptz)::int AS "prevPeriodAdded",
           COUNT(*) FILTER (WHERE "status" = $4::"ClientStatus" AND "createdAt" < $2::timestamptz)::int AS "prevPendingAssessment",
-          COUNT(*) FILTER (WHERE "status" = $5::"ClientStatus" AND "createdAt" < $2::timestamptz)::int AS "prevActiveClients"
+          COUNT(*) FILTER (WHERE "status" = $5::"ClientStatus" AND "createdAt" < $2::timestamptz)::int AS "prevActiveClients",
+          COUNT(*) FILTER (WHERE "coachingMode" = 'ONLINE'::"CoachingMode")::int AS "onlineClients",
+          COUNT(*) FILTER (WHERE "coachingMode" = 'IN_PERSON'::"CoachingMode")::int AS "inPersonClients"
         FROM "Client"
         WHERE "trainerId" = $1
       `
@@ -50,6 +52,8 @@ export async function getDashboardData(trainerProfileId: string) {
         prevPeriodAdded: number
         prevPendingAssessment: number
         prevActiveClients: number
+        onlineClients: number
+        inPersonClients: number
       } | null = null
       let expiringSoonCount = 0
       let recentClientsRes: { rows: unknown[] } | null = null
@@ -87,6 +91,8 @@ export async function getDashboardData(trainerProfileId: string) {
           prevPeriodAdded: 0,
           prevPendingAssessment: 0,
           prevActiveClients: 0,
+          onlineClients: 0,
+          inPersonClients: 0,
         }
         recentClientsRes = recentClientsRes ?? { rows: [] as unknown[] }
       }
@@ -98,6 +104,8 @@ export async function getDashboardData(trainerProfileId: string) {
       const prevPeriodAdded = Number(statsRow?.prevPeriodAdded) || 0
       const prevPendingAssessment = Number(statsRow?.prevPendingAssessment) || 0
       const prevActiveClients = Number(statsRow?.prevActiveClients) || 0
+      const onlineClients = Number(statsRow?.onlineClients) || 0
+      const inPersonClients = Number(statsRow?.inPersonClients) || 0
       const expiringSoon = Number(expiringSoonCount) || 0
 
       const recentClients = (recentClientsRes?.rows as unknown as {
@@ -116,6 +124,8 @@ export async function getDashboardData(trainerProfileId: string) {
           activeClients,
           recentlyAdded,
           expiringSoon,
+          onlineClients,
+          inPersonClients,
           // Deltas: positive = up, negative = down, null = no previous data
           deltas: {
             // Total clients: new this period vs new last period

@@ -63,6 +63,7 @@ export const createClientManuallySchema = z.object({
   subscriptionStartDate: z.string().optional().nullable(),
   
   // InBody metrics (all optional, safe against NaN and empty strings)
+  inbodyDate: z.string().optional().nullable(),
   weightKg: optionalNumber,
   heightCm: optionalNumber,
   muscleMassKg: optionalNumber,
