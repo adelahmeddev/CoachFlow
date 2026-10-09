@@ -1,9 +1,12 @@
 "use client"
 
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts"
-import { Globe, Dumbbell, PieChart as PieChartIcon } from "lucide-react"
+import { Globe, Dumbbell, PieChart as PieChartIcon, ArrowLeft } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useI18n } from "@/lib/i18n/client"
+import { CoachingMode } from "@/lib/db/enums"
 
 interface CoachingModePieChartProps {
   onlineCount: number
@@ -21,6 +24,7 @@ export function CoachingModePieChart({
 }: CoachingModePieChartProps) {
   const { locale } = useI18n()
   const isAr = locale === "ar"
+  const router = useRouter()
 
   const safeOnline = Number.isFinite(onlineCount) ? onlineCount : 0
   const safeInPerson = Number.isFinite(inPersonCount) ? inPersonCount : 0
@@ -34,11 +38,13 @@ export function CoachingModePieChart({
       name: isAr ? "أونلاين (Online)" : "Online",
       value: safeOnline,
       color: COLORS.online,
+      mode: CoachingMode.ONLINE,
     },
     {
       name: isAr ? "حضوري (In-Person)" : "In-Person",
       value: safeInPerson,
       color: COLORS.inPerson,
+      mode: CoachingMode.IN_PERSON,
     },
   ]
 
@@ -54,9 +60,12 @@ export function CoachingModePieChart({
               {isAr ? "توزيع نظام التدريب (أونلاين / حضوري)" : "Coaching Mode (Online vs In-Person)"}
             </CardTitle>
           </div>
-          <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-bold tabular-nums text-muted-foreground">
+          <Link
+            href="/clients"
+            className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-bold tabular-nums text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-colors"
+          >
             {total} {isAr ? "متدرب" : "total"}
-          </span>
+          </Link>
         </div>
       </CardHeader>
 
@@ -90,14 +99,25 @@ export function CoachingModePieChart({
                     paddingAngle={total > 0 && safeOnline > 0 && safeInPerson > 0 ? 4 : 0}
                     dataKey="value"
                     strokeWidth={0}
+                    className="cursor-pointer outline-none"
+                    onClick={(_, index) => {
+                      const entry = data[index]
+                      if (entry?.mode) {
+                        router.push(`/clients?coachingMode=${entry.mode}`)
+                      }
+                    }}
                   >
                     {data.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.color}
+                        className="cursor-pointer transition-opacity hover:opacity-85"
+                      />
                     ))}
                   </Pie>
                   <Tooltip
                     formatter={(value) => [
-                      `${value} ${isAr ? "متدرب" : "athletes"}`,
+                      `${value} ${isAr ? "متدرب — اضغط للعرض" : "athletes — click to view"}`,
                       "",
                     ]}
                     contentStyle={{
@@ -122,17 +142,21 @@ export function CoachingModePieChart({
               </div>
             </div>
 
-            {/* Breakdown Legend Cards */}
+            {/* Breakdown Legend Cards (Clickable Links) */}
             <div className="grid w-full flex-1 grid-cols-1 gap-2.5">
               {/* Online */}
-              <div className="flex items-center justify-between rounded-xl border border-blue-500/20 bg-blue-500/5 p-3">
+              <Link
+                href={`/clients?coachingMode=${CoachingMode.ONLINE}`}
+                className="group flex items-center justify-between rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 transition-all hover:border-blue-500/40 hover:bg-blue-500/10"
+              >
                 <div className="flex items-center gap-2.5">
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/15 text-blue-500">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/15 text-blue-500 transition-transform group-hover:scale-105">
                     <Globe className="size-4" />
                   </span>
                   <div>
-                    <p className="text-xs font-bold text-foreground">
-                      {isAr ? "تدريب أونلاين" : "Online Coaching"}
+                    <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <span>{isAr ? "تدريب أونلاين" : "Online Coaching"}</span>
+                      <ArrowLeft className="size-3 text-blue-500 opacity-0 transition-all group-hover:opacity-100 rtl:rotate-0 rotate-180" />
                     </p>
                     <p className="text-[11px] text-muted-foreground font-medium">
                       {onlinePct}% {isAr ? "من المتدربين" : "of athletes"}
@@ -147,17 +171,21 @@ export function CoachingModePieChart({
                     {isAr ? "متدرب" : "athletes"}
                   </span>
                 </div>
-              </div>
+              </Link>
 
               {/* In-Person */}
-              <div className="flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
+              <Link
+                href={`/clients?coachingMode=${CoachingMode.IN_PERSON}`}
+                className="group flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 transition-all hover:border-emerald-500/40 hover:bg-emerald-500/10"
+              >
                 <div className="flex items-center gap-2.5">
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-500">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-500 transition-transform group-hover:scale-105">
                     <Dumbbell className="size-4" />
                   </span>
                   <div>
-                    <p className="text-xs font-bold text-foreground">
-                      {isAr ? "تدريب حضوري" : "In-Person Coaching"}
+                    <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <span>{isAr ? "تدريب حضوري" : "In-Person Coaching"}</span>
+                      <ArrowLeft className="size-3 text-emerald-500 opacity-0 transition-all group-hover:opacity-100 rtl:rotate-0 rotate-180" />
                     </p>
                     <p className="text-[11px] text-muted-foreground font-medium">
                       {inPersonPct}% {isAr ? "من المتدربين" : "of athletes"}
@@ -172,7 +200,7 @@ export function CoachingModePieChart({
                     {isAr ? "متدرب" : "athletes"}
                   </span>
                 </div>
-              </div>
+              </Link>
             </div>
           </div>
         )}

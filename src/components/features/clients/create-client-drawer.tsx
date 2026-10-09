@@ -946,6 +946,17 @@ export function CreateClientDrawer({
                       />
                     </div>
 
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-bold text-muted-foreground">{isAr ? "نسبة الخصر للورك (WHR)" : "Waist-Hip Ratio (WHR)"}</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.88"
+                        {...form.register("waistHipRatio", { setValueAs: (v) => (v === "" || v === null || v === undefined ? null : Number(v)) })}
+                        className="rounded-xl h-10 text-xs bg-background border-border text-center font-bold"
+                      />
+                    </div>
+
                   </div>
 
                   <p className="text-[11px] text-muted-foreground leading-relaxed pt-2">
@@ -1235,7 +1246,7 @@ export function CreateClientDrawer({
                     </Button>
                   </div>
 
-                  {(!watchedValues.weightKg && !watchedValues.heightCm && !watchedValues.muscleMassKg && !watchedValues.bodyFatKg) ? (
+                  {(!watchedValues.weightKg && !watchedValues.heightCm && !watchedValues.muscleMassKg && !watchedValues.bodyFatKg && !watchedValues.bodyWaterPct && !watchedValues.fatControlKg && !watchedValues.bmrKcal && !watchedValues.fitnessScore && !watchedValues.visceralFatLevel && !watchedValues.waistHipRatio) ? (
                     <div className="p-3 rounded-xl bg-muted/20 text-center text-xs text-muted-foreground">
                       {isAr ? "لم يتم إدخال قياسات InBody (تم التخطي - يمكن إضافتها لاحقاً)" : "No InBody metrics entered (skipped)"}
                     </div>
@@ -1246,58 +1257,64 @@ export function CreateClientDrawer({
                         <span className="font-mono font-bold text-foreground dir-ltr">{watchedValues.inbodyDate || new Date().toISOString().split("T")[0]}</span>
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-xs">
-                      {watchedValues.weightKg !== undefined && (
+                      {watchedValues.weightKg != null && (
                         <div className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
                           <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "الوزن" : "Weight"}</span>
                           <span className="font-black text-foreground">{watchedValues.weightKg} كجم</span>
                         </div>
                       )}
-                      {watchedValues.heightCm !== undefined && (
+                      {watchedValues.heightCm != null && (
                         <div className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
                           <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "الطول" : "Height"}</span>
                           <span className="font-black text-foreground">{watchedValues.heightCm} سم</span>
                         </div>
                       )}
-                      {watchedValues.muscleMassKg !== undefined && (
+                      {watchedValues.muscleMassKg != null && (
                         <div className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
                           <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "العضلات" : "Muscle"}</span>
                           <span className="font-black text-foreground">{watchedValues.muscleMassKg} كجم</span>
                         </div>
                       )}
-                      {watchedValues.bodyFatKg !== undefined && (
+                      {watchedValues.bodyFatKg != null && (
                         <div className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
                           <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "الدهون" : "Body Fat"}</span>
                           <span className="font-black text-foreground">{watchedValues.bodyFatKg} كجم</span>
                         </div>
                       )}
-                      {watchedValues.bodyWaterPct !== undefined && (
+                      {watchedValues.bodyWaterPct != null && (
                         <div className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
                           <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "نسبة الماء" : "Water %"}</span>
                           <span className="font-black text-foreground">{watchedValues.bodyWaterPct}%</span>
                         </div>
                       )}
-                      {watchedValues.fatControlKg !== undefined && (
+                      {watchedValues.fatControlKg != null && (
                         <div className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
                           <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "التحكم بالدهون" : "Fat Control"}</span>
                           <span className="font-black text-foreground">{watchedValues.fatControlKg} كجم</span>
                         </div>
                       )}
-                      {watchedValues.bmrKcal !== undefined && (
+                      {watchedValues.bmrKcal != null && (
                         <div className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
                           <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "الأيض BMR" : "BMR"}</span>
                           <span className="font-black text-foreground">{watchedValues.bmrKcal}</span>
                         </div>
                       )}
-                      {watchedValues.fitnessScore !== undefined && (
+                      {watchedValues.fitnessScore != null && (
                         <div className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
                           <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "نقاط اللياقة" : "Score"}</span>
                           <span className="font-black text-foreground">{watchedValues.fitnessScore}/100</span>
                         </div>
                       )}
-                      {watchedValues.visceralFatLevel !== undefined && (
+                      {watchedValues.visceralFatLevel != null && (
                         <div className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
                           <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "الدهون الحشوية" : "Visceral Fat"}</span>
                           <span className="font-black text-foreground">{watchedValues.visceralFatLevel}</span>
+                        </div>
+                      )}
+                      {watchedValues.waistHipRatio != null && (
+                        <div className="p-2 rounded-xl bg-muted/30 border border-border/40 text-center">
+                          <span className="text-[10px] text-muted-foreground block font-bold">{isAr ? "نسبة الخصر للورك" : "Waist-Hip Ratio"}</span>
+                          <span className="font-black text-foreground">{watchedValues.waistHipRatio}</span>
                         </div>
                       )}
                       </div>

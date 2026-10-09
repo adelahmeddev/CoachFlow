@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { AuthCard, TrainerAuthFooter } from "@/components/features/auth/auth-card";
 import { LoginForm } from "@/components/features/auth/login-form";
 import { getI18n } from "@/lib/i18n";
@@ -15,7 +15,7 @@ export default async function LoginPage() {
   return (
     <AuthCard
       title={isAr ? "مرحبًا بعودتك" : "Welcome back"}
-      description={isAr ? "سجّل الدخول باسم المستخدم أو رقم الهاتف أو البريد الإلكتروني." : "Sign in with your username, phone number, or email."}
+      description={isAr ? "سجّل الدخول برقم الهاتف وكلمة المرور." : "Sign in with your phone number and password."}
       footer={<TrainerAuthFooter />}
     >
       <LoginForm callbackUrl="/dashboard" />

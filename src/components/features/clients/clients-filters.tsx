@@ -25,7 +25,7 @@ import {
   getClientStatusLabel,
   getGoalLabel,
 } from "@/lib/i18n/labels"
-import { ClientStatus, Goal } from "@/lib/db/enums"
+import { ClientStatus, CoachingMode, Goal } from "@/lib/db/enums"
 
 const GOAL_VALUES = [
   Goal.WEIGHT_LOSS,
@@ -42,12 +42,14 @@ export function ClientsFilters() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { t, locale } = useI18n()
+  const isAr = locale === "ar"
   const [isPending, startTransition] = useTransition()
   const [open, setOpen] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
 
   const currentStatus = searchParams.get("status") ?? "ALL"
   const currentGoal = searchParams.get("goal") ?? "ALL"
+  const currentCoachingMode = searchParams.get("coachingMode") ?? "ALL"
   const currentQ = searchParams.get("q") ?? ""
   const currentAddedWithin = searchParams.get("addedWithin")
 
@@ -55,11 +57,13 @@ export function ClientsFilters() {
     currentQ !== "" ||
     currentStatus !== "ALL" ||
     currentGoal !== "ALL" ||
+    currentCoachingMode !== "ALL" ||
     Boolean(currentAddedWithin)
 
   const activeCount = [
     currentStatus !== "ALL" ? currentStatus : null,
     currentGoal !== "ALL" ? currentGoal : null,
+    currentCoachingMode !== "ALL" ? currentCoachingMode : null,
     currentAddedWithin,
   ].filter(Boolean).length
 
@@ -98,6 +102,24 @@ export function ClientsFilters() {
               {getClientStatusLabel(value, locale)}
             </SelectItem>
           ))}
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={currentCoachingMode}
+        onValueChange={(value) => updateParams({ coachingMode: value })}
+      >
+        <SelectTrigger className="w-full min-w-[140px] md:w-[160px] bg-card shadow-soft" aria-label={isAr ? "تصفية حسب وضع التدريب" : "Filter by coaching mode"}>
+          <SelectValue placeholder={isAr ? "وضع التدريب" : "Coaching mode"} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="ALL">{t.common.all}</SelectItem>
+          <SelectItem value={CoachingMode.ONLINE}>
+            {isAr ? "🌐 أونلاين" : "🌐 Online"}
+          </SelectItem>
+          <SelectItem value={CoachingMode.IN_PERSON}>
+            {isAr ? "🏋️ حضوري" : "🏋️ In-Person"}
+          </SelectItem>
         </SelectContent>
       </Select>
 
@@ -141,7 +163,7 @@ export function ClientsFilters() {
           size="sm"
           className="gap-1.5"
           onClick={() =>
-            updateParams({ q: null, status: null, goal: null, addedWithin: null })
+            updateParams({ q: null, status: null, goal: null, coachingMode: null, addedWithin: null })
           }
         >
           <RotateCcw className="size-3.5" aria-hidden="true" />

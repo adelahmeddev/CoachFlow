@@ -1,5 +1,5 @@
 import { pool, generateId } from "@/lib/db"
-import { ClientStatus, Goal, SubscriptionStatus } from "@/lib/db/enums"
+import { ClientStatus, CoachingMode, Goal, SubscriptionStatus } from "@/lib/db/enums"
 import {
   clientCreateSchema,
   type ClientCreateInput,
@@ -74,6 +74,7 @@ export async function getTrainerClients(
     q?: string
     goal?: Goal
     status?: ClientStatus
+    coachingMode?: CoachingMode
     addedWithin?: number
     page?: number
     perPage?: number
@@ -95,6 +96,11 @@ export async function getTrainerClients(
   if (params.status) {
     whereClauses.push(`"status" = $${paramIdx}::"ClientStatus"`)
     queryParams.push(params.status)
+    paramIdx++
+  }
+  if (params.coachingMode) {
+    whereClauses.push(`"coachingMode" = $${paramIdx}::"CoachingMode"`)
+    queryParams.push(params.coachingMode)
     paramIdx++
   }
   if (params.goal) {

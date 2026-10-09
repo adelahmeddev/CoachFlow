@@ -98,10 +98,10 @@ export function LoginForm({
           name="identifier"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{isAr ? "اسم المستخدم أو رقم الهاتف أو البريد الإلكتروني" : "Username, phone number, or email"}</FormLabel>
+              <FormLabel>{isAr ? "رقم الهاتف" : "Phone number"}</FormLabel>
               <FormControl>
                 <Input
-                  placeholder={isAr ? "coach.karim أو 01000000000 أو you@example.com…" : "coach.karim, 01000000000, or you@example.com…"}
+                  placeholder="01000000000"
                   autoComplete="username"
                   spellCheck={false}
                   disabled={isPending}

@@ -28,7 +28,7 @@ export default async function ClientLoginPage() {
         <div>
           <AuthCard
             title={isAr ? "مرحبًا بعودتك" : "Welcome back"}
-            description={isAr ? "سجّل الدخول باسم المستخدم أو رقم الهاتف أو البريد الإلكتروني." : "Sign in with your username, phone number, or email."}
+            description={isAr ? "سجّل الدخول برقم الهاتف وكلمة المرور." : "Sign in with your phone number and password."}
             footer={<ClientAuthFooter />}
           >
             <LoginForm callbackUrl="/client/home" />
