@@ -1290,3 +1290,28 @@ export async function getMealAdherence(
     }
   })
 }
+
+export async function deleteClientNutritionPlan(
+  trainerProfileId: string,
+  planId: string
+): Promise<{ ok: true; clientId: string } | { ok: false; error: string }> {
+  const planCheck = await pool.query(
+    `SELECT cnp."id", cnp."clientId"
+     FROM "ClientNutritionPlan" cnp
+     JOIN "Client" c ON cnp."clientId" = c."id"
+     WHERE cnp."id" = $1 AND c."trainerId" = $2 LIMIT 1`,
+    [planId, trainerProfileId]
+  )
+  if (!planCheck.rowCount || planCheck.rowCount === 0) {
+    return { ok: false, error: "PLAN_NOT_FOUND" }
+  }
+
+  const { clientId } = planCheck.rows[0] as { clientId: string }
+
+  await pool.query(
+    `DELETE FROM "ClientNutritionPlan" WHERE "id" = $1`,
+    [planId]
+  )
+
+  return { ok: true, clientId }
+}

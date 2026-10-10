@@ -589,6 +589,11 @@ export const ar: Dictionary = {
     templateUpdatedToast: "تم تحديث القالب",
     templateDeletedToast: "تم حذف القالب",
     deleteFailed: "فشل حذف القالب",
+    deletePlan: "حذف الخطة",
+    deletePlanConfirmTitle: "حذف خطة التغذية؟",
+    deletePlanConfirmDescription: "هل أنت متأكد من حذف خطة التغذية هذه؟ سيتم حذف الخطة وجميع الوجبات المرتبطة بها نهائياً.",
+    planDeletedToast: "تم حذف خطة التغذية بنجاح",
+    deletePlanFailed: "فشل حذف خطة التغذية",
     genericError: "حدث خطأ",
 
     /* Pro builder */

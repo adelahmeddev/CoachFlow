@@ -19,6 +19,7 @@ import {
   toggleMealChoice,
   getOwnedClientTrainerId,
   fetchPlanFull,
+  deleteClientNutritionPlan,
 } from "@/server/services/nutrition.service"
 import {
   notifyClientsPlanUpdated,
@@ -265,4 +266,28 @@ export async function getPlanFullAction(planId: string) {
   const session = await getCurrentSession()
   if (!session?.user) return null
   return fetchPlanFull(planId)
+}
+
+export async function deleteClientNutritionPlanAction(planId: string) {
+  const session = await getCurrentSession()
+  const trainerProfileId = requireTrainer(session)
+  if (!trainerProfileId) {
+    return { ok: false as const, error: "UNAUTHORIZED" }
+  }
+
+  const res = await deleteClientNutritionPlan(trainerProfileId, planId)
+  if (!res.ok) {
+    return { ok: false as const, error: res.error }
+  }
+
+  const clientId = res.clientId
+  invalidate([
+    `client:${clientId}:nutrition`,
+    `client:${clientId}:profile`,
+  ])
+  revalidatePath(`/clients/${clientId}?tab=nutrition`)
+  revalidatePath(`/clients/${clientId}`)
+  revalidatePath("/client/nutrition")
+
+  return { ok: true as const, clientId }
 }

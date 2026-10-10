@@ -12,6 +12,7 @@ import { RefreshFromTemplateButton } from "@/components/features/nutrition/refre
 import { ChangePlanDialog } from "@/components/features/nutrition/change-plan-dialog"
 import { CoachMealLog } from "@/components/features/nutrition/coach-meal-log"
 import { ComparePlanDialog } from "@/components/features/nutrition/compare-plan-dialog"
+import { DeleteNutritionPlanButton } from "@/components/features/nutrition/delete-plan-button"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -147,6 +148,11 @@ export async function NutritionTab({
                     <Button asChild size="sm" className="rounded-xl bg-gradient-to-r from-brand-500 to-brand-600">
                       <a href={`/clients/${clientId}/nutrition/edit?section=basic`} target="_blank">{isAr ? "تعديل" : "Edit"}</a>
                     </Button>
+                    <DeleteNutritionPlanButton
+                      planId={plan.id}
+                      clientId={clientId}
+                      planName={plan.template?.name ?? t.nutrition.customPlanBadge}
+                    />
                   </div>
                   <p className="text-xs text-muted-foreground text-center lg:text-end">
                     {isAr ? "آخر تحديث" : "Last updated"}: {formatDate(plan.updatedAt ?? plan.createdAt, locale)}
@@ -389,15 +395,21 @@ export async function NutritionTab({
                       </TableCell>
                       <TableCell className="tabular-nums text-muted-foreground">{row.calories ?? "—"}</TableCell>
                       <TableCell className="text-end">
-                        {plan && row.id !== plan.id ? (
-                          <ComparePlanDialog
-                            pastPlanId={row.id}
-                            pastPlanName={row.template?.name ?? t.nutrition.customPlanBadge}
-                            currentPlan={plan}
+                        <div className="flex items-center justify-end gap-1.5">
+                          {plan && row.id !== plan.id && (
+                            <ComparePlanDialog
+                              pastPlanId={row.id}
+                              pastPlanName={row.template?.name ?? t.nutrition.customPlanBadge}
+                              currentPlan={plan}
+                            />
+                          )}
+                          <DeleteNutritionPlanButton
+                            planId={row.id}
+                            clientId={clientId}
+                            planName={row.template?.name ?? t.nutrition.customPlanBadge}
+                            isHistoryRow
                           />
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

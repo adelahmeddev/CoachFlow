@@ -588,6 +588,11 @@ export const en = {
     templateUpdatedToast: "Template updated",
     templateDeletedToast: "Template deleted",
     deleteFailed: "Failed to delete template",
+    deletePlan: "Delete Plan",
+    deletePlanConfirmTitle: "Delete Nutrition Plan?",
+    deletePlanConfirmDescription: "Are you sure you want to delete this nutrition plan? This will permanently remove the plan and all its assigned meals.",
+    planDeletedToast: "Nutrition plan deleted",
+    deletePlanFailed: "Failed to delete nutrition plan",
     genericError: "Something went wrong",
 
     /* Pro builder */

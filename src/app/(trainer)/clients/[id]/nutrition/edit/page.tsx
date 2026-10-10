@@ -3,6 +3,7 @@ import { getCurrentSession } from "@/server/auth"
 import { getClientProfile } from "@/server/services/client-profile.service"
 import { getCachedActivePlanFull } from "@/server/services/nutrition.service"
 import { NutritionBuilder } from "@/components/features/nutrition/nutrition-builder"
+import { DeleteNutritionPlanButton } from "@/components/features/nutrition/delete-plan-button"
 import { getI18n } from "@/lib/i18n"
 
 export default async function NutritionEditPage({
@@ -72,7 +73,15 @@ export default async function NutritionEditPage({
 
   return (
     <div className="mx-auto max-w-6xl p-4 md:p-8 space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t.nutrition.planEditorTitle}</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight">{t.nutrition.planEditorTitle}</h1>
+        <DeleteNutritionPlanButton
+          planId={plan.id}
+          clientId={id}
+          planName={plan.template?.name ?? t.nutrition.customPlanBadge}
+          redirectTo={`/clients/${id}?tab=nutrition`}
+        />
+      </div>
       <NutritionBuilder mode="plan" initial={initial} planId={plan.id} clientId={id} />
     </div>
   )
