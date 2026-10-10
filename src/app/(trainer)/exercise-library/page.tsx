@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 import { getCurrentSession } from "@/server/auth"
 import { listExercisesForTrainer } from "@/server/services/exercise.service"
-import { ExerciseLibraryTable } from "@/components/features/exercise-library/exercise-library-table"
+import { ExerciseLibrarySplitView } from "@/components/features/exercise-library/exercise-library-split-view"
 import { getI18n } from "@/lib/i18n"
 import type { Metadata } from "next"
 
@@ -67,19 +67,19 @@ export default async function ExerciseLibraryPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-3 h-[calc(100dvh-7.5rem)] md:h-[calc(100dvh-8.5rem)] max-h-[calc(100dvh-7.5rem)] md:max-h-[calc(100dvh-8.5rem)] overflow-hidden">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+      <div className="shrink-0">
+        <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground">
           {t.exerciseLibrary.title}
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-0.5 text-xs text-muted-foreground">
           {t.exerciseLibrary.subtitle}
         </p>
       </div>
 
-      {/* Main library table */}
-      <ExerciseLibraryTable initialExercises={exercises} />
+      {/* Main Split View */}
+      <ExerciseLibrarySplitView initialExercises={exercises} />
     </div>
   )
 }

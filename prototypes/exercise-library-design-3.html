@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>التصميم الثالث: بطاقات التمدد واللوحة المنبثقة (Cards Accordion & Sliding Drawer)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Cairo', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#fdf2f2',
+              100: '#fce4e4',
+              500: '#961112',
+              600: '#820e0f',
+              700: '#6b0b0c',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Cairo', sans-serif; }
+    .drawer-transition { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f8fafc; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+  </style>
+</head>
+<body class="bg-[#f8fafc] text-slate-800 antialiased min-h-screen">
+
+  <!-- Header -->
+  <header class="border-b border-slate-200 bg-white/90 backdrop-blur-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-600 to-brand-500 text-white flex items-center justify-center font-black text-xl shadow-md">
+          C
+        </div>
+        <div>
+          <span class="text-[11px] font-black text-brand-600 tracking-wider uppercase block">CoachFlow Experience</span>
+          <h1 class="text-lg font-black text-slate-900 leading-none">مكتبة التمارين التفاعلية</h1>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+          <span class="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+          النموذج الثالث: Accordion & Drawer
+        </span>
+        <button onclick="showToast('فتح نافذة إضافة تمرين...')" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold shadow-md shadow-brand-500/20 transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          إضافة تمرين جديد
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+    <!-- Top Hero Banner with Mode Selector -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <h2 class="text-xl font-black text-slate-900">مكتبة التمارين حسب العضلة المستهدفة</h2>
+        <p class="text-xs text-slate-500 mt-1 max-w-xl">
+          بطاقات بصرية تبرز إحصائيات كل عضلة مع إمكانية التوسيع المباشر في الصفحة أو العرض في نافذة منبثقة سريعة.
+        </p>
+      </div>
+
+      <!-- Interaction Mode Switcher -->
+      <div class="flex items-center gap-3 bg-slate-50 p-1.5 rounded-2xl border border-slate-200 self-start md:self-auto">
+        <span class="text-xs font-bold text-slate-500 pr-2">طريقة الفتح:</span>
+        <button 
+          onclick="setMode('DRAWER')" 
+          id="modeBtnDrawer" 
+          class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-white text-brand-600 shadow-sm border border-slate-200 flex items-center gap-1.5"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          لوحة منبثقة (Drawer)
+        </button>
+        <button 
+          onclick="setMode('ACCORDION')" 
+          id="modeBtnAccordion" 
+          class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900 flex items-center gap-1.5"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          توسيع البطاقة (Inline)
+        </button>
+      </div>
+    </div>
+
+    <!-- Overall Global Search Bar -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="relative w-full sm:max-w-md">
+        <svg class="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input 
+          type="text" 
+          id="globalSearchInput" 
+          oninput="handleGlobalSearch(this.value)" 
+          placeholder="ابحث عن أي تمرين (بالاسم العربي أو الإنجليزي)..." 
+          class="w-full pr-10 pl-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+        >
+      </div>
+      <div class="flex items-center gap-2 text-xs font-semibold text-slate-500 w-full sm:w-auto justify-end">
+        <span>إجمالي التمارين: <strong class="text-slate-900 font-black">45</strong></span>
+        <span>•</span>
+        <span>المدعومة بالفيديو: <strong class="text-emerald-600 font-black">39</strong></span>
+      </div>
+    </div>
+
+    <!-- Cards Deck / Accordion Container -->
+    <div class="space-y-4" id="cardsDeckContainer">
+      <!-- Rendered by JS -->
+    </div>
+  </main>
+
+  <!-- Sliding Drawer (Offcanvas Sheet) -->
+  <div id="drawerOverlay" class="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-xs hidden transition-opacity" onclick="closeDrawer()"></div>
+  <div id="slidingDrawer" class="fixed top-0 bottom-0 left-0 z-50 w-full max-w-3xl bg-white shadow-2xl drawer-transition -translate-x-full flex flex-col border-r border-slate-200">
+    
+    <!-- Drawer Header -->
+    <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
+      <div class="flex items-center gap-3">
+        <div id="drawerIcon" class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center font-bold">
+          <!-- Icon -->
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h3 id="drawerTitle" class="text-base font-black text-slate-900">تمارين الصدر</h3>
+            <span id="drawerCountBadge" class="px-2 py-0.5 rounded-full text-xs font-bold bg-brand-50 text-brand-700 border border-brand-200">12 تمرين</span>
+          </div>
+          <p id="drawerSubtitle" class="text-xs text-slate-500">Chest Exercises • قائمة التمارين التفصيلية</p>
+        </div>
+      </div>
+      <button onclick="closeDrawer()" class="w-8 h-8 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <!-- Drawer Toolbar -->
+    <div class="p-4 border-b border-slate-100 flex items-center justify-between gap-3 bg-white">
+      <div class="relative flex-1">
+        <svg class="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input 
+          type="text" 
+          id="drawerSearchInput" 
+          oninput="handleDrawerSearch(this.value)" 
+          placeholder="بحث في تمارين هذه المجموعة..." 
+          class="w-full pr-9 pl-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-brand-500"
+        >
+      </div>
+      <button onclick="showToast('إضافة تمرين إلى هذه المجموعة')" class="px-3.5 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold flex items-center gap-1.5 transition-all shrink-0">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        إضافة تمرين
+      </button>
+    </div>
+
+    <!-- Drawer Table Content -->
+    <div class="flex-1 overflow-y-auto custom-scrollbar p-4">
+      <div class="rounded-xl border border-slate-200 overflow-hidden">
+        <table class="w-full text-right text-sm">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500">
+              <th class="py-3 px-3">التمرين</th>
+              <th class="py-3 px-3">المجموعة العضلية</th>
+              <th class="py-3 px-3">النوع</th>
+              <th class="py-3 px-3">الفيديو</th>
+              <th class="py-3 px-3 text-left">الإجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="drawerTableBody" class="divide-y divide-slate-100">
+            <!-- Rendered by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Video Modal -->
+  <div id="videoModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <h3 id="modalExerciseTitle" class="text-sm font-bold text-slate-900">مشاهدة التمرين</h3>
+        <button onclick="closeVideoModal()" class="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="p-8 bg-slate-900 text-white flex flex-col items-center justify-center">
+        <div class="w-16 h-16 rounded-full bg-brand-500 text-white flex items-center justify-center shadow-lg mb-3">
+          <svg class="w-8 h-8 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <p class="font-bold text-sm" id="modalExerciseSub">معاينة فيديو التمرين التوضيحي</p>
+        <p class="text-xs text-slate-400 mt-1" id="modalVideoUrl"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-6 left-6 z-50 hidden bg-slate-900 text-white text-xs font-bold px-4 py-3 rounded-xl shadow-xl flex items-center gap-2">
+    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+    <span id="toastMsg">تم الإجراء بنجاح</span>
+  </div>
+
+  <!-- Script -->
+  <script>
+    const MUSCLE_GROUPS = [
+      { id: 'chest', nameAr: 'الصدر', nameEn: 'Chest', desc: 'تمارين البنش والتفتيح والضغط', color: 'amber', icon: 'M4 6h16M4 12h16M4 18h16' },
+      { id: 'back', nameAr: 'الظهر', nameEn: 'Back', desc: 'سحب الظهر والديدلفت والعقلة', color: 'sky', icon: 'M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z' },
+      { id: 'shoulders', nameAr: 'الأكتاف', nameEn: 'Shoulders', desc: 'ضغط الكتف والرفرفة الجانبية والأمامية', color: 'fuchsia', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
+      { id: 'arms', nameAr: 'الذراعين', nameEn: 'Arms', desc: 'البايسبس والترايسبس والساعد', color: 'blue', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
+      { id: 'legs', nameAr: 'الأرجل', nameEn: 'Legs', desc: 'السكوات وضغط الأرجل والخلفيات والسمانة', color: 'purple', icon: 'M19 14l-7 7m0 0l-7-7m7 7V3' },
+      { id: 'glutes', nameAr: 'الأرداف', nameEn: 'Glutes', desc: 'هيب ثرست والكيك باك والبلغاري', color: 'rose', icon: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z' },
+      { id: 'core', nameAr: 'البطن', nameEn: 'Core', desc: 'البلانك ورفع الأرجل والخواصر', color: 'emerald', icon: 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z' },
+      { id: 'cardio', nameAr: 'القلب', nameEn: 'Cardio', desc: 'تمارين التحمل الهوائية وحرق السعرات', color: 'red', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' }
+    ];
+
+    const SAMPLE_EXERCISES = [
+      { id: '1', name: 'Barbell Bench Press', nameAr: 'بنش برس بالبار مستوي', muscle: 'chest', type: 'global', youtubeUrl: 'https://youtube.com/watch?v=rT7DgCr-3pg' },
+      { id: '2', name: 'Incline Dumbbell Press', nameAr: 'تجميع دمبل مائل لأعلى', muscle: 'chest', type: 'customized', youtubeUrl: 'https://youtube.com/watch?v=8iPEnn-ltC8' },
+      { id: '3', name: 'Cable Chest Fly', nameAr: 'تفتيح صدر بالكابل', muscle: 'chest', type: 'global', youtubeUrl: 'https://youtube.com/watch?v=Iwe6Amx4fys' },
+      { id: '4', name: 'Push-up', nameAr: 'تمرين الضغط', muscle: 'chest', type: 'global', youtubeUrl: 'https://youtube.com/watch?v=IODxDxX7oi4' },
+      { id: '5', name: 'Dips (Chest Focus)', nameAr: 'متوازي بالتركيز على الصدر', muscle: 'chest', type: 'custom', youtubeUrl: '' },
+      { id: '6', name: 'Pec Deck Machine', nameAr: 'تفتيح جهاز الفراشة', muscle: 'chest', type: 'global', youtubeUrl: 'https://youtube.com/watch?v=O-qV1_5vT-o' },
+      { id: '13', name: 'Barbell Deadlift', nameAr: 'رفعة ميتة بالبار', muscle: 'back', type: 'global', youtubeUrl: 'https://youtube.com/watch?v=op9kVnSso6Q' },
+      { id: '14', name: 'Lat Pulldown', nameAr: 'سحب ظهر واسع بالجهاز', muscle: 'back', type: 'global', youtubeUrl: 'https://youtube.com/watch?v=CAwf7n6Luuc' },
+      { id: '15', name: 'Barbell Bent Over Row', nameAr: 'سحب بار منحني', muscle: 'back', type: 'customized', youtubeUrl: 'https://youtube.com/watch?v=FWJR5Ve8gkQ' },
+      { id: '21', name: 'Overhead Barbell Press', nameAr: 'ضغط كتف أمامي بالبار', muscle: 'shoulders', type: 'global', youtubeUrl: 'https://youtube.com/watch?v=2yjwXTZQDDI' },
+      { id: '22', name: 'Dumbbell Lateral Raise', nameAr: 'رفرفة كتف جانبي بالدمبل', muscle: 'shoulders', type: 'customized', youtubeUrl: 'https://youtube.com/watch?v=3VcKaXpzqRo' },
+      { id: '26', name: 'Barbell Bicep Curl', nameAr: 'مرجحة بايسبس بالبار المستوي', muscle: 'arms', type: 'global', youtubeUrl: 'https://youtube.com/watch?v=kwG2ipFRgfo' },
+      { id: '27', name: 'Tricep Rope Pushdown', nameAr: 'ترايسبس بالحبل على الكابل', muscle: 'arms', type: 'global', youtubeUrl: 'https://youtube.com/watch?v=vB5OHsJ3EME' },
+      { id: '31', name: 'Barbell Back Squat', nameAr: 'سكوات بالبار خلفي', muscle: 'legs', type: 'global', youtubeUrl: 'https://youtube.com/watch?v=ultWZbUMPL8' },
+      { id: '32', name: 'Leg Press', nameAr: 'دفع رجل على الجهاز', muscle: 'legs', type: 'global', youtubeUrl: 'https://youtube.com/watch?v=IZxyjW7MPJQ' },
+      { id: '37', name: 'Barbell Hip Thrust', nameAr: 'هيب ثرست بالبار للأرداف', muscle: 'glutes', type: 'global', youtubeUrl: 'https://youtube.com/watch?v=SEdqd1n0104' },
+      { id: '40', name: 'Hanging Leg Raise', nameAr: 'رفع أرجل عقلة للبطن', muscle: 'core', type: 'global', youtubeUrl: 'https://youtube.com/watch?v=hdng3Nm1x_E' },
+      { id: '43', name: 'Treadmill Incline Walk', nameAr: 'مشي سير مائل حارق للدهون', muscle: 'cardio', type: 'global', youtubeUrl: 'https://youtube.com/watch?v=11111111111' }
+    ];
+
+    let currentMode = 'DRAWER'; // 'DRAWER' | 'ACCORDION'
+    let openAccordionId = 'chest';
+    let activeDrawerMuscle = null;
+    let globalQuery = '';
+    let drawerQuery = '';
+
+    const ACCENTS = {
+      amber: { text: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200' },
+      sky: { text: 'text-sky-700', bg: 'bg-sky-50', border: 'border-sky-200' },
+      fuchsia: { text: 'text-fuchsia-700', bg: 'bg-fuchsia-50', border: 'border-fuchsia-200' },
+      blue: { text: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200' },
+      purple: { text: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-200' },
+      rose: { text: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-200' },
+      emerald: { text: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+      red: { text: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200' },
+    };
+
+    function init() {
+      renderDeck();
+    }
+
+    function getCount(mId) {
+      return SAMPLE_EXERCISES.filter(e => e.muscle === mId).length;
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      const btnDrawer = document.getElementById('modeBtnDrawer');
+      const btnAccordion = document.getElementById('modeBtnAccordion');
+
+      if (mode === 'DRAWER') {
+        btnDrawer.className = "px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-white text-brand-600 shadow-sm border border-slate-200 flex items-center gap-1.5";
+        btnAccordion.className = "px-3 py-1.5 rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900 flex items-center gap-1.5";
+      } else {
+        btnAccordion.className = "px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-white text-brand-600 shadow-sm border border-slate-200 flex items-center gap-1.5";
+        btnDrawer.className = "px-3 py-1.5 rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900 flex items-center gap-1.5";
+      }
+      renderDeck();
+    }
+
+    function renderDeck() {
+      const container = document.getElementById('cardsDeckContainer');
+
+      container.innerHTML = MUSCLE_GROUPS.map(muscle => {
+        const count = getCount(muscle.id);
+        const acc = ACCENTS[muscle.color] || ACCENTS.amber;
+        const exercises = SAMPLE_EXERCISES.filter(e => e.muscle === muscle.id);
+        const isOpen = currentMode === 'ACCORDION' && openAccordionId === muscle.id;
+        const videoCount = exercises.filter(e => e.youtubeUrl).length;
+
+        return `
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-all">
+            <!-- Card Header / Summary -->
+            <div 
+              onclick="handleCardClick('${muscle.id}')"
+              class="p-5 cursor-pointer hover:bg-slate-50/70 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4"
+            >
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl ${acc.bg} ${acc.text} border ${acc.border} flex items-center justify-center font-bold shrink-0">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${muscle.icon}"></path></svg>
+                </div>
+                <div>
+                  <div class="flex items-center gap-3">
+                    <h3 class="text-base font-black text-slate-900">${muscle.nameAr}</h3>
+                    <span class="text-xs text-slate-400 font-mono font-bold">${muscle.nameEn}</span>
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700">${count} تمرين</span>
+                  </div>
+                  <p class="text-xs text-slate-500 mt-1">${muscle.desc}</p>
+                </div>
+              </div>
+
+              <!-- Quick stats and action button -->
+              <div class="flex items-center gap-3 self-end md:self-auto">
+                <div class="hidden sm:flex items-center gap-2 text-xs text-slate-500 font-semibold pl-2">
+                  <span class="inline-flex items-center gap-1 text-emerald-600">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                    ${videoCount} بالفيديو
+                  </span>
+                </div>
+                <button class="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 flex items-center gap-1.5 transition-colors">
+                  <span>${currentMode === 'ACCORDION' ? (isOpen ? 'طي التمارين' : 'عرض التمارين') : 'فتح اللوحة'}</span>
+                  <svg class="w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Inline Accordion Table (when mode is ACCORDION) -->
+            ${isOpen ? `
+              <div class="border-t border-slate-200 bg-slate-50/50 p-4">
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+                  <table class="w-full text-right text-sm">
+                    <thead>
+                      <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500">
+                        <th class="py-3 px-4">التمرين</th>
+                        <th class="py-3 px-4">المجموعة العضلية</th>
+                        <th class="py-3 px-4">النوع</th>
+                        <th class="py-3 px-4">الفيديو</th>
+                        <th class="py-3 px-4 text-left">الإجراءات</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                      ${renderTableRows(exercises, muscle)}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderTableRows(exercises, muscle) {
+      const acc = ACCENTS[muscle.color] || ACCENTS.amber;
+      return exercises.map(ex => {
+        let typeBadge = '';
+        if (ex.type === 'customized') {
+          typeBadge = '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">مُعدَّل</span>';
+        } else if (ex.type === 'custom') {
+          typeBadge = '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-brand-500 text-white">خاص</span>';
+        } else {
+          typeBadge = '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">افتراضي</span>';
+        }
+
+        return `
+          <tr class="hover:bg-slate-50/70">
+            <td class="py-3 px-4">
+              <div class="font-bold text-slate-900">${ex.nameAr}</div>
+              <div class="text-xs text-slate-400 font-mono">${ex.name}</div>
+            </td>
+            <td class="py-3 px-4">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${acc.bg} ${acc.text} ${acc.border}">
+                ${muscle.nameAr}
+              </span>
+            </td>
+            <td class="py-3 px-4">
+              ${typeBadge}
+            </td>
+            <td class="py-3 px-4">
+              ${ex.youtubeUrl ? `
+                <button onclick="openVideoModal('${ex.nameAr}', '${ex.name}', '${ex.youtubeUrl}')" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 text-xs font-bold transition-colors">
+                  <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  فيديو
+                </button>
+              ` : `
+                <span class="text-xs text-slate-400">بدون فيديو</span>
+              `}
+            </td>
+            <td class="py-3 px-4 text-left">
+              <div class="inline-flex items-center gap-1">
+                <button onclick="showToast('تعديل: ${ex.nameAr}')" class="p-1 rounded text-slate-400 hover:text-slate-800">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </button>
+                <button onclick="showToast('حذف: ${ex.nameAr}')" class="p-1 rounded text-slate-400 hover:text-rose-600">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function handleCardClick(muscleId) {
+      if (currentMode === 'ACCORDION') {
+        openAccordionId = openAccordionId === muscleId ? null : muscleId;
+        renderDeck();
+      } else {
+        openDrawer(muscleId);
+      }
+    }
+
+    function openDrawer(muscleId) {
+      activeDrawerMuscle = muscleId;
+      const muscle = MUSCLE_GROUPS.find(m => m.id === muscleId);
+      const exercises = SAMPLE_EXERCISES.filter(e => e.muscle === muscleId);
+      const acc = ACCENTS[muscle.color] || ACCENTS.amber;
+
+      document.getElementById('drawerTitle').textContent = `تمارين عضلات ${muscle.nameAr}`;
+      document.getElementById('drawerSubtitle').textContent = `${muscle.nameEn} • ${muscle.desc}`;
+      document.getElementById('drawerCountBadge').textContent = `${exercises.length} تمرين`;
+      
+      const icon = document.getElementById('drawerIcon');
+      icon.className = `w-10 h-10 rounded-xl ${acc.bg} ${acc.text} border ${acc.border} flex items-center justify-center font-bold`;
+      icon.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${muscle.icon}"></path></svg>`;
+
+      renderDrawerTable(exercises, muscle);
+
+      document.getElementById('drawerOverlay').classList.remove('hidden');
+      document.getElementById('slidingDrawer').classList.remove('-translate-x-full');
+    }
+
+    function renderDrawerTable(exercises, muscle) {
+      const tbody = document.getElementById('drawerTableBody');
+      const filtered = exercises.filter(e => {
+        if (!drawerQuery.trim()) return true;
+        const q = drawerQuery.toLowerCase();
+        return e.name.toLowerCase().includes(q) || e.nameAr.toLowerCase().includes(q);
+      });
+      tbody.innerHTML = renderTableRows(filtered, muscle);
+    }
+
+    function handleDrawerSearch(val) {
+      drawerQuery = val;
+      if (activeDrawerMuscle) {
+        const muscle = MUSCLE_GROUPS.find(m => m.id === activeDrawerMuscle);
+        const exercises = SAMPLE_EXERCISES.filter(e => e.muscle === activeDrawerMuscle);
+        renderDrawerTable(exercises, muscle);
+      }
+    }
+
+    function closeDrawer() {
+      document.getElementById('drawerOverlay').classList.add('hidden');
+      document.getElementById('slidingDrawer').classList.add('-translate-x-full');
+      activeDrawerMuscle = null;
+      drawerQuery = '';
+      document.getElementById('drawerSearchInput').value = '';
+    }
+
+    function handleGlobalSearch(val) {
+      globalQuery = val;
+      // Filter accordion or drawer
+      if (val.trim()) {
+        showToast(`بحث سريع عن: "${val}"`);
+      }
+    }
+
+    function openVideoModal(titleAr, titleEn, url) {
+      document.getElementById('modalExerciseTitle').textContent = titleAr;
+      document.getElementById('modalExerciseSub').textContent = titleEn;
+      document.getElementById('modalVideoUrl').textContent = url;
+      document.getElementById('videoModal').classList.remove('hidden');
+    }
+
+    function closeVideoModal() {
+      document.getElementById('videoModal').classList.add('hidden');
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 2500);
+    }
+
+    init();
+  </script>
+</body>
+</html>

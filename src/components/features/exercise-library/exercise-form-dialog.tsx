@@ -41,12 +41,16 @@ interface ExerciseFormDialogProps {
   exercise?: LibraryExercise
   trigger?: React.ReactNode
   onSuccess?: () => void
+  defaultMuscleGroup?: string
+  availableMuscleGroups?: string[]
 }
 
 export function ExerciseFormDialog({
   exercise,
   trigger,
   onSuccess,
+  defaultMuscleGroup,
+  availableMuscleGroups,
 }: ExerciseFormDialogProps) {
   const { t, locale } = useI18n()
   const isAr = locale === "ar"
@@ -66,7 +70,7 @@ export function ExerciseFormDialog({
     defaultValues: {
       name: exercise?.name ?? "",
       nameAr: exercise?.nameAr ?? "",
-      muscleGroup: exercise?.muscleGroup ?? "chest",
+      muscleGroup: exercise?.muscleGroup ?? defaultMuscleGroup ?? "chest",
       youtubeUrl: exercise?.youtubeUrl ?? "",
     },
   })
@@ -79,7 +83,7 @@ export function ExerciseFormDialog({
       reset({
         name: exercise?.name ?? "",
         nameAr: exercise?.nameAr ?? "",
-        muscleGroup: exercise?.muscleGroup ?? "chest",
+        muscleGroup: exercise?.muscleGroup ?? defaultMuscleGroup ?? "chest",
         youtubeUrl: exercise?.youtubeUrl ?? "",
       })
     }
@@ -219,9 +223,9 @@ export function ExerciseFormDialog({
                   <SelectValue placeholder={t.exerciseLibrary.form.selectMuscleGroup} />
                 </SelectTrigger>
                 <SelectContent>
-                  {MUSCLE_GROUPS.map((group) => (
+                  {Array.from(new Set([...MUSCLE_GROUPS, ...(availableMuscleGroups || []), ...(currentMuscleGroup ? [currentMuscleGroup] : [])])).map((group) => (
                     <SelectItem key={group} value={group}>
-                      {getMuscleGroupLabel(group, locale)}
+                      {getMuscleGroupLabel(group, locale) || group}
                     </SelectItem>
                   ))}
                 </SelectContent>
