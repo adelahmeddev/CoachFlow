@@ -1104,6 +1104,56 @@ export async function getTodayMealChoices(clientId: string) {
   return (res.rows as Array<{ mealItemId: string }>).map((r) => r.mealItemId)
 }
 
+export async function getTodayMealNotes(clientId: string): Promise<Record<string, string>> {
+  const date = todayMidnight()
+  const res = await pool.query(
+    `SELECT "mealId", "note" FROM "MealNote" WHERE "clientId" = $1 AND "date" = $2`,
+    [clientId, date]
+  )
+  const notes: Record<string, string> = {}
+  for (const row of res.rows as Array<{ mealId: string; note: string }>) {
+    notes[row.mealId] = row.note
+  }
+  return notes
+}
+
+export async function saveMealNote(
+  clientId: string,
+  mealId: string,
+  noteText: string
+): Promise<boolean> {
+  const mealCheck = await pool.query(
+    `SELECT m."id"
+     FROM "Meal" m
+     JOIN "ClientNutritionPlan" cnp ON m."planId" = cnp."id"
+     WHERE m."id" = $1 AND cnp."clientId" = $2 AND cnp."status" = $3::"PlanStatus"
+     LIMIT 1`,
+    [mealId, clientId, PlanStatus.ACTIVE]
+  )
+  if (!mealCheck.rowCount || mealCheck.rowCount === 0) return false
+
+  const date = todayMidnight()
+  const trimmed = noteText.trim()
+
+  if (!trimmed) {
+    await pool.query(
+      `DELETE FROM "MealNote" WHERE "clientId" = $1 AND "mealId" = $2 AND "date" = $3`,
+      [clientId, mealId, date]
+    )
+    return true
+  }
+
+  const id = generateId()
+  await pool.query(
+    `INSERT INTO "MealNote" ("id", "clientId", "mealId", "date", "note", "createdAt", "updatedAt")
+     VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+     ON CONFLICT ("clientId", "mealId", "date")
+     DO UPDATE SET "note" = EXCLUDED."note", "updatedAt" = NOW()`,
+    [id, clientId, mealId, date, trimmed]
+  )
+  return true
+}
+
 export interface MealLogItem {
   id: string
   foodName: string
@@ -1122,6 +1172,7 @@ export interface MealLogMeal {
   order: number
   isSpare: boolean
   isDone: boolean
+  note?: string | null
   items: MealLogItem[]
 }
 
@@ -1148,21 +1199,45 @@ export async function getMealLogForDay(
     (choicesRes.rows as Array<{ mealItemId: string }>).map((r) => r.mealItemId)
   )
 
+  const notesRes = await pool.query(
+    `SELECT "mealId", "note" FROM "MealNote" WHERE "clientId" = $1 AND "date" = $2`,
+    [clientId, date]
+  )
+  const noteMap = new Map<string, string>()
+  for (const row of notesRes.rows as Array<{ mealId: string; note: string }>) {
+    noteMap.set(row.mealId, row.note)
+  }
+
   let resolvedPlanId: string | null = null
 
-  // If meal choices were logged on that date, find the specific plan they belong to
-  if (chosenSet.size > 0) {
-    const fromChoiceRes = await pool.query<{ planId: string }>(
-      `SELECT DISTINCT m."planId"
-       FROM "MealChoice" mc
-       JOIN "MealItem" mi ON mc."mealItemId" = mi."id"
-       JOIN "Meal" m ON mi."mealId" = m."id"
-       WHERE mc."clientId" = $1 AND mc."date" = $2 AND m."planId" IS NOT NULL
-       LIMIT 1`,
-      [clientId, date]
-    )
-    if (fromChoiceRes.rows.length > 0 && fromChoiceRes.rows[0].planId) {
-      resolvedPlanId = fromChoiceRes.rows[0].planId
+  // If meal choices or notes were logged on that date, find the specific plan they belong to
+  if (chosenSet.size > 0 || noteMap.size > 0) {
+    if (chosenSet.size > 0) {
+      const fromChoiceRes = await pool.query<{ planId: string }>(
+        `SELECT DISTINCT m."planId"
+         FROM "MealChoice" mc
+         JOIN "MealItem" mi ON mc."mealItemId" = mi."id"
+         JOIN "Meal" m ON mi."mealId" = m."id"
+         WHERE mc."clientId" = $1 AND mc."date" = $2 AND m."planId" IS NOT NULL
+         LIMIT 1`,
+        [clientId, date]
+      )
+      if (fromChoiceRes.rows.length > 0 && fromChoiceRes.rows[0].planId) {
+        resolvedPlanId = fromChoiceRes.rows[0].planId
+      }
+    }
+    if (!resolvedPlanId && noteMap.size > 0) {
+      const fromNoteRes = await pool.query<{ planId: string }>(
+        `SELECT DISTINCT m."planId"
+         FROM "MealNote" mn
+         JOIN "Meal" m ON mn."mealId" = m."id"
+         WHERE mn."clientId" = $1 AND mn."date" = $2 AND m."planId" IS NOT NULL
+         LIMIT 1`,
+        [clientId, date]
+      )
+      if (fromNoteRes.rows.length > 0 && fromNoteRes.rows[0].planId) {
+        resolvedPlanId = fromNoteRes.rows[0].planId
+      }
     }
   }
 
@@ -1215,6 +1290,7 @@ export async function getMealLogForDay(
       order: meal.order,
       isSpare: meal.isSpare,
       isDone,
+      note: noteMap.get(meal.id) ?? null,
       items,
     }
   })

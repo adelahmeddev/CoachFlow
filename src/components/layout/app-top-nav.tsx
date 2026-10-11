@@ -53,6 +53,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { BrandLogo } from "@/components/brand/brand-logo"
+import { BackButton } from "@/components/layout/back-button"
 import { NotificationBell } from "@/components/features/notifications/notification-bell"
 import { motion } from "@/components/motion"
 import { haptics } from "@/lib/haptics"
@@ -449,6 +450,9 @@ export function AppTopNav({
           >
             <BrandLogo variant="mark" height={44} width={44} alt="" priority quality={95} showWordmark />
           </Link>
+
+          {/* Back Button */}
+          <BackButton />
         </div>
 
         {/* Center: Desktop Primary Category Tabs */}

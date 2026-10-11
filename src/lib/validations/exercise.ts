@@ -7,6 +7,7 @@ export const libraryExerciseSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(120),
   nameAr: z.string().trim().max(120).optional().or(z.literal("")),
   muscleGroup: z.string().trim().max(40).optional().or(z.literal("")),
+  subMuscleGroup: z.string().trim().max(40).optional().or(z.literal("")).nullable(),
   equipment: z.string().trim().max(40).optional().or(z.literal("")),
   youtubeUrl: z
     .string()

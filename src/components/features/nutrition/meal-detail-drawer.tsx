@@ -1,6 +1,7 @@
 "use client"
 
-import { Check, Crown, Repeat2 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Check, Crown, Repeat2, MessageSquare, Send, Loader2 } from "lucide-react"
 import { useI18n } from "@/lib/i18n/client"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
@@ -18,6 +19,8 @@ interface MealDetailDrawerProps {
   onToggle: (itemId: string) => void
   formatAmount: (amount: number | null, unit: ClientMealView["items"][number]["unit"]) => string
   readOnly?: boolean
+  mealNotes?: Record<string, string>
+  onSaveNote?: (mealId: string, note: string) => Promise<boolean>
 }
 
 /** Premium bottom sheet: main meal vs alternatives kept visually distinct. */
@@ -33,6 +36,8 @@ export function MealDetailDrawer({
   onToggle,
   formatAmount,
   readOnly = false,
+  mealNotes,
+  onSaveNote,
 }: MealDetailDrawerProps) {
   const { locale } = useI18n()
   const isAr = locale === "ar"
@@ -49,6 +54,49 @@ export function MealDetailDrawer({
   const activeKcal = kcalOf(active)
   const doneCount = active.items.filter((i) => chosen.has(i.id)).length
   const allDone = active.items.length > 0 && doneCount === active.items.length
+
+  const currentSavedNote = mealNotes?.[active.id] ?? ""
+  const [noteText, setNoteText] = useState(currentSavedNote)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isSavedJustNow, setIsSavedJustNow] = useState(false)
+  const [isDirty, setIsDirty] = useState(false)
+
+  useEffect(() => {
+    setNoteText(currentSavedNote)
+    setIsDirty(false)
+    setIsSavedJustNow(false)
+  }, [active.id, currentSavedNote])
+
+  async function handleSave(textToSave?: string) {
+    if (readOnly || !onSaveNote) return
+    const text = (textToSave !== undefined ? textToSave : noteText).trim()
+    if (text === currentSavedNote && !isDirty) return
+
+    setIsSaving(true)
+    try {
+      const ok = await onSaveNote(active.id, text)
+      if (ok) {
+        setIsDirty(false)
+        setIsSavedJustNow(true)
+        setTimeout(() => setIsSavedJustNow(false), 2500)
+      }
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  function handleAutoSave() {
+    if (isDirty && noteText.trim() !== currentSavedNote) {
+      handleSave()
+    }
+  }
+
+  async function handleClear() {
+    if (readOnly || !onSaveNote) return
+    setNoteText("")
+    setIsDirty(false)
+    await handleSave("")
+  }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -269,6 +317,108 @@ export function MealDetailDrawer({
                 )
               })}
             </ul>
+          </div>
+
+          {/* Note to Coach */}
+          <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4 transition-all dark:border-white/10 dark:bg-white/[0.02]">
+            <div className="flex items-center justify-between gap-2">
+              <label
+                htmlFor={`meal-note-${active.id}`}
+                className="flex items-center gap-1.5 text-xs font-bold text-foreground"
+              >
+                <MessageSquare className="size-4 text-brand-500" aria-hidden="true" />
+                {isAr ? "ملاحظة للكابتن حول هذه الوجبة" : "Note for coach about this meal"}
+              </label>
+              {currentSavedNote && !isDirty && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                  <Check className="size-3" aria-hidden="true" />
+                  {isAr ? "محفوظة" : "Saved"}
+                </span>
+              )}
+            </div>
+
+            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+              {isAr
+                ? "أكلت كمية مختلفة، استبدلت صنف، أو عندك أي تعليق؟ اكتبه هنا وهيظهر للكابتن فوراً."
+                : "Ate a different amount, substituted a food, or have feedback? Write it here for your coach."}
+            </p>
+
+            <textarea
+              id={`meal-note-${active.id}`}
+              value={noteText}
+              onChange={(e) => {
+                setNoteText(e.target.value)
+                setIsDirty(true)
+              }}
+              onBlur={handleAutoSave}
+              disabled={readOnly || isSaving}
+              placeholder={
+                isAr
+                  ? "مثال: استبدلت الأرز بـ 150 جرام بطاطس مشوية، أو شبعت وما كملتش كل الأكل..."
+                  : "e.g. Substituted rice with 150g baked potato, or felt full and didn't finish..."
+              }
+              rows={3}
+              className={cn(
+                "mt-2.5 w-full resize-none rounded-xl border border-foreground/15 bg-background/60 p-3 text-xs leading-relaxed transition-colors",
+                "focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500/30",
+                "placeholder:text-muted-foreground/60 dark:border-white/15 dark:bg-white/[0.04]",
+                readOnly && "cursor-default opacity-70"
+              )}
+            />
+
+            {!readOnly && (
+              <div className="mt-2.5 flex items-center justify-between gap-2 pt-0.5">
+                <span className="text-[10px] text-muted-foreground">
+                  {isDirty
+                    ? isAr
+                      ? "تغييرات غير محفوظة — اضغط حفظ"
+                      : "Unsaved changes — tap Save"
+                    : isAr
+                      ? "يتم الحفظ تلقائياً عند الخروج من الحقل"
+                      : "Auto-saves on blur"}
+                </span>
+
+                <div className="flex items-center gap-1.5">
+                  {currentSavedNote && (
+                    <button
+                      type="button"
+                      disabled={isSaving}
+                      onClick={handleClear}
+                      className="rounded-lg px-2.5 py-1 text-[11px] font-semibold text-muted-foreground hover:text-destructive active:scale-95 transition-colors"
+                    >
+                      {isAr ? "مسح" : "Clear"}
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled={isSaving || (!isDirty && noteText === currentSavedNote)}
+                    onClick={() => handleSave()}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-all duration-200",
+                      "hover:-translate-y-px active:scale-95 disabled:pointer-events-none disabled:opacity-50",
+                      isSavedJustNow
+                        ? "bg-emerald-600 text-white shadow-soft"
+                        : "bg-brand-600 text-white shadow-soft hover:bg-brand-500 dark:bg-brand-500"
+                    )}
+                  >
+                    {isSaving ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : isSavedJustNow ? (
+                      <>
+                        <Check className="size-3.5" />
+                        {isAr ? "تم الحفظ" : "Saved"}
+                      </>
+                    ) : (
+                      <>
+                        <Send className="size-3 rtl:rotate-180" />
+                        {isAr ? "حفظ الملاحظة" : "Save Note"}
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </SheetContent>

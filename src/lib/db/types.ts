@@ -387,6 +387,16 @@ export type MealChoice = {
   createdAt: Date
 }
 
+export type MealNote = {
+  id: string
+  clientId: string
+  mealId: string
+  date: Date
+  note: string
+  createdAt: Date
+  updatedAt: Date
+}
+
 export type BodyComposition = {
   id: string
   clientId: string

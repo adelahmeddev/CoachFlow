@@ -10,6 +10,7 @@ import {
   CircleDashed,
   Sparkles,
   Calendar,
+  MessageSquare,
 } from "lucide-react"
 import { useI18n } from "@/lib/i18n/client"
 import { cn } from "@/lib/utils"
@@ -40,6 +41,7 @@ export function CoachMealLog({
 
   const todayStr = toDateKey(new Date())
   const isToday = mealLog.date === todayStr
+  const notesCount = mealLog.meals.filter((meal) => Boolean(meal.note)).length
 
   function navigateToDate(targetDate: string) {
     const params = new URLSearchParams(searchParams.toString())
@@ -80,11 +82,23 @@ export function CoachMealLog({
               <UtensilsCrossed className="size-5" />
             </span>
             <div>
-              <CardTitle className="text-base font-bold flex items-center gap-2">
+              <CardTitle className="text-base font-bold flex items-center gap-2 flex-wrap">
                 <span>{m.title}</span>
                 {isToday && (
                   <Badge variant="outline" className="border-brand-500/30 bg-brand-500/10 text-[10px] text-brand-600 dark:text-brand-300">
                     {m.today}
+                  </Badge>
+                )}
+                {notesCount > 0 && (
+                  <Badge variant="outline" className="border-brand-500/30 bg-brand-500/10 text-[10px] text-brand-600 dark:text-brand-300 flex items-center gap-1 font-bold">
+                    <MessageSquare className="size-3" />
+                    <span>
+                      {isAr
+                        ? notesCount === 1
+                          ? "ملاحظة من المتدرب"
+                          : `${notesCount} ملاحظات من المتدرب`
+                        : `${notesCount} client note${notesCount > 1 ? "s" : ""}`}
+                    </span>
                   </Badge>
                 )}
               </CardTitle>
@@ -271,6 +285,18 @@ export function CoachMealLog({
                             </div>
                           ))}
                       </div>
+
+                      {meal.note && (
+                        <div className="mt-3 rounded-xl border border-brand-500/25 bg-brand-500/[0.06] p-2.5 dark:bg-brand-500/10">
+                          <div className="flex items-center gap-1.5 text-[11px] font-bold text-brand-700 dark:text-brand-300">
+                            <MessageSquare className="size-3.5 shrink-0 text-brand-500" />
+                            <span>{isAr ? "ملاحظة المتدرب للكوتش:" : "Client note to coach:"}</span>
+                          </div>
+                          <p className="mt-1 text-xs text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                            {meal.note}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -323,6 +349,18 @@ export function CoachMealLog({
                           </div>
                         ))}
                       </div>
+
+                      {meal.note && (
+                        <div className="mt-3 rounded-xl border border-brand-500/25 bg-brand-500/[0.06] p-2.5 dark:bg-brand-500/10">
+                          <div className="flex items-center gap-1.5 text-[11px] font-bold text-brand-700 dark:text-brand-300">
+                            <MessageSquare className="size-3.5 shrink-0 text-brand-500" />
+                            <span>{isAr ? "ملاحظة المتدرب للكوتش:" : "Client note to coach:"}</span>
+                          </div>
+                          <p className="mt-1 text-xs text-foreground/90 whitespace-pre-wrap leading-relaxed">
+                            {meal.note}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

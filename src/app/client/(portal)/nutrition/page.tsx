@@ -5,6 +5,7 @@ import {
   getCachedActivePlanFull,
   getCachedPreviousPlanFull,
   getTodayMealChoices,
+  getTodayMealNotes,
   type ClientNutritionPlanFull,
 } from "@/server/services/nutrition.service"
 import {
@@ -77,10 +78,11 @@ export default async function ClientNutritionPage() {
     redirect("/client/login")
   }
 
-  const [plan, prevPlanRaw, chosenItemIds] = await Promise.all([
+  const [plan, prevPlanRaw, chosenItemIds, mealNotes] = await Promise.all([
     getCachedActivePlanFull(clientId),
     getCachedPreviousPlanFull(clientId),
     getTodayMealChoices(clientId),
+    getTodayMealNotes(clientId),
   ])
 
   if (!plan) {
@@ -120,6 +122,7 @@ export default async function ClientNutritionPage() {
         currPlan={view}
         prevPlan={prevPlanView}
         chosenItemIds={chosenItemIds}
+        mealNotes={mealNotes}
         updatedAt={plan.updatedAt}
       />
     </div>

@@ -16,6 +16,7 @@ interface NutritionPlanSwitcherProps {
   currPlan: ClientPlanView
   prevPlan: ClientPlanView | null
   chosenItemIds: string[]
+  mealNotes?: Record<string, string>
   updatedAt?: Date | string | null
 }
 
@@ -23,6 +24,7 @@ export function NutritionPlanSwitcher({
   currPlan,
   prevPlan,
   chosenItemIds,
+  mealNotes,
   updatedAt,
 }: NutritionPlanSwitcherProps) {
   const { t, locale } = useI18n()
@@ -74,7 +76,13 @@ export function NutritionPlanSwitcher({
     : ""
 
   if (!prevPlan) {
-    return <ClientNutritionView plan={currPlan} chosenItemIds={chosenItemIds} />
+    return (
+      <ClientNutritionView
+        plan={currPlan}
+        chosenItemIds={chosenItemIds}
+        mealNotes={mealNotes}
+      />
+    )
   }
 
   return (
@@ -148,7 +156,11 @@ export function NutritionPlanSwitcher({
 
       {/* Tab Panels */}
       {activeTab === "current" && (
-        <ClientNutritionView plan={currPlan} chosenItemIds={chosenItemIds} />
+        <ClientNutritionView
+          plan={currPlan}
+          chosenItemIds={chosenItemIds}
+          mealNotes={mealNotes}
+        />
       )}
 
       {activeTab === "previous" && (

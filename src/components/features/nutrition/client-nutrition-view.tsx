@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card"
 import { useI18n } from "@/lib/i18n/client"
 import type { QuantityUnit, SubstituteCategory } from "@/lib/db/enums"
-import { toggleMealChoiceAction } from "@/server/actions/nutrition"
+import { toggleMealChoiceAction, saveMealNoteAction } from "@/server/actions/nutrition"
 import { cn } from "@/lib/utils"
 import { MacroConcentricRing } from "@/components/features/nutrition/macro-concentric-ring"
 import { MealOverviewCard } from "@/components/features/nutrition/meal-overview-card"
@@ -75,10 +75,12 @@ const CATEGORY_ORDER: SubstituteCategory[] = ["CARB", "PROTEIN", "FAT", "FRUIT"]
 export function ClientNutritionView({
   plan,
   chosenItemIds,
+  mealNotes,
   readOnly = false,
 }: {
   plan: ClientPlanView
   chosenItemIds: string[]
+  mealNotes?: Record<string, string>
   readOnly?: boolean
 }) {
   const { t, locale } = useI18n()
@@ -86,12 +88,34 @@ export function ClientNutritionView({
   const isAr = locale === "ar"
   const [pending, startTransition] = useTransition()
   const [chosen, setChosen] = useState<Set<string>>(new Set(chosenItemIds))
+  const [notes, setNotes] = useState<Record<string, string>>(mealNotes ?? {})
   const [openSupplementId, setOpenSupplementId] = useState<string | null>(null)
   // Per-group displayed option (main or one spare) + open detail drawer.
   // Display-only — checking an item still flows through toggle() so mutual
   // exclusivity is enforced server-side exactly as before.
   const [activeId, setActiveId] = useState<Record<string, string>>({})
   const [detailMainId, setDetailMainId] = useState<string | null>(null)
+
+  async function handleSaveNote(mealId: string, noteText: string): Promise<boolean> {
+    const trimmed = noteText.trim()
+    setNotes((prev) => {
+      const next = { ...prev }
+      if (trimmed) {
+        next[mealId] = trimmed
+      } else {
+        delete next[mealId]
+      }
+      return next
+    })
+
+    const res = await saveMealNoteAction({ mealId, note: trimmed })
+    if (!res.ok) {
+      toast.error(isAr ? "فشل حفظ الملاحظة للكابتن" : "Failed to save note for coach")
+      return false
+    }
+    toast.success(isAr ? "تم حفظ ملاحظتك للكابتن" : "Note saved for coach")
+    return true
+  }
 
   const unitLabel = (unit: QuantityUnit) =>
     unit === "G" ? "g" : unit === "ML" ? "ml" : "pcs"
@@ -260,6 +284,9 @@ export function ClientNutritionView({
             const doneCount = mainMeal.items.filter((i) =>
               chosen.has(i.id)
             ).length
+            const hasMealNote = Boolean(
+              notes[mainMeal.id] || alternatives.some((a) => Boolean(notes[a.id]))
+            )
             return (
               <MealOverviewCard
                 key={mainMeal.id}
@@ -274,6 +301,7 @@ export function ClientNutritionView({
                 status={statusFor(groupIndex, mainMeal.id)}
                 itemsDone={doneCount}
                 itemsTotal={mainMeal.items.length}
+                hasNote={hasMealNote}
                 onOpen={() => setDetailMainId(mainMeal.id)}
               />
             )
@@ -298,6 +326,8 @@ export function ClientNutritionView({
         onToggle={toggle}
         formatAmount={formatAmount}
         readOnly={readOnly}
+        mealNotes={notes}
+        onSaveNote={handleSaveNote}
       />
 
       {/* Substitutes (anchor target for hero deep-link) */}

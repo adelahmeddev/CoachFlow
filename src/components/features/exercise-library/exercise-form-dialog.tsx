@@ -33,8 +33,8 @@ import {
   updateExerciseAction,
 } from "@/server/actions/exercise-library"
 import { useI18n } from "@/lib/i18n/client"
-import { MUSCLE_GROUPS } from "@/lib/constants"
-import { getMuscleGroupLabel } from "@/lib/i18n/labels"
+import { MUSCLE_GROUPS, SUB_MUSCLE_GROUPS } from "@/lib/constants"
+import { getMuscleGroupLabel, getSubMuscleGroupLabel } from "@/lib/i18n/labels"
 import type { LibraryExercise } from "@/server/services/exercise.service"
 
 interface ExerciseFormDialogProps {
@@ -42,7 +42,9 @@ interface ExerciseFormDialogProps {
   trigger?: React.ReactNode
   onSuccess?: () => void
   defaultMuscleGroup?: string
+  defaultSubMuscleGroup?: string
   availableMuscleGroups?: string[]
+  availableSubMuscles?: string[]
 }
 
 export function ExerciseFormDialog({
@@ -50,7 +52,9 @@ export function ExerciseFormDialog({
   trigger,
   onSuccess,
   defaultMuscleGroup,
+  defaultSubMuscleGroup,
   availableMuscleGroups,
+  availableSubMuscles,
 }: ExerciseFormDialogProps) {
   const { t, locale } = useI18n()
   const isAr = locale === "ar"
@@ -71,12 +75,14 @@ export function ExerciseFormDialog({
       name: exercise?.name ?? "",
       nameAr: exercise?.nameAr ?? "",
       muscleGroup: exercise?.muscleGroup ?? defaultMuscleGroup ?? "chest",
+      subMuscleGroup: exercise?.subMuscleGroup ?? defaultSubMuscleGroup ?? "",
       youtubeUrl: exercise?.youtubeUrl ?? "",
     },
   })
 
   const currentYoutubeUrl = watch("youtubeUrl")
   const currentMuscleGroup = watch("muscleGroup") || "chest"
+  const currentSubMuscle = watch("subMuscleGroup") || ""
 
   useEffect(() => {
     if (open) {
@@ -84,10 +90,11 @@ export function ExerciseFormDialog({
         name: exercise?.name ?? "",
         nameAr: exercise?.nameAr ?? "",
         muscleGroup: exercise?.muscleGroup ?? defaultMuscleGroup ?? "chest",
+        subMuscleGroup: exercise?.subMuscleGroup ?? defaultSubMuscleGroup ?? "",
         youtubeUrl: exercise?.youtubeUrl ?? "",
       })
     }
-  }, [open, exercise, reset])
+  }, [open, exercise, defaultMuscleGroup, defaultSubMuscleGroup, reset])
 
   const onSubmit = (data: LibraryExerciseInput) => {
     startTransition(async () => {
@@ -236,6 +243,74 @@ export function ExerciseFormDialog({
                 </p>
               )}
             </div>
+
+            {/* Sub-Muscle Division (if available for current muscle group) */}
+            {(() => {
+              const base = SUB_MUSCLE_GROUPS[currentMuscleGroup.toLowerCase()] || []
+              const custom = availableSubMuscles || []
+              const current = currentSubMuscle ? [currentSubMuscle] : []
+              const set = new Set<string>()
+              const allSubOptions: string[] = []
+              for (const s of [...base, ...custom, ...current]) {
+                const trimmed = s.trim()
+                if (!trimmed) continue
+                const lower = trimmed.toLowerCase()
+                if (!set.has(lower)) {
+                  set.add(lower)
+                  allSubOptions.push(trimmed)
+                }
+              }
+
+              if (allSubOptions.length === 0) return null
+
+              return (
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="subMuscleGroup"
+                    className="flex items-center gap-2 text-sm font-semibold"
+                  >
+                    <Layers className="size-4 text-brand-500/80" />
+                    <span>
+                      {t.exerciseLibrary.form.subMuscleGroup ||
+                        (isAr ? "التقسيم العضلي الفرعي" : "Sub-muscle Division")}
+                    </span>
+                  </Label>
+                  <Select
+                    value={currentSubMuscle || "none"}
+                    onValueChange={(val) =>
+                      setValue("subMuscleGroup", val === "none" ? null : val, {
+                        shouldValidate: true,
+                      })
+                    }
+                  >
+                    <SelectTrigger
+                      id="subMuscleGroup"
+                      className="h-11 rounded-xl text-sm sm:text-base px-4 bg-muted/20 focus:bg-background transition-colors"
+                    >
+                      <SelectValue
+                        placeholder={
+                          t.exerciseLibrary.form.selectSubMuscleGroup ||
+                          (isAr
+                            ? "اختر العضلة الفرعية (اختياري)"
+                            : "Select sub-muscle (optional)")
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">
+                        {t.exerciseLibrary.form.noneSubMuscle ||
+                          (isAr ? "عام / غير محدد" : "None / General")}
+                      </SelectItem>
+                      {allSubOptions.map((sub) => (
+                        <SelectItem key={sub} value={sub}>
+                          {getSubMuscleGroupLabel(sub, locale) || sub}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )
+            })()}
 
             {/* YouTube Video URL */}
             <div className="space-y-2">

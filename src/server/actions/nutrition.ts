@@ -17,6 +17,7 @@ import {
   refreshPlanFromTemplate,
   savePlanContent,
   toggleMealChoice,
+  saveMealNote,
   getOwnedClientTrainerId,
   fetchPlanFull,
   deleteClientNutritionPlan,
@@ -260,6 +261,32 @@ export async function toggleMealChoiceAction(mealItemId: string) {
   }
 
   return { ok: true as const, chosen: result.chosen }
+}
+
+export async function saveMealNoteAction(input: { mealId: string; note: string }) {
+  const session = await getCurrentSession()
+  if (!session?.user || session.user.role !== "CLIENT") {
+    return { ok: false as const, error: "UNAUTHORIZED" }
+  }
+  const clientId = session.user.clientProfileId
+  if (!clientId) {
+    return { ok: false as const, error: "UNAUTHORIZED" }
+  }
+
+  if (!input || typeof input.mealId !== "string" || typeof input.note !== "string") {
+    return { ok: false as const, error: "INVALID_INPUT" }
+  }
+
+  const ok = await saveMealNote(clientId, input.mealId, input.note)
+  if (!ok) {
+    return { ok: false as const, error: "MEAL_NOT_FOUND" }
+  }
+
+  invalidate([`client:${clientId}:nutrition`])
+  revalidatePath("/client/nutrition")
+  revalidatePath(`/clients/${clientId}?tab=nutrition`)
+
+  return { ok: true as const }
 }
 
 export async function getPlanFullAction(planId: string) {

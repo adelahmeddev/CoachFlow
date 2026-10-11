@@ -8,6 +8,7 @@ export interface LibraryExercise {
   name: string
   nameAr: string | null
   muscleGroup: string
+  subMuscleGroup: string | null
   equipment: string | null
   tags: string[]
   defaultSets: number | null
@@ -27,6 +28,7 @@ export async function listExercisesForTrainer(trainerId: string): Promise<Librar
                 COALESCE(o.name, e.name) AS name,
                 COALESCE(o."nameAr", e."nameAr") AS "nameAr",
                 COALESCE(o."muscleGroup", e."muscleGroup") AS "muscleGroup",
+                COALESCE(o."subMuscleGroup", e."subMuscleGroup") AS "subMuscleGroup",
                 e.equipment,
                 e.tags,
                 e."defaultSets",
@@ -52,7 +54,7 @@ export async function listExercisesForTrainer(trainerId: string): Promise<Librar
 
 export async function listHiddenExercises(trainerId: string) {
   const res = await pool.query(
-    `SELECT e.id, e.name, e."nameAr", COALESCE(o."muscleGroup", e."muscleGroup") AS "muscleGroup", e.equipment, e."youtubeUrl"
+    `SELECT e.id, e.name, e."nameAr", COALESCE(o."muscleGroup", e."muscleGroup") AS "muscleGroup", COALESCE(o."subMuscleGroup", e."subMuscleGroup") AS "subMuscleGroup", e.equipment, e."youtubeUrl"
      FROM "Exercise" e
      JOIN "ExerciseOverride" o ON o."exerciseId" = e.id AND o."trainerId" = $1
      WHERE o.hidden = true
@@ -64,6 +66,7 @@ export async function listHiddenExercises(trainerId: string) {
     name: string
     nameAr: string | null
     muscleGroup: string
+    subMuscleGroup: string | null
     equipment: string | null
     youtubeUrl: string | null
   }[]
@@ -91,23 +94,22 @@ export async function createExercise(
     return { ok: false, error: "NAME_TAKEN" }
   }
 
-  const rawMuscle = input.muscleGroup?.trim().toLowerCase()
-  const muscleGroup =
-    rawMuscle && (MUSCLE_GROUPS as readonly string[]).includes(rawMuscle)
-      ? rawMuscle
-      : "chest"
+  const rawMuscle = input.muscleGroup?.trim()
+  const muscleGroup = rawMuscle || "chest"
+  const subMuscleGroup = input.subMuscleGroup?.trim() || null
 
   const id = generateId()
   await pool.query(
     `INSERT INTO "Exercise" (
-      "id", "trainerId", "name", "nameAr", "muscleGroup", "equipment", "youtubeUrl", "tags", "createdAt", "updatedAt"
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, '{}', NOW(), NOW())`,
+      "id", "trainerId", "name", "nameAr", "muscleGroup", "subMuscleGroup", "equipment", "youtubeUrl", "tags", "createdAt", "updatedAt"
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, '{}', NOW(), NOW())`,
     [
       id,
       trainerId,
       name,
       input.nameAr?.trim() || null,
       muscleGroup,
+      subMuscleGroup,
       input.equipment?.trim() || null,
       input.youtubeUrl?.trim() || null,
     ]
@@ -122,6 +124,7 @@ export async function createExercise(
       name,
       nameAr: input.nameAr?.trim() || null,
       muscleGroup,
+      subMuscleGroup,
       equipment: input.equipment?.trim() || null,
       tags: [],
       defaultSets: null,
@@ -140,11 +143,9 @@ export async function updateExercise(
   input: LibraryExerciseInput
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const name = input.name.trim()
-  const rawMuscle = input.muscleGroup?.trim().toLowerCase()
-  const muscleGroup =
-    rawMuscle && (MUSCLE_GROUPS as readonly string[]).includes(rawMuscle)
-      ? rawMuscle
-      : "chest"
+  const rawMuscle = input.muscleGroup?.trim()
+  const muscleGroup = rawMuscle || "chest"
+  const subMuscleGroup = input.subMuscleGroup?.trim() || null
   const exRes = await pool.query(
     `SELECT e.id, e."trainerId", e.name, e."youtubeUrl"
      FROM "Exercise" e
@@ -180,12 +181,13 @@ export async function updateExercise(
       // Coach's own exercise
       await client.query(
         `UPDATE "Exercise"
-         SET "name" = $1, "nameAr" = $2, "muscleGroup" = $3, "equipment" = $4, "youtubeUrl" = $5, "updatedAt" = NOW()
-         WHERE "id" = $6 AND "trainerId" = $7`,
+         SET "name" = $1, "nameAr" = $2, "muscleGroup" = $3, "subMuscleGroup" = $4, "equipment" = $5, "youtubeUrl" = $6, "updatedAt" = NOW()
+         WHERE "id" = $7 AND "trainerId" = $8`,
         [
           name,
           input.nameAr?.trim() || null,
           muscleGroup,
+          subMuscleGroup,
           input.equipment?.trim() || null,
           newUrl,
           exerciseId,
@@ -195,12 +197,13 @@ export async function updateExercise(
     } else if (ex.trainerId === null) {
       // Global exercise override
       await client.query(
-        `INSERT INTO "ExerciseOverride" ("trainerId", "exerciseId", "name", "nameAr", "muscleGroup", "youtubeUrl", "hidden", "updatedAt")
-         VALUES ($1, $2, $3, $4, $5, $6, false, NOW())
+        `INSERT INTO "ExerciseOverride" ("trainerId", "exerciseId", "name", "nameAr", "muscleGroup", "subMuscleGroup", "youtubeUrl", "hidden", "updatedAt")
+         VALUES ($1, $2, $3, $4, $5, $6, $7, false, NOW())
          ON CONFLICT ("trainerId", "exerciseId")
          DO UPDATE SET "name" = EXCLUDED."name",
                        "nameAr" = EXCLUDED."nameAr",
                        "muscleGroup" = EXCLUDED."muscleGroup",
+                       "subMuscleGroup" = EXCLUDED."subMuscleGroup",
                        "youtubeUrl" = EXCLUDED."youtubeUrl",
                        "hidden" = false,
                        "updatedAt" = NOW()`,
@@ -210,6 +213,7 @@ export async function updateExercise(
           name,
           input.nameAr?.trim() || null,
           muscleGroup,
+          subMuscleGroup,
           newUrl,
         ]
       )
@@ -299,10 +303,84 @@ export async function resetExercise(
 
 export async function listGlobalExercises() {
   const res = await pool.query(
-    `SELECT "id", "name", "nameAr", "muscleGroup", "equipment", "tags", "defaultSets", "defaultReps", "defaultRestSeconds", "youtubeUrl"
+    `SELECT "id", "name", "nameAr", "muscleGroup", "subMuscleGroup", "equipment", "tags", "defaultSets", "defaultReps", "defaultRestSeconds", "youtubeUrl"
      FROM "Exercise"
      WHERE "trainerId" IS NULL
      ORDER BY "muscleGroup" ASC, "name" ASC`
   )
   return res.rows as LibraryExercise[]
 }
+
+export async function assignExercisesToSubMuscle(
+  trainerId: string,
+  exerciseIds: string[],
+  subMuscleGroup: string,
+  targetMuscleGroup?: string
+): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
+  if (!exerciseIds.length) return { ok: true, count: 0 }
+  const cleanSub = subMuscleGroup.trim()
+
+  await withTransaction(async (client) => {
+    for (const id of exerciseIds) {
+      const exRes = await client.query(
+        `SELECT id, "trainerId", "muscleGroup", "name", "nameAr", "youtubeUrl"
+         FROM "Exercise"
+         WHERE id = $1`,
+        [id]
+      )
+      if (exRes.rowCount === 0) continue
+      const ex = exRes.rows[0] as {
+        id: string
+        trainerId: string | null
+        muscleGroup: string
+        name: string
+        nameAr: string | null
+        youtubeUrl: string | null
+      }
+
+      if (ex.trainerId === trainerId) {
+        // Coach's own exercise
+        if (targetMuscleGroup) {
+          await client.query(
+            `UPDATE "Exercise"
+             SET "subMuscleGroup" = $1, "muscleGroup" = $2, "updatedAt" = NOW()
+             WHERE "id" = $3 AND "trainerId" = $4`,
+            [cleanSub, targetMuscleGroup, id, trainerId]
+          )
+        } else {
+          await client.query(
+            `UPDATE "Exercise"
+             SET "subMuscleGroup" = $1, "updatedAt" = NOW()
+             WHERE "id" = $2 AND "trainerId" = $3`,
+            [cleanSub, id, trainerId]
+          )
+        }
+      } else if (ex.trainerId === null) {
+        // Global exercise override
+        const mGroup = targetMuscleGroup || ex.muscleGroup
+        await client.query(
+          `INSERT INTO "ExerciseOverride" ("trainerId", "exerciseId", "name", "nameAr", "muscleGroup", "subMuscleGroup", "youtubeUrl", "hidden", "updatedAt")
+           VALUES ($1, $2, $3, $4, $5, $6, $7, false, NOW())
+           ON CONFLICT ("trainerId", "exerciseId")
+           DO UPDATE SET "subMuscleGroup" = EXCLUDED."subMuscleGroup",
+                         "muscleGroup" = EXCLUDED."muscleGroup",
+                         "hidden" = false,
+                         "updatedAt" = NOW()`,
+          [
+            trainerId,
+            id,
+            ex.name,
+            ex.nameAr,
+            mGroup,
+            cleanSub,
+            ex.youtubeUrl,
+          ]
+        )
+      }
+    }
+  })
+
+  invalidate([`trainer:${trainerId}:exercises`])
+  return { ok: true, count: exerciseIds.length }
+}
+

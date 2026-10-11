@@ -43,6 +43,7 @@ export default async function ExerciseLibraryPage() {
                 COALESCE(o.name, e.name) AS name,
                 COALESCE(o."nameAr", e."nameAr") AS "nameAr",
                 COALESCE(o."muscleGroup", e."muscleGroup") AS "muscleGroup",
+                COALESCE(o."subMuscleGroup", e."subMuscleGroup") AS "subMuscleGroup",
                 e.equipment,
                 e.tags,
                 e."defaultSets",
@@ -67,18 +68,7 @@ export default async function ExerciseLibraryPage() {
   }
 
   return (
-    <div className="flex flex-col gap-3 h-[calc(100dvh-7.5rem)] md:h-[calc(100dvh-8.5rem)] max-h-[calc(100dvh-7.5rem)] md:max-h-[calc(100dvh-8.5rem)] overflow-hidden">
-      {/* Header */}
-      <div className="shrink-0">
-        <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground">
-          {t.exerciseLibrary.title}
-        </h1>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          {t.exerciseLibrary.subtitle}
-        </p>
-      </div>
-
-      {/* Main Split View */}
+    <div className="-mx-4 md:-mx-8 -my-6 md:-my-8 w-[calc(100%+2rem)] md:w-[calc(100%+4rem)] h-[calc(100dvh-3.5rem)] md:h-[calc(100dvh-4rem)] max-h-[calc(100dvh-3.5rem)] md:max-h-[calc(100dvh-4rem)] flex flex-col overflow-hidden bg-background">
       <ExerciseLibrarySplitView initialExercises={exercises} />
     </div>
   )

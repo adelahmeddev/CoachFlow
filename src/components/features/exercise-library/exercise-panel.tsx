@@ -9,6 +9,7 @@ import {
   ExternalLink,
   Plus,
   Dumbbell,
+  ArrowRightLeft,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -23,9 +24,11 @@ import {
 import { YouTubePlayer } from "@/components/ui/youtube-player"
 import { useI18n } from "@/lib/i18n/client"
 import { extractYoutubeId, getThumbnailUrl } from "@/lib/utils/video"
-import { getMuscleGroupLabel } from "@/lib/i18n/labels"
+import { getMuscleGroupLabel, getSubMuscleGroupLabel } from "@/lib/i18n/labels"
+import { SUB_MUSCLE_GROUPS } from "@/lib/constants"
 import { ExerciseFormDialog } from "@/components/features/exercise-library/exercise-form-dialog"
 import { RemoveExerciseButton } from "@/components/features/exercise-library/remove-exercise-button"
+import { AddSubMuscleDialog } from "@/components/features/exercise-library/add-sub-muscle-dialog"
 import { MUSCLE_ACCENTS, DEFAULT_ACCENT } from "@/components/features/exercise-library/muscle-sidebar"
 import { cn } from "@/lib/utils"
 import type { LibraryExercise } from "@/server/services/exercise.service"
@@ -33,7 +36,12 @@ import type { LibraryExercise } from "@/server/services/exercise.service"
 interface ExercisePanelProps {
   exercises: LibraryExercise[]
   selectedMuscle: string
+  selectedSubMuscle: string
+  onSelectSubMuscle: (subMuscle: string) => void
   availableGroups: string[]
+  customSubMuscles?: Record<string, string[]>
+  onAddSubMuscle?: (muscleGroup: string, newSubMuscle: string) => void
+  onOpenAddSubMuscle?: (initialSubName?: string) => void
   onAddMuscleGroupPrompt?: () => void
   className?: string
 }
@@ -41,7 +49,12 @@ interface ExercisePanelProps {
 export function ExercisePanel({
   exercises,
   selectedMuscle,
+  selectedSubMuscle,
+  onSelectSubMuscle,
   availableGroups,
+  customSubMuscles,
+  onAddSubMuscle,
+  onOpenAddSubMuscle,
   className,
 }: ExercisePanelProps) {
   const { t, locale } = useI18n()
@@ -51,6 +64,46 @@ export function ExercisePanel({
   const [videoFilter, setVideoFilter] = useState<"ALL" | "HAS_VIDEO" | "NO_VIDEO">("ALL")
   const [originFilter, setOriginFilter] = useState<"ALL" | "GLOBAL" | "CUSTOM" | "EDITED">("ALL")
   const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null)
+  const [addSubDialogOpen, setAddSubDialogOpen] = useState(false)
+  const [subMuscleToMoveInto, setSubMuscleToMoveInto] = useState<string | undefined>(undefined)
+
+  // Sub-muscles for the selected group (Predefined + dynamic from exercises + custom)
+  const availableSubMuscles = useMemo(() => {
+    if (selectedMuscle === "ALL") return []
+    const mKey = selectedMuscle.toLowerCase()
+    const base = SUB_MUSCLE_GROUPS[mKey] || []
+    const fromExercises = exercises
+      .filter((ex) => (ex.muscleGroup || "").toLowerCase() === mKey)
+      .map((ex) => (ex.subMuscleGroup || "").trim())
+      .filter(Boolean)
+    const fromCustom = customSubMuscles?.[mKey] || []
+
+    const seen = new Set<string>()
+    const list: string[] = []
+    for (const s of [...base, ...fromExercises, ...fromCustom]) {
+      const lower = s.toLowerCase()
+      if (!seen.has(lower)) {
+        seen.add(lower)
+        list.push(s)
+      }
+    }
+    return list
+  }, [selectedMuscle, exercises, customSubMuscles])
+
+  // Count exercises per sub-muscle tab
+  const subMuscleCounts = useMemo(() => {
+    if (selectedMuscle === "ALL") return {}
+    const counts: Record<string, number> = {}
+    const inCurrentMuscle = exercises.filter(
+      (ex) => (ex.muscleGroup || "").toLowerCase() === selectedMuscle.toLowerCase()
+    )
+    for (const sub of availableSubMuscles) {
+      counts[sub] = inCurrentMuscle.filter(
+        (ex) => (ex.subMuscleGroup || "").toLowerCase() === sub.toLowerCase()
+      ).length
+    }
+    return counts
+  }, [exercises, selectedMuscle, availableSubMuscles])
 
   // Filtered exercises
   const filteredExercises = useMemo(() => {
@@ -62,12 +115,20 @@ export function ExercisePanel({
         }
       }
 
+      // 1b. Sub-muscle filter (if active and not "ALL")
+      if (selectedMuscle !== "ALL" && selectedSubMuscle !== "ALL") {
+        if ((ex.subMuscleGroup || "").toLowerCase() !== selectedSubMuscle.toLowerCase()) {
+          return false
+        }
+      }
+
       // 2. Query search
       if (query.trim()) {
         const q = query.trim().toLowerCase()
         const matchName = ex.name ? ex.name.toLowerCase().includes(q) : false
         const matchNameAr = ex.nameAr ? ex.nameAr.toLowerCase().includes(q) : false
-        if (!matchName && !matchNameAr) return false
+        const matchEquipment = ex.equipment ? ex.equipment.toLowerCase().includes(q) : false
+        if (!matchName && !matchNameAr && !matchEquipment) return false
       }
 
       // 3. Video filter
@@ -88,7 +149,7 @@ export function ExercisePanel({
 
       return true
     })
-  }, [exercises, selectedMuscle, query, videoFilter, originFilter])
+  }, [exercises, selectedMuscle, selectedSubMuscle, query, videoFilter, originFilter])
 
   // Current title & accent
   const isAll = selectedMuscle === "ALL"
@@ -104,7 +165,13 @@ export function ExercisePanel({
     ? (t.exerciseLibrary.allExercises || (isAr ? "جميع التمارين" : "All Exercises"))
     : (getMuscleGroupLabel(selectedMuscle, locale) || selectedMuscle)
 
+  const activeSubTitle =
+    selectedSubMuscle !== "ALL"
+      ? (getSubMuscleGroupLabel(selectedSubMuscle, locale) || selectedSubMuscle)
+      : null
+
   const defaultMuscleForForm = isAll ? "chest" : selectedMuscle
+  const defaultSubMuscleForForm = selectedSubMuscle !== "ALL" ? selectedSubMuscle : undefined
 
   return (
     <div
@@ -114,7 +181,7 @@ export function ExercisePanel({
       )}
     >
       {/* Top Header — Fixed Top */}
-      <div className="shrink-0 p-4 sm:p-5 border-b border-border/80 bg-card/70 backdrop-blur-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="shrink-0 p-3.5 sm:px-6 sm:py-4 border-b border-border/80 bg-card/60 backdrop-blur-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <div
             className={cn(
@@ -132,6 +199,11 @@ export function ExercisePanel({
               <h2 className="text-base sm:text-lg font-extrabold tracking-tight text-foreground truncate">
                 {selectedMuscleTitle}
               </h2>
+              {activeSubTitle && (
+                <span className="text-xs font-bold text-brand-600 dark:text-brand-400 bg-brand-500/10 border border-brand-500/20 px-2 py-0.5 rounded-lg shrink-0">
+                  {activeSubTitle}
+                </span>
+              )}
               <Badge
                 variant="secondary"
                 className="text-xs font-bold tabular-nums shrink-0"
@@ -139,11 +211,15 @@ export function ExercisePanel({
                 {filteredExercises.length}
               </Badge>
             </div>
-            <p className="text-xs text-muted-foreground truncate">
+            <p className="text-xs text-muted-foreground truncate mt-0.5">
               {isAll
                 ? (isAr
-                    ? "إدارة وتصفح كافة التمارين المسجلة بالمكتبة"
+                    ? "إدارة وتصفح كافة تمارين المكتبة"
                     : "Browsing all exercises in the library")
+                : activeSubTitle
+                ? (isAr
+                    ? `تمارين قسم ${activeSubTitle} ضمن ${selectedMuscleTitle}`
+                    : `Exercises in ${activeSubTitle} of ${selectedMuscleTitle}`)
                 : (isAr
                     ? `تمارين خاصة بمجموعة ${selectedMuscleTitle}`
                     : `Exercises for ${selectedMuscleTitle}`)}
@@ -151,13 +227,38 @@ export function ExercisePanel({
           </div>
         </div>
 
-        {/* Add Exercise Button Pre-seeded with Current Muscle Group */}
-        <div className="shrink-0">
+        {/* Header Action Buttons */}
+        <div className="shrink-0 flex items-center gap-2">
+          {/* Move Exercises Button (Visible when inside a specific sub-muscle) */}
+          {!isAll && selectedSubMuscle !== "ALL" && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (onOpenAddSubMuscle) {
+                  onOpenAddSubMuscle(selectedSubMuscle)
+                } else {
+                  setSubMuscleToMoveInto(selectedSubMuscle)
+                  setAddSubDialogOpen(true)
+                }
+              }}
+              className="gap-1.5 rounded-xl border-border/80 hover:border-brand-500/60 hover:bg-brand-500/5 hover:text-brand-600 dark:hover:text-brand-400 text-xs font-bold h-9 sm:h-9.5 px-3 transition-colors"
+              title={isAr ? `نقل تمارين إلى قسم ${activeSubTitle || selectedSubMuscle}` : "Move exercises into this division"}
+            >
+              <ArrowRightLeft className="size-3.5 text-brand-500" />
+              <span>{isAr ? "نقل تمارين هنا" : "Move Exercises Here"}</span>
+            </Button>
+          )}
+
+          {/* Add Exercise Button with Brand Gradient */}
           <ExerciseFormDialog
             defaultMuscleGroup={defaultMuscleForForm}
+            defaultSubMuscleGroup={defaultSubMuscleForForm}
             availableMuscleGroups={availableGroups}
+            availableSubMuscles={availableSubMuscles}
             trigger={
-              <Button className="w-full sm:w-auto gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 text-white shadow-soft font-semibold text-xs h-9.5">
+              <Button className="w-full sm:w-auto gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 hover:brightness-110 text-white shadow-soft font-bold text-xs h-9 sm:h-9.5 px-4 transition-all">
                 <Plus className="size-4" />
                 <span>
                   {isAll
@@ -171,22 +272,22 @@ export function ExercisePanel({
       </div>
 
       {/* Toolbar — Fixed Top */}
-      <div className="shrink-0 p-3 sm:px-4 border-b border-border/60 bg-card/40 backdrop-blur-sm flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+      <div className="shrink-0 p-3 sm:px-6 border-b border-border/70 bg-card/40 backdrop-blur-sm flex flex-col md:flex-row md:items-center justify-between gap-2.5">
         {/* Search Input */}
-        <div className="relative flex-1 md:max-w-xs">
+        <div className="relative flex-1 md:max-w-sm">
           <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t.exerciseLibrary.searchPlaceholder}
-            className="h-9 ps-9 rounded-xl bg-card border-border/70 text-xs shadow-none"
+            className="h-9 ps-9 rounded-xl bg-card border-border/80 text-xs shadow-none focus-visible:border-brand-500"
           />
         </div>
 
         {/* Filters Group */}
-        <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
-          {/* Video Status Pills */}
-          <div className="inline-flex rounded-xl bg-muted/50 p-0.5 border border-border/50 text-xs font-medium">
+        <div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+          {/* Video Filter */}
+          <div className="inline-flex rounded-xl bg-muted/50 p-0.5 border border-border/60 text-xs font-medium">
             <button
               type="button"
               onClick={() => setVideoFilter("ALL")}
@@ -225,8 +326,8 @@ export function ExercisePanel({
             </button>
           </div>
 
-          {/* Origin Pills */}
-          <div className="inline-flex rounded-xl bg-muted/50 p-0.5 border border-border/50 text-xs font-medium">
+          {/* Origin Filter */}
+          <div className="inline-flex rounded-xl bg-muted/50 p-0.5 border border-border/60 text-xs font-medium">
             <button
               type="button"
               onClick={() => setOriginFilter("ALL")}
@@ -279,12 +380,100 @@ export function ExercisePanel({
         </div>
       </div>
 
-      {/* Exercises Table Area — Independent Scroll */}
+      {/* Sub-Muscle Filter Tabs (When inside a specific muscle group) */}
+      {!isAll && (
+        <div className="shrink-0 px-3 sm:px-6 py-2.5 border-b border-border/70 bg-card/25 backdrop-blur-xs flex items-center gap-1.5 overflow-x-auto">
+          <span className="text-[11px] font-bold text-muted-foreground me-1 shrink-0 uppercase tracking-wider">
+            {t.exerciseLibrary.subMuscleGroup || (isAr ? "التقسيم الفرعي:" : "Sub-muscles:")}
+          </span>
+
+          {/* All Sub-muscles Tab */}
+          <button
+            type="button"
+            onClick={() => onSelectSubMuscle("ALL")}
+            className={cn(
+              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer",
+              selectedSubMuscle === "ALL"
+                ? "bg-brand-500 text-white shadow-soft font-bold"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-border/60"
+            )}
+          >
+            <span>{isAr ? "الكل" : "All"}</span>
+            <span
+              className={cn(
+                "text-[10px] px-1.5 py-0.2 rounded-full tabular-nums font-mono font-bold",
+                selectedSubMuscle === "ALL"
+                  ? "bg-white/20 text-white"
+                  : "bg-muted text-muted-foreground"
+              )}
+            >
+              {
+                exercises.filter(
+                  (ex) => (ex.muscleGroup || "").toLowerCase() === selectedMuscle.toLowerCase()
+                ).length
+              }
+            </span>
+          </button>
+
+          {/* Individual Sub-muscles Tabs */}
+          {availableSubMuscles.map((sub) => {
+            const count = subMuscleCounts[sub] || 0
+            const isActive = selectedSubMuscle.toLowerCase() === sub.toLowerCase()
+            const label = getSubMuscleGroupLabel(sub, locale) || sub
+
+            return (
+              <button
+                key={sub}
+                type="button"
+                onClick={() => onSelectSubMuscle(sub)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer",
+                  isActive
+                    ? "bg-brand-500 text-white shadow-soft font-bold"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-border/60"
+                )}
+              >
+                <span>{label}</span>
+                <span
+                  className={cn(
+                    "text-[10px] px-1.5 py-0.2 rounded-full tabular-nums font-mono font-bold",
+                    isActive
+                      ? "bg-white/20 text-white"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {count}
+                </span>
+              </button>
+            )
+          })}
+
+          {/* Final Tab: Add Sub-Muscle Division Button (+) */}
+          <button
+            type="button"
+            onClick={() => {
+              if (onOpenAddSubMuscle) {
+                onOpenAddSubMuscle(undefined)
+              } else {
+                setSubMuscleToMoveInto(undefined)
+                setAddSubDialogOpen(true)
+              }
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border border-dashed border-border/80 hover:border-brand-500/60 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-500/5 text-muted-foreground"
+            title={isAr ? "إضافة قسم عضلي فرعي ونقل التمارين إليه" : "Add sub-muscle and move exercises"}
+          >
+            <Plus className="size-3.5" />
+            <span>{isAr ? "قسم جديد" : "New Division"}</span>
+          </button>
+        </div>
+      )}
+
+      {/* Exercises Table Area — Modern, Spacious Rows & Independent Scroll */}
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto overscroll-contain focus:outline-none">
         {filteredExercises.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-12 text-center h-full">
-            <div className="size-12 rounded-2xl bg-muted/60 flex items-center justify-center text-muted-foreground mb-3">
-              <AlertCircle className="size-6" />
+            <div className="size-14 rounded-2xl bg-muted/60 flex items-center justify-center text-muted-foreground mb-3">
+              <AlertCircle className="size-7 text-brand-500" />
             </div>
             <p className="text-base font-bold text-foreground">
               {isAr ? "لا توجد تمارين مطابقة" : "No exercises match your search"}
@@ -294,7 +483,7 @@ export function ExercisePanel({
                 ? "جرب تعديل كلمات البحث أو الفلاتر المحددة، أو قم بإضافة تمرين جديد."
                 : "Try adjusting your search terms or filters, or add a new exercise."}
             </p>
-            {(query || videoFilter !== "ALL" || originFilter !== "ALL") && (
+            {(query || videoFilter !== "ALL" || originFilter !== "ALL" || selectedSubMuscle !== "ALL") && (
               <Button
                 variant="outline"
                 size="sm"
@@ -302,35 +491,39 @@ export function ExercisePanel({
                   setQuery("")
                   setVideoFilter("ALL")
                   setOriginFilter("ALL")
+                  onSelectSubMuscle("ALL")
                 }}
-                className="mt-4 rounded-xl text-xs"
+                className="mt-4 rounded-xl text-xs font-bold"
               >
                 {isAr ? "إعادة ضبط الفلاتر" : "Reset Filters"}
               </Button>
             )}
           </div>
         ) : (
-          <table className="w-full text-start text-sm border-separate border-spacing-0">
+          <table className="w-full text-start border-separate border-spacing-0">
+            {/* Sticky Modern Table Header */}
             <thead className="sticky top-0 z-20 bg-card/95 backdrop-blur-md border-b border-border shadow-xs">
-              <tr className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                <th className="py-3 px-4 text-start border-b border-border/80">
+              <tr className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <th className="py-3.5 px-4 sm:px-6 text-start border-b border-border/80">
                   {t.exerciseLibrary.exerciseCol || (isAr ? "التمرين" : "Exercise")}
                 </th>
-                <th className="py-3 px-4 text-start border-b border-border/80">
+                <th className="py-3.5 px-4 sm:px-6 text-start border-b border-border/80">
                   {t.exerciseLibrary.form.muscleGroup}
                 </th>
-                <th className="py-3 px-4 text-start border-b border-border/80">
-                  {t.exerciseLibrary.typeCol || (isAr ? "النوع" : "Type")}
+                <th className="py-3.5 px-4 sm:px-6 text-start border-b border-border/80">
+                  {t.exerciseLibrary.typeCol || (isAr ? "المصدر" : "Source")}
                 </th>
-                <th className="py-3 px-4 text-start border-b border-border/80">
+                <th className="py-3.5 px-4 sm:px-6 text-start border-b border-border/80">
                   {t.exerciseLibrary.videoCol || (isAr ? "الفيديو" : "Video")}
                 </th>
-                <th className="py-3 px-4 text-end border-b border-border/80">
+                <th className="py-3.5 px-4 sm:px-6 text-end border-b border-border/80">
                   {t.exerciseLibrary.actionsCol || (isAr ? "الإجراءات" : "Actions")}
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/50">
+
+            {/* Table Rows — Spacious, Comfortable & Modern */}
+            <tbody className="divide-y divide-border/60 bg-background">
               {filteredExercises.map((exercise) => {
                 const youtubeId = exercise.youtubeUrl
                   ? extractYoutubeId(exercise.youtubeUrl)
@@ -342,110 +535,126 @@ export function ExercisePanel({
                 return (
                   <tr
                     key={exercise.id}
-                    className="group transition-colors hover:bg-muted/40"
+                    className="group transition-colors hover:bg-muted/30"
                   >
-                    {/* 1. التمرين */}
-                    <td className="py-3 px-4">
+                    {/* 1. Exercise Column (Spacious & Modern Typography) */}
+                    <td className="py-4 sm:py-4.5 px-4 sm:px-6">
                       <div className="min-w-0">
-                        <p className="font-semibold text-foreground leading-snug group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+                        <p className="text-sm sm:text-base font-bold text-foreground leading-snug group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
                           {exercise.name}
                         </p>
                         {exercise.nameAr && (
-                          <p className="text-xs text-muted-foreground mt-0.5 font-medium">
+                          <p className="text-xs sm:text-sm text-muted-foreground mt-1 font-medium">
                             {exercise.nameAr}
                           </p>
                         )}
                         {exercise.equipment && (
-                          <span className="inline-block mt-1 text-[11px] text-muted-foreground/80 bg-muted/60 px-1.5 py-0.5 rounded font-mono">
-                            {exercise.equipment}
+                          <div className="mt-1.5 flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md border border-border/50 font-mono">
+                              {exercise.equipment}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* 2. Muscle & Sub-Muscle Column */}
+                    <td className="py-4 sm:py-4.5 px-4 sm:px-6 whitespace-nowrap">
+                      <div className="flex flex-col items-start gap-1.5">
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-xs font-semibold px-2.5 py-1 rounded-lg border",
+                            exAccent.border,
+                            exAccent.bg,
+                            exAccent.text
+                          )}
+                        >
+                          {getMuscleGroupLabel(exercise.muscleGroup, locale) ||
+                            exercise.muscleGroup}
+                        </Badge>
+                        {exercise.subMuscleGroup && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 dark:text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded-md border border-brand-500/20">
+                            <span>•</span>
+                            <span>
+                              {getSubMuscleGroupLabel(exercise.subMuscleGroup, locale) ||
+                                exercise.subMuscleGroup}
+                            </span>
                           </span>
                         )}
                       </div>
                     </td>
 
-                    {/* 2. المجموعة العضلية */}
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-xs font-medium border",
-                          exAccent.border,
-                          exAccent.bg,
-                          exAccent.text
-                        )}
-                      >
-                        {getMuscleGroupLabel(exercise.muscleGroup, locale) ||
-                          exercise.muscleGroup}
-                      </Badge>
-                    </td>
-
-                    {/* 3. النوع */}
-                    <td className="py-3 px-4 whitespace-nowrap">
+                    {/* 3. Source / Type Column */}
+                    <td className="py-4 sm:py-4.5 px-4 sm:px-6 whitespace-nowrap">
                       {exercise.isCustomized ? (
                         <Badge
                           variant="outline"
-                          className="border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-semibold"
+                          className="border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-bold px-2.5 py-1 rounded-lg"
                         >
                           {t.exerciseLibrary.editedBadge}
                         </Badge>
                       ) : exercise.isGlobal ? (
-                        <Badge variant="secondary" className="text-xs font-semibold">
+                        <Badge
+                          variant="secondary"
+                          className="text-xs font-semibold px-2.5 py-1 rounded-lg border border-border/50"
+                        >
                           {t.exerciseLibrary.globalBadge}
                         </Badge>
                       ) : (
-                        <Badge className="bg-brand-500 text-white text-xs font-semibold">
+                        <Badge className="bg-brand-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-xs">
                           {t.exerciseLibrary.customBadge}
                         </Badge>
                       )}
                     </td>
 
-                    {/* 4. الفيديو */}
-                    <td className="py-3 px-4 whitespace-nowrap">
+                    {/* 4. Video Column (Modern Thumbnail Preview & Link) */}
+                    <td className="py-4 sm:py-4.5 px-4 sm:px-6 whitespace-nowrap">
                       {hasVideo && youtubeId ? (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2.5">
                           <button
                             type="button"
                             onClick={() => setPreviewVideoUrl(exercise.youtubeUrl)}
-                            className="group/thumb relative flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border/80 bg-black/5 hover:ring-2 hover:ring-brand-500 transition-all shadow-xs"
+                            className="group/thumb relative flex h-10 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border/80 bg-black/5 hover:ring-2 hover:ring-brand-500 transition-all shadow-xs"
                             title={isAr ? "معاينة الفيديو" : "Preview video"}
                           >
                             <img
                               src={getThumbnailUrl(youtubeId)}
                               alt=""
-                              className="size-full object-cover"
+                              className="size-full object-cover group-hover/thumb:scale-105 transition-transform duration-200"
                             />
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover/thumb:bg-black/10 transition-colors">
-                              <Play className="size-3.5 fill-white text-white" />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/35 group-hover/thumb:bg-black/15 transition-colors">
+                              <div className="size-5 rounded-full bg-white/90 flex items-center justify-center shadow-xs">
+                                <Play className="size-2.5 fill-brand-600 text-brand-600 ms-0.5" />
+                              </div>
                             </div>
                           </button>
                           <a
                             href={exercise.youtubeUrl!}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors"
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
                             title={isAr ? "فتح في نافذة جديدة" : "Open externally"}
                           >
-                            <Video className="size-3.5 text-rose-500" />
-                            <ExternalLink className="size-3" />
+                            <ExternalLink className="size-3.5" />
                           </a>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20">
                           <AlertCircle className="size-3.5 shrink-0" />
-                          <span className="text-[11px]">
-                            {t.exerciseLibrary.noVideoWarning}
-                          </span>
+                          <span>{t.exerciseLibrary.noVideoWarning || (isAr ? "بدون فيديو" : "No video")}</span>
                         </div>
                       )}
                     </td>
 
-                    {/* 5. الإجراءات */}
-                    <td className="py-3 px-4 text-end whitespace-nowrap">
-                      <div className="inline-flex items-center gap-1">
+                    {/* 5. Actions Column (Spacious & Clean) */}
+                    <td className="py-4 sm:py-4.5 px-4 sm:px-6 text-end whitespace-nowrap">
+                      <div className="inline-flex items-center gap-1.5">
                         {/* Edit Drawer */}
                         <ExerciseFormDialog
                           exercise={exercise}
                           availableMuscleGroups={availableGroups}
+                          availableSubMuscles={availableSubMuscles}
                         />
 
                         {/* Reset button (for customized globals) */}
@@ -471,6 +680,26 @@ export function ExercisePanel({
         )}
       </div>
 
+      {/* Modern Status Footer Bar */}
+      <div className="h-9 shrink-0 border-t border-border/70 bg-card/40 px-4 sm:px-6 flex items-center justify-between text-xs text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <span>{isAr ? "إجمالي التمارين المعروضة:" : "Displayed Exercises:"}</span>
+          <strong className="text-foreground font-mono font-bold">
+            {filteredExercises.length}
+          </strong>
+        </div>
+        <div className="flex items-center gap-4 text-[11px] font-medium hidden sm:flex">
+          <span className="flex items-center gap-1.5">
+            <span className="size-2 rounded-full bg-emerald-500" />
+            <span>{isAr ? "فيديو متوفر" : "Video Available"}</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="size-2 rounded-full bg-brand-500" />
+            <span>{isAr ? "تصميم عصري واسع" : "Modern Spacious Layout"}</span>
+          </span>
+        </div>
+      </div>
+
       {/* Video Preview Modal */}
       <Dialog
         open={Boolean(previewVideoUrl)}
@@ -481,7 +710,7 @@ export function ExercisePanel({
         <DialogContent className="max-w-2xl p-4">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Video className="size-5 text-rose-500" />
+              <Video className="size-5 text-brand-500" />
               <span>{isAr ? "معاينة تمرين الفيديو" : "Exercise Video Preview"}</span>
             </DialogTitle>
             <DialogDescription className="sr-only">
@@ -495,6 +724,22 @@ export function ExercisePanel({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Add / Move Sub-Muscle Dialog (when not handled by parent) */}
+      {!onOpenAddSubMuscle && (
+        <AddSubMuscleDialog
+          open={addSubDialogOpen}
+          onOpenChange={setAddSubDialogOpen}
+          muscleGroup={selectedMuscle}
+          exercises={exercises}
+          existingSubMuscles={availableSubMuscles}
+          initialSubMuscleName={subMuscleToMoveInto}
+          onSuccess={(newSubName) => {
+            onAddSubMuscle?.(selectedMuscle, newSubName)
+            onSelectSubMuscle(newSubName)
+          }}
+        />
+      )}
     </div>
   )
 }

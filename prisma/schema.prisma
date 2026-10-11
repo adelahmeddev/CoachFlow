@@ -102,6 +102,7 @@ model Client {
   exerciseLogs         ExerciseLog[]
   clientGoals          ClientGoal[]
   mealChoices          MealChoice[]
+  mealNotes            MealNote[]
   paymentProofs        PaymentProof[]
   progressMedia        ProgressMedia[]
   progressReviews      ProgressReview[]
@@ -334,6 +335,7 @@ model Exercise {
   name                 String
   nameAr               String?
   muscleGroup          String
+  subMuscleGroup       String?
   equipment            String?
   tags                 String[]              @default([])
   defaultSets          Int?
@@ -359,6 +361,7 @@ model ExerciseOverride {
   name       String?
   nameAr     String?
   muscleGroup String?
+  subMuscleGroup String?
   youtubeUrl String?
   hidden     Boolean        @default(false)
   updatedAt  DateTime       @updatedAt
@@ -501,6 +504,7 @@ model Meal {
   plan           ClientNutritionPlan? @relation(fields: [planId], references: [id], onDelete: Cascade)
   template       NutritionTemplate?   @relation(fields: [templateId], references: [id], onDelete: Cascade)
   items          MealItem[]
+  mealNotes      MealNote[]
 
   @@index([templateId])
   @@index([planId])
@@ -533,6 +537,22 @@ model MealChoice {
 
   @@unique([clientId, mealItemId, date])
   @@index([clientId, date])
+}
+
+model MealNote {
+  id        String   @id @default(cuid())
+  clientId  String
+  mealId    String
+  date      DateTime @db.Date
+  note      String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  meal      Meal     @relation(fields: [mealId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, mealId, date])
+  @@index([clientId, date])
+  @@index([mealId])
 }
 
 model BodyComposition {

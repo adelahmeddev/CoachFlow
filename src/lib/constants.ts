@@ -330,3 +330,14 @@ export const EQUIPMENT_OPTIONS = [
 
 export type EquipmentOption = (typeof EQUIPMENT_OPTIONS)[number]
 
+export const SUB_MUSCLE_GROUPS: Record<string, readonly string[]> = {
+  chest: ["upper", "middle", "lower"],
+  back: ["lats", "upper-back", "lower-back", "traps"],
+  shoulders: ["anterior", "lateral", "posterior"],
+  arms: ["biceps", "triceps", "forearms"],
+  legs: ["quads", "hamstrings", "calves", "adductors"],
+  glutes: ["glute-max", "glute-med", "hip-flexors"],
+  core: ["upper-abs", "lower-abs", "obliques"],
+  cardio: [],
+}
+

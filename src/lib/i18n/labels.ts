@@ -159,6 +159,16 @@ export function getMuscleGroupLabel(
   return dict?.[muscleGroup.toLowerCase()] ?? muscleGroup
 }
 
+export function getSubMuscleGroupLabel(
+  subMuscle: string | null | undefined,
+  locale: Locale
+): string {
+  if (!subMuscle) return ""
+  const dict = (getDictionary(locale) as { exerciseLibrary?: { subMuscles?: Record<string, string> } })
+    ?.exerciseLibrary?.subMuscles
+  return dict?.[subMuscle.toLowerCase()] ?? subMuscle
+}
+
 export function getEquipmentLabel(
   equipment: string | null | undefined,
   locale: Locale

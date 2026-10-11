@@ -8,6 +8,7 @@ import {
   removeExercise,
   resetExercise,
   listHiddenExercises,
+  assignExercisesToSubMuscle,
 } from "@/server/services/exercise.service"
 import {
   libraryExerciseSchema,
@@ -126,3 +127,35 @@ export async function getHiddenExercisesAction() {
     }
   }
 }
+
+export async function assignExercisesToSubMuscleAction(
+  exerciseIds: string[],
+  subMuscleGroup: string,
+  targetMuscleGroup?: string
+) {
+  try {
+    const trainerProfileId = await requireTrainer()
+    if (!subMuscleGroup || !subMuscleGroup.trim()) {
+      return { ok: false as const, error: "Sub-muscle group name is required" }
+    }
+
+    const res = await assignExercisesToSubMuscle(
+      trainerProfileId,
+      exerciseIds,
+      subMuscleGroup,
+      targetMuscleGroup
+    )
+    if (!res.ok) {
+      return { ok: false as const, error: res.error }
+    }
+
+    revalidatePath("/exercise-library")
+    return { ok: true as const, count: res.count }
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Failed to assign exercises to sub-muscle",
+    }
+  }
+}
+

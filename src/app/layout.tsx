@@ -1,9 +1,14 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono, Noto_Sans_Arabic, Alexandria } from "next/font/google"
 import "./globals.css"
 import { Providers } from "@/components/providers"
 import { getI18n } from "@/lib/i18n"
 import { BackgroundOrbs } from "@/components/layout/background-orbs"
+
+export const viewport: Viewport = {
+  themeColor: "#111009",
+  colorScheme: "dark light",
+}
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

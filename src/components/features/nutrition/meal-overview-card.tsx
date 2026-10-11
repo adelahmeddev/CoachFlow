@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, ChevronDown, Clock, Flame, UtensilsCrossed } from "lucide-react"
+import { Check, ChevronDown, Clock, Flame, UtensilsCrossed, MessageSquare } from "lucide-react"
 import { useI18n } from "@/lib/i18n/client"
 import { cn } from "@/lib/utils"
 
@@ -22,6 +22,7 @@ export function MealOverviewCard({
   status,
   itemsDone,
   itemsTotal,
+  hasNote,
   onOpen,
 }: {
   order: number
@@ -35,6 +36,7 @@ export function MealOverviewCard({
   status?: MealCardStatus
   itemsDone?: number
   itemsTotal?: number
+  hasNote?: boolean
   onOpen: () => void
 }) {
   const { locale } = useI18n()
@@ -145,7 +147,7 @@ export function MealOverviewCard({
       </div>
 
       {/* meta row */}
-      <div className="relative mt-3 flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
+      <div className="relative mt-3 flex items-center justify-center gap-2 text-[11px] text-muted-foreground flex-wrap">
         <span className="inline-flex items-center gap-1 rounded-full bg-foreground/[0.05] px-2.5 py-1 font-semibold tabular-nums dark:bg-white/[0.06]">
           <Flame className="size-3" aria-hidden="true" />
           {kcalLabel}
@@ -157,6 +159,12 @@ export function MealOverviewCard({
             {isAr ? "عنصر" : "items"}
           </span>
         ) : null}
+        {hasNote && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-brand-500/10 px-2 py-0.5 font-bold text-brand-700 ring-1 ring-brand-500/20 dark:text-brand-300">
+            <MessageSquare className="size-3" aria-hidden="true" />
+            <span>{isAr ? "ملاحظة مسجلة" : "Note attached"}</span>
+          </span>
+        )}
       </div>
 
       {/* progress hairline */}

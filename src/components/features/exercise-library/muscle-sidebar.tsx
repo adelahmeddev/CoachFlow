@@ -1,7 +1,14 @@
 "use client"
 
-import { useState } from "react"
-import { Layers, Plus, Check, FolderPlus, Sparkles } from "lucide-react"
+import { useState, useMemo } from "react"
+import {
+  Plus,
+  FolderPlus,
+  Sparkles,
+  PanelLeftClose,
+  PanelLeft,
+  ChevronDown,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,7 +21,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useI18n } from "@/lib/i18n/client"
-import { getMuscleGroupLabel } from "@/lib/i18n/labels"
+import { getMuscleGroupLabel, getSubMuscleGroupLabel } from "@/lib/i18n/labels"
+import { SUB_MUSCLE_GROUPS } from "@/lib/constants"
 import { cn } from "@/lib/utils"
 import type { LibraryExercise } from "@/server/services/exercise.service"
 
@@ -83,7 +91,13 @@ interface MuscleSidebarProps {
   groups: string[]
   exercises: LibraryExercise[]
   selectedMuscle: string
+  selectedSubMuscle?: string
+  customSubMuscles?: Record<string, string[]>
   onSelect: (group: string) => void
+  onSelectSubMuscle?: (subMuscle: string) => void
+  onAddSubMuscleClick?: (muscleGroup: string) => void
+  isCollapsed?: boolean
+  onToggleCollapse?: () => void
   onAddGroup: (newGroupName: string) => void
   className?: string
 }
@@ -92,7 +106,13 @@ export function MuscleSidebar({
   groups,
   exercises,
   selectedMuscle,
+  selectedSubMuscle = "ALL",
+  customSubMuscles,
   onSelect,
+  onSelectSubMuscle,
+  onAddSubMuscleClick,
+  isCollapsed = false,
+  onToggleCollapse,
   onAddGroup,
   className,
 }: MuscleSidebarProps) {
@@ -103,11 +123,32 @@ export function MuscleSidebar({
   const [newGroupName, setNewGroupName] = useState("")
 
   // Quick lookup of exercise counts per group
-  const countsByGroup = exercises.reduce<Record<string, number>>((acc, ex) => {
-    const key = (ex.muscleGroup || "").toLowerCase()
-    acc[key] = (acc[key] || 0) + 1
-    return acc
-  }, {})
+  const countsByGroup = useMemo(() => {
+    return exercises.reduce<Record<string, number>>((acc, ex) => {
+      const key = (ex.muscleGroup || "").toLowerCase()
+      acc[key] = (acc[key] || 0) + 1
+      return acc
+    }, {})
+  }, [exercises])
+
+  // Exercise counts per sub-muscle for the selected group
+  const subMuscleCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    if (selectedMuscle === "ALL") return counts
+
+    const inGroup = exercises.filter(
+      (ex) => (ex.muscleGroup || "").toLowerCase() === selectedMuscle.toLowerCase()
+    )
+
+    for (const ex of inGroup) {
+      if (ex.subMuscleGroup) {
+        const k = ex.subMuscleGroup.toLowerCase()
+        counts[k] = (counts[k] || 0) + 1
+      }
+    }
+
+    return counts
+  }, [exercises, selectedMuscle])
 
   const totalExercises = exercises.length
 
@@ -124,34 +165,63 @@ export function MuscleSidebar({
     <>
       <aside
         className={cn(
-          "flex flex-col h-full min-h-0 bg-card/60 backdrop-blur-sm border-e border-border/80 select-none overflow-hidden",
+          "flex flex-col h-full min-h-0 bg-card/60 backdrop-blur-sm border-e border-border/80 select-none overflow-hidden transition-all duration-200",
+          isCollapsed ? "w-16" : "w-64 xl:w-72",
           className
         )}
       >
         {/* Sidebar Header — Fixed Top */}
-        <div className="p-3.5 border-b border-border/70 space-y-2.5 shrink-0 bg-card/40">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Layers className="size-4 text-brand-500" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                {t.exerciseLibrary.filterMuscleGroup}
+        <div className="p-3 border-b border-border/70 shrink-0 bg-card/40 flex items-center justify-between gap-2">
+          {!isCollapsed && (
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="size-2 rounded-full bg-brand-500 shrink-0" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground truncate">
+                {t.exerciseLibrary.filterMuscleGroup || (isAr ? "المجموعات العضلية" : "Muscle Groups")}
               </h3>
             </div>
-            <span className="text-xs font-semibold text-muted-foreground">
-              {groups.length}
-            </span>
-          </div>
+          )}
 
-          {/* "All Exercises" Card */}
+          {/* Collapse/Expand Toggle Button */}
+          {onToggleCollapse && (
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              className={cn(
+                "size-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 flex items-center justify-center transition-colors shrink-0",
+                isCollapsed && "mx-auto"
+              )}
+              title={
+                isCollapsed
+                  ? (isAr ? "توسيع الشريط الجانبي" : "Expand Sidebar")
+                  : (isAr ? "طي الشريط الجانبي" : "Collapse Sidebar")
+              }
+            >
+              {isCollapsed ? (
+                <PanelLeft className="size-4 text-brand-500" />
+              ) : (
+                <PanelLeftClose className="size-4" />
+              )}
+            </button>
+          )}
+        </div>
+
+        {/* Scrollable Muscle Tree List — Independent Scroll */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2 space-y-1 focus:outline-none">
+          {/* "All Exercises" Item */}
           <button
             type="button"
-            onClick={() => onSelect("ALL")}
+            onClick={() => {
+              onSelect("ALL")
+              onSelectSubMuscle?.("ALL")
+            }}
             className={cn(
-              "w-full flex items-center justify-between p-2.5 rounded-xl border text-start transition-all",
+              "w-full flex items-center justify-between p-2 rounded-xl border text-start transition-all",
               selectedMuscle === "ALL"
-                ? "bg-brand-500/10 border-brand-500/40 text-brand-600 dark:text-brand-400 shadow-soft font-bold ring-1 ring-brand-500/30"
-                : "border-border/60 bg-card hover:bg-muted/50 hover:border-border text-foreground font-medium"
+                ? "bg-brand-500/10 border-brand-500/40 text-brand-600 dark:text-brand-400 font-bold shadow-soft ring-1 ring-brand-500/30"
+                : "border-border/50 bg-card hover:bg-muted/50 hover:border-border text-foreground font-medium",
+              isCollapsed && "justify-center p-2"
             )}
+            title={t.exerciseLibrary.allExercises || (isAr ? "جميع التمارين" : "All Exercises")}
           >
             <div className="flex items-center gap-2 min-w-0">
               <span
@@ -160,25 +230,28 @@ export function MuscleSidebar({
                   selectedMuscle === "ALL" ? "bg-brand-500" : "bg-muted-foreground/30"
                 )}
               />
-              <span className="text-sm truncate">
-                {t.exerciseLibrary.allExercises || (isAr ? "جميع التمارين" : "All Exercises")}
-              </span>
-            </div>
-            <span
-              className={cn(
-                "px-2 py-0.5 rounded-full text-xs font-bold tabular-nums shrink-0",
-                selectedMuscle === "ALL"
-                  ? "bg-brand-500 text-white"
-                  : "bg-muted text-muted-foreground"
+              {!isCollapsed && (
+                <span className="text-xs font-bold truncate">
+                  {t.exerciseLibrary.allExercises || (isAr ? "جميع التمارين" : "All Exercises")}
+                </span>
               )}
-            >
-              {totalExercises}
-            </span>
-          </button>
-        </div>
+            </div>
 
-        {/* Scrollable Muscle List — Independent Internal Scroll */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2 space-y-1.5 focus:outline-none">
+            {!isCollapsed && (
+              <span
+                className={cn(
+                  "px-2 py-0.5 rounded-full text-[11px] font-bold tabular-nums font-mono shrink-0",
+                  selectedMuscle === "ALL"
+                    ? "bg-brand-500 text-white"
+                    : "bg-muted text-muted-foreground"
+                )}
+              >
+                {totalExercises}
+              </span>
+            )}
+          </button>
+
+          {/* Muscle Groups Tree */}
           {groups.map((group) => {
             const key = group.toLowerCase()
             const isSelected = selectedMuscle.toLowerCase() === key
@@ -186,67 +259,174 @@ export function MuscleSidebar({
             const accent = MUSCLE_ACCENTS[key] || DEFAULT_ACCENT
             const label = getMuscleGroupLabel(group, locale) || group
 
-            return (
-              <button
-                key={group}
-                type="button"
-                onClick={() => onSelect(group)}
-                className={cn(
-                  "group relative w-full flex items-center justify-between p-2.5 rounded-xl border text-start transition-all",
-                  isSelected
-                    ? cn(
-                        "bg-card border-brand-500/50 shadow-soft ring-1 ring-brand-500/30 font-bold",
-                        accent.text
-                      )
-                    : "border-border/50 bg-card/60 hover:bg-muted/50 hover:border-border text-foreground font-medium"
-                )}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  {/* Color Accent Indicator Dot */}
-                  <span
-                    className={cn(
-                      "size-2.5 rounded-full shrink-0 transition-transform group-hover:scale-110",
-                      accent.dot
-                    )}
-                  />
-                  <span className="text-sm truncate">{label}</span>
-                </div>
+            // Compute sub-muscles (Base + Exercises + Custom)
+            const baseSubs = SUB_MUSCLE_GROUPS[key] || []
+            const exerciseSubs = exercises
+              .filter((ex) => (ex.muscleGroup || "").toLowerCase() === key)
+              .map((ex) => (ex.subMuscleGroup || "").trim())
+              .filter(Boolean)
+            const customSubs = customSubMuscles?.[key] || []
 
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span
-                    className={cn(
-                      "px-2 py-0.5 rounded-full text-xs font-bold tabular-nums transition-colors",
-                      isSelected
-                        ? "bg-brand-500 text-white"
-                        : "bg-muted text-muted-foreground group-hover:bg-muted/80"
-                    )}
-                  >
-                    {count}
-                  </span>
-                  {isSelected && (
-                    <Check className="size-3.5 text-brand-500 shrink-0" />
+            const seenSubs = new Set<string>()
+            const subMuscles: string[] = []
+            for (const s of [...baseSubs, ...exerciseSubs, ...customSubs]) {
+              const lower = s.toLowerCase()
+              if (!seenSubs.has(lower)) {
+                seenSubs.add(lower)
+                subMuscles.push(s)
+              }
+            }
+
+            return (
+              <div key={group} className="space-y-0.5">
+                {/* Parent Muscle Item Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelect(group)
+                    onSelectSubMuscle?.("ALL")
+                  }}
+                  className={cn(
+                    "group relative w-full flex items-center justify-between p-2 rounded-xl border text-start transition-all",
+                    isSelected
+                      ? cn(
+                          "bg-brand-500/10 border-brand-500/40 font-bold text-brand-600 dark:text-brand-400 shadow-soft ring-1 ring-brand-500/20"
+                        )
+                      : "border-border/40 bg-card/60 hover:bg-muted/50 hover:border-border text-foreground font-medium",
+                    isCollapsed && "justify-center p-2"
                   )}
-                </div>
-              </button>
+                  title={label}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className={cn(
+                        "size-2.5 rounded-full shrink-0 transition-transform group-hover:scale-110",
+                        accent.dot
+                      )}
+                    />
+                    {!isCollapsed && (
+                      <span className="text-xs truncate">{label}</span>
+                    )}
+                  </div>
+
+                  {!isCollapsed && (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span
+                        className={cn(
+                          "px-1.5 py-0.2 rounded-md text-[11px] font-mono font-bold tabular-nums transition-colors",
+                          isSelected
+                            ? "bg-brand-500 text-white"
+                            : "bg-muted text-muted-foreground group-hover:bg-muted/80"
+                        )}
+                      >
+                        {count}
+                      </span>
+                      <ChevronDown
+                        className={cn(
+                          "size-3 text-muted-foreground transition-transform",
+                          isSelected ? "rotate-180 text-brand-500" : ""
+                        )}
+                      />
+                    </div>
+                  )}
+                </button>
+
+                {/* Sub-Muscle Tree Breakdown (Expanded under selected muscle) */}
+                {isSelected && !isCollapsed && (
+                  <div className="ms-3.5 ps-2.5 border-s-2 border-brand-500/40 my-1 space-y-0.5 py-0.5">
+                    {/* "All divisions" item */}
+                    <button
+                      type="button"
+                      onClick={() => onSelectSubMuscle?.("ALL")}
+                      className={cn(
+                        "w-full px-2 py-1.5 rounded-lg text-xs text-start transition-all flex items-center justify-between",
+                        selectedSubMuscle === "ALL"
+                          ? "bg-brand-500 text-white font-bold shadow-xs"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50 font-medium"
+                      )}
+                    >
+                      <span>{isAr ? "• كل الأقسام" : "• All Divisions"}</span>
+                      <span
+                        className={cn(
+                          "text-[10px] font-mono px-1.5 py-0.2 rounded font-bold",
+                          selectedSubMuscle === "ALL"
+                            ? "bg-white/20 text-white"
+                            : "bg-muted text-muted-foreground"
+                        )}
+                      >
+                        {count}
+                      </span>
+                    </button>
+
+                    {/* Individual sub-division items */}
+                    {subMuscles.map((sub) => {
+                      const isSubActive =
+                        selectedSubMuscle.toLowerCase() === sub.toLowerCase()
+                      const sCount = subMuscleCounts[sub.toLowerCase()] || 0
+                      const subLabel =
+                        getSubMuscleGroupLabel(sub, locale) || sub
+
+                      return (
+                        <button
+                          key={sub}
+                          type="button"
+                          onClick={() => onSelectSubMuscle?.(sub)}
+                          className={cn(
+                            "w-full px-2 py-1.5 rounded-lg text-xs text-start transition-all flex items-center justify-between",
+                            isSubActive
+                              ? "bg-brand-500 text-white font-bold shadow-xs"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted/50 font-medium"
+                          )}
+                        >
+                          <span className="truncate">{subLabel}</span>
+                          <span
+                            className={cn(
+                              "text-[10px] font-mono px-1.5 py-0.2 rounded font-bold tabular-nums shrink-0",
+                              isSubActive
+                                ? "bg-white/20 text-white"
+                                : "bg-muted text-muted-foreground"
+                            )}
+                          >
+                            {sCount}
+                          </span>
+                        </button>
+                      )
+                    })}
+
+                    {/* Add sub-division (+) button inside the tree */}
+                    <button
+                      type="button"
+                      onClick={() => onAddSubMuscleClick?.(group)}
+                      className="w-full px-2 py-1.5 rounded-lg text-xs text-start transition-all flex items-center gap-1.5 text-muted-foreground hover:text-brand-600 dark:hover:text-brand-400 hover:bg-brand-500/5 border border-dashed border-border/60 font-bold"
+                      title={isAr ? "إضافة قسم فرعي جديد" : "Add new sub-muscle division"}
+                    >
+                      <Plus className="size-3" />
+                      <span>{isAr ? "إضافة قسم فرعي" : "Add division"}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             )
           })}
         </div>
 
         {/* Sidebar Footer — Add Muscle Group Button (Fixed Bottom) */}
-        <div className="p-3 border-t border-border/70 shrink-0 bg-card/40">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setAddDialogOpen(true)}
-            className="w-full gap-2 rounded-xl text-xs font-bold h-9 border-dashed border-border/80 hover:border-brand-500/50 hover:bg-brand-500/5 hover:text-brand-600 dark:hover:text-brand-400 transition-all shadow-none"
-          >
-            <Plus className="size-3.5" />
-            <span>
-              {t.exerciseLibrary.addMuscleGroup || (isAr ? "إضافة مجموعة عضلية" : "Add Muscle Group")}
-            </span>
-          </Button>
-        </div>
+        {!isCollapsed && (
+          <div className="p-2.5 border-t border-border/70 shrink-0 bg-card/40">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setAddDialogOpen(true)}
+              className="w-full gap-2 rounded-xl text-xs font-bold h-8.5 border-dashed border-border/80 hover:border-brand-500/50 hover:bg-brand-500/5 hover:text-brand-600 dark:hover:text-brand-400 transition-all shadow-none"
+            >
+              <Plus className="size-3.5" />
+              <span>
+                {t.exerciseLibrary.addMuscleGroup || (isAr ? "إضافة مجموعة جديدة" : "Add Muscle Group")}
+              </span>
+            </Button>
+          </div>
+        )}
       </aside>
 
       {/* Add Muscle Group Dialog */}
