@@ -62,7 +62,7 @@ export function SafetyWarningDialog({
             >
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-sm font-medium">{conflict.exerciseName}</p>
+                  <p dir="ltr" className="text-sm font-medium text-start">{conflict.exerciseName}</p>
                   <p className="text-xs text-muted-foreground">
                     {t.trainingSplit.dayPrefix} {conflict.dayIndex + 1} ·{" "}
                     {conflict.reason === "neckPain"
@@ -83,7 +83,7 @@ export function SafetyWarningDialog({
                       <span className="me-1 font-medium text-foreground">
                         {t.trainingSplit.suggestedAlternative}:
                       </span>
-                      {getExerciseName(conflict.suggestion, locale)}
+                      <span dir="ltr">{getExerciseName(conflict.suggestion, locale)}</span>
                     </>
                   ) : (
                     t.trainingSplit.noAlternative

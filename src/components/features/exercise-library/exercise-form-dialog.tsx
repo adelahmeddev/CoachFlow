@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2, Plus, Pencil, Video, Layers } from "lucide-react"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 import {
   Sheet,
   SheetContent,
@@ -40,11 +41,13 @@ import type { LibraryExercise } from "@/server/services/exercise.service"
 interface ExerciseFormDialogProps {
   exercise?: LibraryExercise
   trigger?: React.ReactNode
-  onSuccess?: () => void
+  onSuccess?: (exercise?: LibraryExercise) => void
   defaultMuscleGroup?: string
   defaultSubMuscleGroup?: string
   availableMuscleGroups?: string[]
   availableSubMuscles?: string[]
+  overlayClassName?: string
+  contentClassName?: string
 }
 
 export function ExerciseFormDialog({
@@ -55,6 +58,8 @@ export function ExerciseFormDialog({
   defaultSubMuscleGroup,
   availableMuscleGroups,
   availableSubMuscles,
+  overlayClassName,
+  contentClassName,
 }: ExerciseFormDialogProps) {
   const { t, locale } = useI18n()
   const isAr = locale === "ar"
@@ -99,6 +104,7 @@ export function ExerciseFormDialog({
   const onSubmit = (data: LibraryExerciseInput) => {
     startTransition(async () => {
       try {
+        let createdExercise: LibraryExercise | undefined
         if (isEditing && exercise) {
           const res = await updateExerciseAction(exercise.id, data)
           if (!res.ok) {
@@ -120,12 +126,13 @@ export function ExerciseFormDialog({
             }
             return
           }
+          createdExercise = res.exercise
           toast.success(t.exerciseLibrary.toasts.created)
         }
 
         setOpen(false)
         reset()
-        onSuccess?.()
+        onSuccess?.(createdExercise)
       } catch (err) {
         toast.error("Operation failed")
       }
@@ -151,7 +158,11 @@ export function ExerciseFormDialog({
 
       <SheetContent
         side={isAr ? "left" : "right"}
-        className="w-full sm:max-w-lg md:max-w-xl p-0 flex flex-col h-full bg-card shadow-2xl border-border/80"
+        overlayClassName={overlayClassName}
+        className={cn(
+          "w-full sm:max-w-lg md:max-w-xl p-0 flex flex-col h-full bg-card shadow-2xl border-border/80",
+          contentClassName
+        )}
       >
         <SheetHeader className="p-6 pb-4 border-b border-border/40">
           <SheetTitle className="text-xl sm:text-2xl font-bold tracking-tight">
@@ -179,31 +190,14 @@ export function ExerciseFormDialog({
               </Label>
               <Input
                 id="name"
+                dir="ltr"
                 placeholder={t.exerciseLibrary.form.namePlaceholder}
-                className="h-11 rounded-xl text-sm sm:text-base px-4 bg-muted/20 focus:bg-background transition-colors"
+                className="h-11 rounded-xl text-sm sm:text-base px-4 bg-muted/20 focus:bg-background transition-colors text-start"
                 {...register("name")}
               />
               {errors.name && (
                 <p className="text-xs font-medium text-destructive">
                   {errors.name.message}
-                </p>
-              )}
-            </div>
-
-            {/* Exercise Name AR (Optional) */}
-            <div className="space-y-2">
-              <Label htmlFor="nameAr" className="text-sm font-semibold">
-                {isAr ? "اسم التمرين بالعربية (اختياري)" : "Arabic Exercise Name (Optional)"}
-              </Label>
-              <Input
-                id="nameAr"
-                placeholder={isAr ? "مثال: بنش برس مستوي بالبار" : "e.g. Barbell Bench Press"}
-                className="h-11 rounded-xl text-sm sm:text-base px-4 bg-muted/20 focus:bg-background transition-colors"
-                {...register("nameAr")}
-              />
-              {errors.nameAr && (
-                <p className="text-xs font-medium text-destructive">
-                  {errors.nameAr.message}
                 </p>
               )}
             </div>

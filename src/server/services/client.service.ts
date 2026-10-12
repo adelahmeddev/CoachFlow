@@ -6,6 +6,7 @@ import {
 } from "@/lib/validations/client"
 import { invalidateDashboard } from "@/lib/cache"
 import { parseGoals } from "@/lib/goals"
+import { jsDayToWeekday } from "@/lib/calculations/week-schedule"
 
 export async function createClientManually(
   trainerProfileId: string,
@@ -76,6 +77,7 @@ export async function getTrainerClients(
     status?: ClientStatus
     coachingMode?: CoachingMode
     addedWithin?: number
+    scheduledToday?: boolean
     page?: number
     perPage?: number
   }
@@ -111,6 +113,24 @@ export async function getTrainerClients(
   if (params.addedWithin) {
     whereClauses.push(`"createdAt" >= NOW() - ($${paramIdx} || ' days')::interval`)
     queryParams.push(params.addedWithin)
+    paramIdx++
+  }
+  if (params.scheduledToday) {
+    const todayWeekday = jsDayToWeekday(new Date())
+    whereClauses.push(`
+      EXISTS (
+        SELECT 1 FROM "TrainingSplit" ts
+        JOIN "TrainingSplitDay" tsd ON tsd."splitId" = ts.id
+        WHERE ts."clientId" = "Client".id
+          AND ts.status = 'ACTIVE'::"PlanStatus"
+          AND (
+            (ts."scheduleMode" = 'FIXED_WEEKDAYS'::"ScheduleMode" AND tsd.weekday = $${paramIdx}::"Weekday")
+            OR
+            (ts."scheduleMode" = 'SEQUENTIAL'::"ScheduleMode")
+          )
+      )
+    `)
+    queryParams.push(todayWeekday)
     paramIdx++
   }
 
@@ -150,11 +170,19 @@ export async function getTrainerClients(
     clientId: string
     lastInBodyAt: Date
   }[] = []
+  let todayWorkouts: {
+    clientId: string
+    focus: string
+    customFocus: string | null
+    dayNumber: number
+  }[] = []
+  let completedTodayClientIds = new Set<string>()
 
   if (clients.length > 0) {
     const clientIds = clients.map((c) => c.id)
     const placeholders = clientIds.map((_, i) => `$${i + 1}`).join(",")
-    const [subRes, inbodyRes] = await Promise.all([
+    const todayWeekday = jsDayToWeekday(new Date())
+    const [subRes, inbodyRes, todayWorkoutRes, loggedTodayRes] = await Promise.all([
       pool.query(
         `SELECT "id", "clientId", "planName", "status", "createdAt"
          FROM "Subscription"
@@ -169,9 +197,37 @@ export async function getTrainerClients(
          GROUP BY "clientId"`,
         clientIds
       ),
+      pool.query(
+        `SELECT DISTINCT ON (ts."clientId")
+           ts."clientId",
+           tsd.focus,
+           tsd."customFocus",
+           tsd."dayNumber"
+         FROM "TrainingSplit" ts
+         JOIN "TrainingSplitDay" tsd ON tsd."splitId" = ts.id
+         WHERE ts."clientId" IN (${placeholders})
+           AND ts.status = 'ACTIVE'::"PlanStatus"
+           AND (
+             (ts."scheduleMode" = 'FIXED_WEEKDAYS'::"ScheduleMode" AND tsd.weekday = $${clientIds.length + 1}::"Weekday")
+             OR
+             (ts."scheduleMode" = 'SEQUENTIAL'::"ScheduleMode")
+           )
+         ORDER BY ts."clientId", ts."createdAt" DESC, tsd."dayNumber" ASC`,
+        [...clientIds, todayWeekday]
+      ),
+      pool.query(
+        `SELECT DISTINCT el."clientId"
+         FROM "ExerciseLog" el
+         WHERE el."clientId" IN (${placeholders})
+           AND el.date >= CURRENT_DATE
+           AND el.date < CURRENT_DATE + INTERVAL '1 day'`,
+        clientIds
+      ),
     ])
     subscriptions = subRes.rows as typeof subscriptions
     latestInBodies = inbodyRes.rows as typeof latestInBodies
+    todayWorkouts = todayWorkoutRes.rows as typeof todayWorkouts
+    completedTodayClientIds = new Set(loggedTodayRes.rows.map((r: { clientId: string }) => r.clientId))
   }
 
   const subscriptionsByClient = new Map<string, typeof subscriptions>()
@@ -186,6 +242,11 @@ export async function getTrainerClients(
     inbodyByClient.set(b.clientId, b.lastInBodyAt)
   }
 
+  const todayWorkoutByClient = new Map<string, typeof todayWorkouts[0]>()
+  for (const tw of todayWorkouts) {
+    todayWorkoutByClient.set(tw.clientId, tw)
+  }
+
   const nowMs = Date.now()
   const rows = clients.map((client) => {
     const subs = subscriptionsByClient.get(client.id) ?? []
@@ -195,6 +256,7 @@ export async function getTrainerClients(
       ? Math.floor((nowMs - new Date(lastInBodyDate).getTime()) / (24 * 60 * 60 * 1000))
       : null
     const hasInbodyAlert = client.status === "ACTIVE" && (lastInBodyDate === null || daysSinceInBody! > 30)
+    const todayWorkout = todayWorkoutByClient.get(client.id)
 
     return {
       ...client,
@@ -204,6 +266,14 @@ export async function getTrainerClients(
       daysSinceInBody,
       hasInbodyAlert,
       inbodyNeverLogged: client.status === "ACTIVE" && lastInBodyDate === null,
+      todayWorkout: todayWorkout
+        ? {
+            focus: todayWorkout.focus,
+            customFocus: todayWorkout.customFocus,
+            dayNumber: todayWorkout.dayNumber,
+            isDoneToday: completedTodayClientIds.has(client.id),
+          }
+        : null,
     }
   })
 

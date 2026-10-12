@@ -8,7 +8,7 @@ import { ChevronRight, Trash2, Flame, Target, Trophy, MessageCircle, Dumbbell, C
 import { toast } from "sonner"
 import { useI18n } from "@/lib/i18n/client"
 import { formatDate, interpolate } from "@/lib/i18n/format"
-import { parseGoals, getGoalLabel } from "@/lib/i18n/labels"
+import { parseGoals, getGoalLabel, getDayFocusLabel } from "@/lib/i18n/labels"
 import { deleteClientAction } from "@/server/actions/clients"
 import type { getTrainerClients } from "@/server/services/client.service"
 import { ClientStatusBadge } from "@/components/features/clients/client-status-badge"
@@ -156,6 +156,26 @@ export function ClientsGrid({ clients }: ClientsGridProps) {
                     <div className="mt-2 flex flex-wrap items-center gap-1">
                       <ClientGoalBadge goals={client.goals} />
                       <ClientStatusBadge status={client.status} />
+                      {client.todayWorkout && (
+                        <span
+                          title={
+                            client.todayWorkout.isDoneToday
+                              ? (isAr ? "تم إنجاز تمرين اليوم" : "Today's workout completed")
+                              : (isAr ? "تمرين مجدول اليوم" : "Workout scheduled today")
+                          }
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border transition-colors ${
+                            client.todayWorkout.isDoneToday
+                              ? "bg-performance-500/15 text-performance-700 dark:text-performance-300 border-performance-500/30"
+                              : "bg-brand-500/15 text-brand-700 dark:text-brand-300 border-brand-500/30"
+                          }`}
+                        >
+                          <Dumbbell className="size-2.5" />
+                          <span>
+                            {isAr ? "تمرين اليوم" : "Today"}: {client.todayWorkout.customFocus || getDayFocusLabel(client.todayWorkout.focus as any, locale) || client.todayWorkout.focus}
+                            {client.todayWorkout.isDoneToday ? (isAr ? " (تم)" : " (Done)") : ""}
+                          </span>
+                        </span>
+                      )}
                       {client.hasInbodyAlert && (
                         <span
                           title={

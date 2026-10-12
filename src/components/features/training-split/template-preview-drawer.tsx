@@ -136,7 +136,7 @@ export function TemplatePreviewDrawer({
                     key={exIdx}
                     className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-3 py-1.5 text-xs"
                   >
-                    <span className="truncate font-medium">{ex.exerciseName}</span>
+                    <span dir="ltr" className="truncate font-medium text-start">{ex.exerciseName}</span>
                     <span className="text-muted-foreground shrink-0 ms-2 font-mono text-[11px]">
                       {ex.targetSets || 3} × {ex.targetReps || 10}
                       {ex.restSeconds ? ` · ${ex.restSeconds}s` : ""}

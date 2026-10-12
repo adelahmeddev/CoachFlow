@@ -6,6 +6,7 @@ import { lookup } from "@/lib/i18n/lookup"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
+import { getDayFocusLabel } from "@/lib/i18n/labels"
 
 type WeekEntry = {
   dayNumber: number | null
@@ -70,11 +71,10 @@ export function WeeklySummaryCard({
                 title={
                   entry.status === "REST" || entry.dayNumber == null
                     ? lookup(t, "client.week.restDay")
-                    : `${lookup(t, "client.week.dayN").replace("{n}", String(entry.dayNumber))} · ${
+                    : `Day ${entry.dayNumber} · ${
                         entry.focus === "CUSTOM"
-                          ? entry.customFocus ||
-                            lookup(t, "trainingSplit.custom")
-                          : entry.focus
+                          ? entry.customFocus || "Custom"
+                          : getDayFocusLabel(entry.focus as any) || entry.focus
                       } · ${lookup(t, STATUS_LABEL_KEYS[entry.status] ?? "client.week.upcoming")}`
                 }
                 className={cn(

@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import {
   ArrowDown,
   ArrowUp,
@@ -116,6 +116,19 @@ export function DaysEditor({
 }: DaysEditorProps) {
   const { t, locale } = useI18n()
   const isAr = locale === "ar"
+  const [internalLibrary, setInternalLibrary] = useState<ExerciseOption[]>(exerciseLibrary)
+
+  useEffect(() => {
+    setInternalLibrary(exerciseLibrary)
+  }, [exerciseLibrary])
+
+  function handleExerciseCreated(newEx: ExerciseOption) {
+    setInternalLibrary((prev) => {
+      if (prev.some((e) => e.id === newEx.id)) return prev
+      return [newEx, ...prev]
+    })
+  }
+
   const [collapsedDays, setCollapsedDays] = useState<Record<number, boolean>>({})
   const [batchPickerDayIndex, setBatchPickerDayIndex] = useState<number | null>(null)
   const [singlePickerTarget, setSinglePickerTarget] = useState<{
@@ -364,9 +377,10 @@ export function DaysEditor({
         <BatchExercisePicker
           open={batchPickerDayIndex !== null}
           onOpenChange={(open) => !open && setBatchPickerDayIndex(null)}
-          exercises={exerciseLibrary}
+          exercises={internalLibrary}
           dayNumber={batchPickerDayIndex + 1}
           mode="batch"
+          onExerciseCreated={handleExerciseCreated}
           onSelectBatch={(selected) => {
             handleBatchAddExercises(batchPickerDayIndex, selected)
             setBatchPickerDayIndex(null)
@@ -379,9 +393,10 @@ export function DaysEditor({
         <BatchExercisePicker
           open={singlePickerTarget !== null}
           onOpenChange={(open) => !open && setSinglePickerTarget(null)}
-          exercises={exerciseLibrary}
+          exercises={internalLibrary}
           dayNumber={singlePickerTarget.dayIndex + 1}
           mode="single"
+          onExerciseCreated={handleExerciseCreated}
           initialSelectedIds={
             days[singlePickerTarget.dayIndex]?.exercises?.[singlePickerTarget.exerciseIndex]?.exerciseId
               ? [days[singlePickerTarget.dayIndex]!.exercises![singlePickerTarget.exerciseIndex]!.exerciseId!]
@@ -661,13 +676,14 @@ export function DaysEditor({
                                 className="justify-start gap-1.5 font-normal h-8 text-xs max-w-[170px] shrink-0 border-white/15 bg-white/[0.04]"
                               >
                                 <Dumbbell className="size-3.5 shrink-0 text-muted-foreground" />
-                                <span className="truncate">
+                                <span dir="ltr" className="truncate text-start">
                                   {exercise.exerciseName || t.trainingSplit.selectExercise}
                                 </span>
                               </Button>
 
                               {/* Name input */}
                               <Input
+                                dir="ltr"
                                 placeholder={t.trainingSplit.exerciseName}
                                 disabled={disabled}
                                 value={exercise.exerciseName}
@@ -679,7 +695,7 @@ export function DaysEditor({
                                     e.target.value
                                   )
                                 }
-                                className="min-w-0 flex-1 h-8 rounded-xl border-white/10 bg-white/[0.04] text-xs"
+                                className="min-w-0 flex-1 h-8 rounded-xl border-white/10 bg-white/[0.04] text-xs text-start"
                               />
 
                               {/* Remove button */}

@@ -18,6 +18,7 @@ export interface ExerciseOption {
   name: string
   nameAr: string | null
   muscleGroup: string
+  subMuscleGroup?: string | null
   equipment: string | null
   tags: string[]
   defaultSets: number | null
@@ -25,6 +26,7 @@ export interface ExerciseOption {
   defaultRestSeconds: number | null
   youtubeUrl: string | null
   isGlobal?: boolean
+  usageCount?: number
 }
 
 export interface ExerciseConflict {

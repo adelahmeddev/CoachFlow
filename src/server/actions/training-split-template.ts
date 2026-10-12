@@ -46,7 +46,11 @@ export async function createTrainingSplitTemplateAction(input: unknown) {
   }
 
   revalidatePath("/training-split-templates")
-  invalidate(["templates", `trainer:${trainerProfileId}:templates`])
+  invalidate([
+    "templates",
+    `trainer:${trainerProfileId}:templates`,
+    `trainer:${trainerProfileId}:exercises`,
+  ])
   return { ok: true as const, templateId: template.id }
 }
 
@@ -78,7 +82,11 @@ export async function updateTrainingSplitTemplateAction(
   }
 
   revalidatePath("/training-split-templates")
-  invalidate(["templates", `trainer:${trainerProfileId}:templates`])
+  invalidate([
+    "templates",
+    `trainer:${trainerProfileId}:templates`,
+    `trainer:${trainerProfileId}:exercises`,
+  ])
   return { ok: true as const }
 }
 

@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import * as React from "react"
 import { Dialog as SheetPrimitive } from "radix-ui"
@@ -66,10 +66,12 @@ function SheetContent({
   children,
   side = "right",
   showCloseButton = true,
+  overlayClassName,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: LogicalSide
   showCloseButton?: boolean
+  overlayClassName?: string
 }) {
   const { dir, t } = useI18n()
   const physicalSide = resolvePhysicalSide(side, dir)
@@ -82,7 +84,7 @@ function SheetContent({
 
   return (
     <SheetPortal>
-      <SheetOverlay />
+      <SheetOverlay className={overlayClassName} />
       <SheetPrimitive.Content
         data-slot="sheet-content"
         data-side={physicalSide}

@@ -122,8 +122,8 @@ export function getSplitTypeLabel(
   return lookupEnum(dict, type) ?? type
 }
 
-export function getDayFocusLabel(focus: TrainingDayFocus, locale: Locale): string {
-  const dict = getDictionary(locale).trainingSplit.dayFocus as Record<string, string>
+export function getDayFocusLabel(focus: TrainingDayFocus, _locale?: Locale): string {
+  const dict = getDictionary("en").trainingSplit.dayFocus as Record<string, string>
   return lookupEnum(dict, focus) ?? focus
 }
 
@@ -144,10 +144,11 @@ export function getBodyCompositionFieldLabel(
 }
 
 export function getExerciseName(
-  exercise: { name: string; nameAr?: string | null },
+  exercise: { name?: string | null; exerciseName?: string | null; nameAr?: string | null },
   _locale?: Locale
 ): string {
-  return exercise.name
+  const name = exercise.name || exercise.exerciseName || ""
+  return name.trim() || "Exercise"
 }
 
 export function getMuscleGroupLabel(

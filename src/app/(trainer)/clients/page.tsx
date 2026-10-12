@@ -32,6 +32,7 @@ export default async function ClientsPage({
   const statusResult = clientsListQuerySchema.shape.status.safeParse(rawParams.status)
   const coachingModeResult = clientsListQuerySchema.shape.coachingMode.safeParse(rawParams.coachingMode)
   const addedWithinResult = clientsListQuerySchema.shape.addedWithin.safeParse(rawParams.addedWithin)
+  const scheduledTodayResult = clientsListQuerySchema.shape.scheduledToday.safeParse(rawParams.scheduledToday)
   const pageResult = clientsListQuerySchema.shape.page.safeParse(rawParams.page)
   const perPageResult = clientsListQuerySchema.shape.perPage.safeParse(rawParams.perPage)
 
@@ -41,6 +42,7 @@ export default async function ClientsPage({
     status: statusResult.success ? statusResult.data : undefined,
     coachingMode: coachingModeResult.success ? coachingModeResult.data : undefined,
     addedWithin: addedWithinResult.success ? addedWithinResult.data : undefined,
+    scheduledToday: scheduledTodayResult.success && scheduledTodayResult.data ? true : undefined,
     page: pageResult.success ? pageResult.data : 1,
     perPage: perPageResult.success ? perPageResult.data : 10,
   }
@@ -61,7 +63,8 @@ export default async function ClientsPage({
     Boolean(params.goal) ||
     Boolean(params.status) ||
     Boolean(params.coachingMode) ||
-    Boolean(params.addedWithin)
+    Boolean(params.addedWithin) ||
+    Boolean(params.scheduledToday)
   const showNoResults = hasFilters && result.clients.length === 0
   const showNoClients = !hasFilters && result.total === 0
 

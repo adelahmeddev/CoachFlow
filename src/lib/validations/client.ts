@@ -37,6 +37,9 @@ export const clientsListQuerySchema = z.object({
   status: z.nativeEnum(ClientStatus).optional(),
   coachingMode: z.nativeEnum(CoachingMode).optional(),
   addedWithin: z.coerce.number().int().positive().max(365).optional(),
+  scheduledToday: z
+    .preprocess((v) => v === "true" || v === true || v === "1", z.boolean())
+    .optional(),
   page: z.coerce.number().int().positive().default(1),
   perPage: z.coerce.number().int().positive().max(100).default(10),
 })

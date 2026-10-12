@@ -89,7 +89,7 @@ export async function SessionLogList({ sessions }: SessionLogListProps) {
               <TableBody>
                 {session.rows.map((row, index) => (
                   <TableRow key={`${row.exerciseName}-${index}`}>
-                    <TableCell className="font-medium">
+                    <TableCell dir="ltr" className="font-medium text-start">
                       {row.exerciseName}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
@@ -117,7 +117,7 @@ export async function SessionLogList({ sessions }: SessionLogListProps) {
                     key={row.exerciseName}
                     className="text-xs text-muted-foreground"
                   >
-                    <span className="font-medium">{row.exerciseName}:</span>{" "}
+                    <span dir="ltr" className="font-medium text-start inline-block">{row.exerciseName}:</span>{" "}
                     {row.notes}
                   </p>
                 ))}

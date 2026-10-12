@@ -433,14 +433,9 @@ export function AddSubMuscleDialog({
                           </div>
 
                           <div className="min-w-0 flex-1">
-                            <p className="text-xs font-bold truncate leading-snug text-foreground">
+                            <p dir="ltr" className="text-xs font-bold truncate leading-snug text-foreground text-start">
                               {exercise.name}
                             </p>
-                            {exercise.nameAr && (
-                              <p className="text-[11px] text-muted-foreground truncate leading-snug mt-0.5 font-normal">
-                                {exercise.nameAr}
-                              </p>
-                            )}
                           </div>
                         </div>
 

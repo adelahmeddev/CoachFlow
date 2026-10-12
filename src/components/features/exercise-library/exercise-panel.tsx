@@ -540,14 +540,12 @@ export function ExercisePanel({
                     {/* 1. Exercise Column (Spacious & Modern Typography) */}
                     <td className="py-4 sm:py-4.5 px-4 sm:px-6">
                       <div className="min-w-0">
-                        <p className="text-sm sm:text-base font-bold text-foreground leading-snug group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+                        <p
+                          dir="ltr"
+                          className="text-sm sm:text-base font-bold text-foreground leading-snug group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors text-start"
+                        >
                           {exercise.name}
                         </p>
-                        {exercise.nameAr && (
-                          <p className="text-xs sm:text-sm text-muted-foreground mt-1 font-medium">
-                            {exercise.nameAr}
-                          </p>
-                        )}
                         {exercise.equipment && (
                           <div className="mt-1.5 flex items-center gap-1.5">
                             <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md border border-border/50 font-mono">

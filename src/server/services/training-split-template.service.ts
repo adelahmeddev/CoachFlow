@@ -11,6 +11,7 @@ import {
 } from "@/lib/validations/exercise"
 import { withCache } from "@/lib/cache"
 import { SplitType } from "@/lib/db/enums"
+import { syncExerciseVideoUrls } from "./exercise.service"
 
 type TemplateWithDays = TrainingSplitTemplate & {
   days: (TrainingSplitTemplateDay & { exercises: TemplateDayExercise[] })[]
@@ -198,6 +199,9 @@ export async function createTrainingSplitTemplate(
       }
     }
 
+    const allExercises = data.days.flatMap((d) => d.exercises ?? [])
+    await syncExerciseVideoUrls(tx, trainerProfileId, allExercises)
+
     const res = await tx.query<TrainingSplitTemplate>(
       `SELECT * FROM "TrainingSplitTemplate" WHERE "id" = $1 LIMIT 1`,
       [templateId]
@@ -278,6 +282,9 @@ export async function updateTrainingSplitTemplate(
         )
       }
     }
+
+    const allExercises = data.days.flatMap((d) => d.exercises ?? [])
+    await syncExerciseVideoUrls(tx, trainerProfileId, allExercises)
 
     return updated
   })

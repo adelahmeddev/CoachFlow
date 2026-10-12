@@ -254,7 +254,7 @@ export function SessionLogForm({ clientId, split }: SessionLogFormProps) {
               return (
                 <div key={exercise.id} className="space-y-2 rounded-lg border p-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="min-w-0 flex-1 text-sm font-medium">
+                    <p dir="ltr" className="min-w-0 flex-1 text-sm font-medium text-start">
                       {exercise.exerciseName}
                     </p>
                     <p className="text-xs text-muted-foreground">

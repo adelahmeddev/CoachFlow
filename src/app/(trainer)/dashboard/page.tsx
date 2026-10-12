@@ -68,6 +68,7 @@ export default async function DashboardPage() {
       activeClients: 0,
       recentlyAdded: 0,
       expiringSoon: 0,
+      scheduledToday: 0,
       onlineClients: 0,
       inPersonClients: 0,
       deltas: { totalClients: 0, pendingAssessment: 0, activeClients: 0, recentlyAdded: 0, expiringSoon: 0 },
@@ -84,6 +85,7 @@ export default async function DashboardPage() {
 
   const activeCount = stats.activeClients
   const followUpCount = needsActionSummary.clientCount
+  const scheduledTodayCount = stats.scheduledToday ?? 0
 
   return (
     <div className="space-y-6">
@@ -127,6 +129,12 @@ export default async function DashboardPage() {
                     : (isAr ? "يومك شكله هادي — وقت تراجع تقدم الأبطال وتجهز برامج جديدة" : "Calm day — perfect to review progress and plan")}
                 </p>
                 <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <Link href="/clients?scheduledToday=true">
+                    <Badge variant="outline" className="gap-1.5 bg-white/80 dark:bg-white/5 backdrop-blur hover:bg-muted cursor-pointer border-brand-500/25 hover:border-brand-500/50">
+                      <Dumbbell className="size-3 text-brand-600" aria-hidden="true" />
+                      {scheduledTodayCount} {isAr ? "المفروض يتمرنوا النهاردة" : "exercise today"}
+                    </Badge>
+                  </Link>
                   <Link href="/clients?status=ACTIVE">
                     <Badge variant="outline" className="gap-1.5 bg-white/80 dark:bg-white/5 backdrop-blur hover:bg-muted cursor-pointer">
                       <Trophy className="size-3 text-energy-600" aria-hidden="true" />
@@ -309,8 +317,8 @@ export default async function DashboardPage() {
                   <span className="text-xs font-semibold uppercase tracking-widest">{isAr ? "حالة اليوم" : "Today"}</span>
                 </div>
                 <p className="mt-2 text-lg font-extrabold leading-tight">
-                  {activeCount > 0
-                    ? (isAr ? `${activeCount} بطل بيتمرنوا النهاردة` : `${activeCount} athletes training today`)
+                  {scheduledTodayCount > 0
+                    ? (isAr ? `${scheduledTodayCount} بطل عندهم تمرين النهاردة` : `${scheduledTodayCount} athletes scheduled today`)
                     : (isAr ? "يوم هادي — خطط لبكرة" : "Quiet day — plan ahead")}
                 </p>
                 <p className="mt-1 text-xs text-white/80 leading-relaxed">
@@ -322,13 +330,13 @@ export default async function DashboardPage() {
                   <p className="text-lg font-extrabold tabular-nums">{stats.totalClients}</p>
                   <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-medium">{isAr ? "إجمالي" : "total"}</p>
                 </Link>
-                <Link href="/clients?status=ACTIVE" className="block rounded-xl border bg-muted/40 p-3 hover:bg-muted/70 transition-colors">
-                  <p className="text-lg font-extrabold tabular-nums text-performance-600">{activeCount}</p>
-                  <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-medium">{isAr ? "نشط" : "active"}</p>
+                <Link href="/clients?scheduledToday=true" className="block rounded-xl border bg-muted/40 p-3 hover:bg-muted/70 transition-colors">
+                  <p className="text-lg font-extrabold tabular-nums text-brand-600">{scheduledTodayCount}</p>
+                  <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-medium">{isAr ? "تمرين اليوم" : "today"}</p>
                 </Link>
               </div>
               <Button asChild variant="outline" size="sm" className="w-full rounded-xl">
-                <Link href="/clients?status=ACTIVE">{isAr ? "شوف النشطين" : "View active"}</Link>
+                <Link href="/clients?scheduledToday=true">{isAr ? "شوف جدول النهاردة" : "View today's workouts"}</Link>
               </Button>
             </CardContent>
           </Card>

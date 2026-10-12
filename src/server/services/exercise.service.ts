@@ -1,4 +1,4 @@
-import { pool, generateId, withTransaction } from "@/lib/db"
+import { pool, generateId, withTransaction, type PgClient } from "@/lib/db"
 import { withCache, invalidate } from "@/lib/cache"
 import { MUSCLE_GROUPS } from "@/lib/constants"
 import type { LibraryExerciseInput } from "@/lib/validations/exercise"
@@ -18,13 +18,45 @@ export interface LibraryExercise {
   isGlobal: boolean
   isCustomized: boolean
   hidden?: boolean
+  usageCount: number
 }
 
 export async function listExercisesForTrainer(trainerId: string): Promise<LibraryExercise[]> {
   return withCache(
     async () => {
       const res = await pool.query(
-        `SELECT e.id,
+        `WITH usage_counts AS (
+           SELECT exercise_id, COUNT(*)::int AS cnt
+           FROM (
+             SELECT COALESCE(
+               sde."exerciseId",
+               (SELECT e2.id FROM "Exercise" e2
+                WHERE (e2."trainerId" = $1 OR e2."trainerId" IS NULL)
+                  AND LOWER(TRIM(e2.name)) = LOWER(TRIM(sde."exerciseName"))
+                ORDER BY CASE WHEN e2."trainerId" = $1 THEN 0 ELSE 1 END LIMIT 1)
+             ) AS exercise_id
+             FROM "SplitDayExercise" sde
+             JOIN "TrainingSplitDay" tsd ON tsd.id = sde."splitDayId"
+             JOIN "TrainingSplit" ts ON ts.id = tsd."splitId"
+             JOIN "Client" c ON c.id = ts."clientId"
+             WHERE c."trainerId" = $1
+             UNION ALL
+             SELECT COALESCE(
+               tde."exerciseId",
+               (SELECT e2.id FROM "Exercise" e2
+                WHERE (e2."trainerId" = $1 OR e2."trainerId" IS NULL)
+                  AND LOWER(TRIM(e2.name)) = LOWER(TRIM(tde."exerciseName"))
+                ORDER BY CASE WHEN e2."trainerId" = $1 THEN 0 ELSE 1 END LIMIT 1)
+             ) AS exercise_id
+             FROM "TemplateDayExercise" tde
+             JOIN "TrainingSplitTemplateDay" tstd ON tstd.id = tde."templateDayId"
+             JOIN "TrainingSplitTemplate" tst ON tst.id = tstd."templateId"
+             WHERE tst."trainerId" = $1
+           ) combined
+           WHERE exercise_id IS NOT NULL
+           GROUP BY exercise_id
+         )
+         SELECT e.id,
                 COALESCE(o.name, e.name) AS name,
                 COALESCE(o."nameAr", e."nameAr") AS "nameAr",
                 COALESCE(o."muscleGroup", e."muscleGroup") AS "muscleGroup",
@@ -37,11 +69,13 @@ export async function listExercisesForTrainer(trainerId: string): Promise<Librar
                 COALESCE(o."youtubeUrl", e."youtubeUrl") AS "youtubeUrl",
                 (e."trainerId" IS NULL) AS "isGlobal",
                 (o."exerciseId" IS NOT NULL) AS "isCustomized",
-                COALESCE(o.hidden, false) AS "hidden"
+                COALESCE(o.hidden, false) AS "hidden",
+                COALESCE(uc.cnt, 0)::int AS "usageCount"
          FROM "Exercise" e
          LEFT JOIN "ExerciseOverride" o ON o."exerciseId" = e.id AND o."trainerId" = $1
+         LEFT JOIN usage_counts uc ON uc.exercise_id = e.id
          WHERE (e."trainerId" IS NULL AND COALESCE(o.hidden, false) = false) OR e."trainerId" = $1
-         ORDER BY COALESCE(o."muscleGroup", e."muscleGroup") ASC, name ASC`,
+         ORDER BY "usageCount" DESC, COALESCE(o."muscleGroup", e."muscleGroup") ASC, name ASC`,
         [trainerId]
       )
       return res.rows as LibraryExercise[]
@@ -133,6 +167,7 @@ export async function createExercise(
       youtubeUrl: input.youtubeUrl?.trim() || null,
       isGlobal: false,
       isCustomized: false,
+      usageCount: 0,
     },
   }
 }
@@ -303,7 +338,7 @@ export async function resetExercise(
 
 export async function listGlobalExercises() {
   const res = await pool.query(
-    `SELECT "id", "name", "nameAr", "muscleGroup", "subMuscleGroup", "equipment", "tags", "defaultSets", "defaultReps", "defaultRestSeconds", "youtubeUrl"
+    `SELECT "id", "name", "nameAr", "muscleGroup", "subMuscleGroup", "equipment", "tags", "defaultSets", "defaultReps", "defaultRestSeconds", "youtubeUrl", 0::int AS "usageCount"
      FROM "Exercise"
      WHERE "trainerId" IS NULL
      ORDER BY "muscleGroup" ASC, "name" ASC`
@@ -383,4 +418,126 @@ export async function assignExercisesToSubMuscle(
   invalidate([`trainer:${trainerId}:exercises`])
   return { ok: true, count: exerciseIds.length }
 }
+
+export interface ExerciseVideoSyncItem {
+  exerciseId?: string | null
+  exerciseName?: string | null
+  videoUrl?: string | null
+}
+
+export async function syncExerciseVideoUrls(
+  client: PgClient | typeof pool,
+  trainerId: string,
+  exercises: ExerciseVideoSyncItem[]
+): Promise<void> {
+  if (!exercises.length) return
+
+  const candidates = exercises.filter(
+    (ex) => typeof ex.videoUrl === "string" && ex.videoUrl.trim().length > 0
+  )
+  if (!candidates.length) return
+
+  const seen = new Map<
+    string,
+    { exerciseId?: string | null; exerciseName: string; videoUrl: string }
+  >()
+  for (const item of candidates) {
+    const url = item.videoUrl!.trim()
+    const name = item.exerciseName?.trim() ?? ""
+    const key = item.exerciseId ? `id:${item.exerciseId}` : `name:${name.toLowerCase()}`
+    seen.set(key, { exerciseId: item.exerciseId ?? null, exerciseName: name, videoUrl: url })
+  }
+
+  for (const item of seen.values()) {
+    let targetExerciseId = item.exerciseId
+    let isTrainerOwned = false
+    let isGlobal = false
+    let matchedName = item.exerciseName
+
+    if (targetExerciseId) {
+      const res = await client.query<{ id: string; trainerId: string | null; name: string }>(
+        `SELECT id, "trainerId", name FROM "Exercise" WHERE id = $1 LIMIT 1`,
+        [targetExerciseId]
+      )
+      if (res.rowCount && res.rows[0]) {
+        const row = res.rows[0]
+        isTrainerOwned = row.trainerId === trainerId
+        isGlobal = row.trainerId === null
+        matchedName = row.name
+      }
+    } else if (item.exerciseName) {
+      const res = await client.query<{ id: string; trainerId: string | null; name: string }>(
+        `SELECT id, "trainerId", name
+         FROM "Exercise"
+         WHERE (
+           ("trainerId" = $1 AND LOWER(TRIM(name)) = LOWER(TRIM($2)))
+           OR
+           ("trainerId" IS NULL AND LOWER(TRIM(name)) = LOWER(TRIM($2)))
+         )
+         ORDER BY CASE WHEN "trainerId" = $1 THEN 0 ELSE 1 END
+         LIMIT 1`,
+        [trainerId, item.exerciseName]
+      )
+      if (res.rowCount && res.rows[0]) {
+        const row = res.rows[0]
+        targetExerciseId = row.id
+        isTrainerOwned = row.trainerId === trainerId
+        isGlobal = row.trainerId === null
+        matchedName = row.name
+      }
+    }
+
+    if (!targetExerciseId) {
+      continue
+    }
+
+    if (isTrainerOwned) {
+      await client.query(
+        `UPDATE "Exercise"
+         SET "youtubeUrl" = $1, "updatedAt" = NOW()
+         WHERE id = $2 AND "trainerId" = $3`,
+        [item.videoUrl, targetExerciseId, trainerId]
+      )
+    } else if (isGlobal) {
+      await client.query(
+        `INSERT INTO "ExerciseOverride" ("trainerId", "exerciseId", "youtubeUrl", "hidden", "updatedAt")
+         VALUES ($1, $2, $3, false, NOW())
+         ON CONFLICT ("trainerId", "exerciseId")
+         DO UPDATE SET "youtubeUrl" = EXCLUDED."youtubeUrl", "updatedAt" = NOW()`,
+        [trainerId, targetExerciseId, item.videoUrl]
+      )
+    }
+
+    // Link propagation: update SplitDayExercise in active client splits
+    await client.query(
+      `UPDATE "SplitDayExercise" sde
+       SET "videoUrl" = $1
+       FROM "TrainingSplitDay" tsd
+       JOIN "TrainingSplit" ts ON ts.id = tsd."splitId"
+       JOIN "Client" c ON c.id = ts."clientId"
+       WHERE sde."splitDayId" = tsd.id
+         AND c."trainerId" = $2
+         AND ts."status" = 'ACTIVE'
+         AND (sde."exerciseId" = $3 OR sde."exerciseName" = $4)
+         AND (sde."videoUrl" IS NULL OR sde."videoUrl" = '')`,
+      [item.videoUrl, trainerId, targetExerciseId, matchedName]
+    )
+
+    // Link propagation: update TemplateDayExercise in coach's split templates
+    await client.query(
+      `UPDATE "TemplateDayExercise" tde
+       SET "videoUrl" = $1
+       FROM "TrainingSplitTemplateDay" tstd
+       JOIN "TrainingSplitTemplate" tst ON tst.id = tstd."templateId"
+       WHERE tde."templateDayId" = tstd.id
+         AND tst."trainerId" = $2
+         AND (tde."exerciseId" = $3 OR tde."exerciseName" = $4)
+         AND (tde."videoUrl" IS NULL OR tde."videoUrl" = '')`,
+      [item.videoUrl, trainerId, targetExerciseId, matchedName]
+    )
+  }
+
+  invalidate([`trainer:${trainerId}:exercises`])
+}
+
 

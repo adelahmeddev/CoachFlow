@@ -50,6 +50,30 @@ const FOCUS_LABEL_KEYS: Record<string, string> = {
   CUSTOM: "custom",
 }
 
+const FOCUS_EN_LABELS: Record<string, string> = {
+  REST: "Rest",
+  UPPER: "Upper Body",
+  LOWER: "Lower Body",
+  FULL_BODY: "Full Body",
+  PUSH: "Push",
+  PULL: "Pull",
+  LEGS: "Legs",
+  SHOULDERS_ARMS: "Shoulders & Arms",
+  CARDIO: "Cardio",
+  MOBILITY: "Mobility",
+  CUSTOM: "Custom",
+}
+
+const WEEKDAY_EN_LABELS: Record<string, string> = {
+  SATURDAY: "Saturday",
+  SUNDAY: "Sunday",
+  MONDAY: "Monday",
+  TUESDAY: "Tuesday",
+  WEDNESDAY: "Wednesday",
+  THURSDAY: "Thursday",
+  FRIDAY: "Friday",
+}
+
 const FOCUS_ICONS: Record<string, LucideIcon> = {
   UPPER: Dumbbell,
   LOWER: Footprints,
@@ -65,14 +89,13 @@ const FOCUS_ICONS: Record<string, LucideIcon> = {
 }
 
 function focusText(
-  t: Parameters<typeof lookup>[0],
+  _t: Parameters<typeof lookup>[0],
   focus: string,
   customFocus: string | null
 ): string {
   if (focus === "CUSTOM")
-    return customFocus || lookup(t, "trainingSplit.dayFocus.custom")
-  const key = FOCUS_LABEL_KEYS[focus]
-  return key ? lookup(t, `trainingSplit.dayFocus.${key}`) : focus
+    return customFocus || "Custom"
+  return FOCUS_EN_LABELS[focus.toUpperCase()] ?? focus
 }
 
 /**
@@ -89,16 +112,16 @@ function GlassSheen({ opacity = 1 }: { opacity?: number }) {
 }
 
 function dayTitle(
-  t: Parameters<typeof lookup>[0],
+  _t: Parameters<typeof lookup>[0],
   mode: ScheduleMode,
   entry: BoardEntry
 ): string {
   if (mode === ScheduleMode.FIXED_WEEKDAYS) {
     return entry.weekday
-      ? lookup(t, `trainingSplit.weekdays.${entry.weekday}`)
+      ? WEEKDAY_EN_LABELS[entry.weekday.toUpperCase()] ?? entry.weekday
       : "—"
   }
-  return interpolate(t.client.week.dayN, { n: entry.dayNumber ?? 0 })
+  return `Day ${entry.dayNumber ?? 0}`
 }
 
 export function BentoWeekMatrix({
@@ -354,7 +377,7 @@ function HeroTile({
               {isAr ? "مباشر • تمرين اليوم" : "LIVE • Today's workout"}
             </span>
           )}
-          <span className="ms-auto rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.18)] ring-1 ring-white/15">
+          <span dir="ltr" className="ms-auto rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.18)] ring-1 ring-white/15 text-start">
             {dayTitle(t, mode, entry)}
           </span>
         </div>
@@ -371,7 +394,7 @@ function HeroTile({
             >
               <StateIcon className="size-6 drop-shadow-[0_0_6px_rgba(255,255,255,0.35)]" aria-hidden="true" />
             </span>
-            <h2 className="min-w-0 flex-1 truncate text-lg font-extrabold tracking-tight text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.18)]">
+            <h2 dir="ltr" className="min-w-0 flex-1 truncate text-lg font-extrabold tracking-tight text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.18)] text-start">
               {focusText(t, entry.focus, entry.customFocus)}
             </h2>
           </div>
@@ -535,7 +558,7 @@ function BentoDayTile({
     >
       <GlassSheen opacity={0.6} />
       <div className="relative flex items-center justify-between gap-2">
-        <p className="truncate text-sm font-extrabold">
+        <p dir="ltr" className="truncate text-sm font-extrabold text-start">
           {dayTitle(t, mode, entry)}
         </p>
         {isDone ? (
@@ -573,7 +596,7 @@ function BentoDayTile({
           <FocusIcon className="size-5" aria-hidden="true" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-bold">
+          <p dir="ltr" className="truncate text-sm font-bold text-start">
             {focusText(t, entry.focus, entry.customFocus)}
           </p>
           {hideCounts ? null : (
@@ -643,8 +666,9 @@ function BentoRestTile({
     >
       <div className="flex items-center justify-between gap-2">
         <p
+          dir="ltr"
           className={cn(
-            "truncate text-sm font-extrabold",
+            "truncate text-sm font-extrabold text-start",
             isToday ? "text-neutral-100" : "text-muted-foreground"
           )}
         >

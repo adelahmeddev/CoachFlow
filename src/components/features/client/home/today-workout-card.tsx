@@ -22,6 +22,22 @@ const FOCUS_LABEL_KEYS: Record<string, string> = {
   MOBILITY: "mobility",
 }
 
+const FOCUS_EN_LABELS: Record<string, string> = {
+  REST: "Rest",
+  UPPER: "Upper Body",
+  LOWER: "Lower Body",
+  FULL_BODY: "Full Body",
+  PUSH: "Push",
+  PULL: "Pull",
+  LEGS: "Legs",
+  SHOULDERS_ARMS: "Shoulders & Arms",
+  CARDIO: "Cardio",
+  MOBILITY: "Mobility",
+  CHEST: "Chest",
+  BACK: "Back",
+  CUSTOM: "Custom",
+}
+
 const focusMeta: Record<string, { icon: typeof Dumbbell; color: string }> = {
   CHEST: { icon: Dumbbell, color: "from-muscle-500 to-brand-500" },
   BACK: { icon: Dumbbell, color: "from-brand-600 to-brand-500" },
@@ -53,13 +69,8 @@ export function TodayWorkoutCard({
   if (!workout.day && workout.status === "REST") {
     const nextLabel = workout.nextTrainingDay
       ? (workout.nextTrainingDay.customFocus ||
-        lookup(
-          t,
-          `trainingSplit.dayFocus.${
-            FOCUS_LABEL_KEYS[workout.nextTrainingDay.focus] ??
-            workout.nextTrainingDay.focus.toLowerCase()
-          }`
-        ))
+        FOCUS_EN_LABELS[workout.nextTrainingDay.focus.toUpperCase()] ||
+        workout.nextTrainingDay.focus)
       : null
 
     return (
@@ -116,13 +127,8 @@ export function TodayWorkoutCard({
 
   const focusLabel =
     workout.day.customFocus ??
-    lookup(
-      t,
-      `trainingSplit.dayFocus.${
-        FOCUS_LABEL_KEYS[workout.day.focus as string] ??
-        String(workout.day.focus).toLowerCase()
-      }`
-    )
+    FOCUS_EN_LABELS[String(workout.day.focus).toUpperCase()] ??
+    String(workout.day.focus)
 
   const startHref = `/client/workout/today?dayId=${workout.day.id}`
   const meta = focusMeta[workout.day.focus] ?? focusMeta.FULL_BODY
@@ -145,7 +151,7 @@ export function TodayWorkoutCard({
                   <Flame className="size-3" />
                   {isAr ? "تمرين النهاردة" : "Today's Session"}
                 </div>
-                <h3 className="text-xl font-extrabold tracking-tight leading-snug break-words">
+                <h3 dir="ltr" className="text-xl font-extrabold tracking-tight leading-snug break-words text-start">
                   {workout.day.dayName}
                   <span className="mx-2 text-muted-foreground/30">•</span>
                   <span className="bg-gradient-to-r from-brand-600 to-energy-600 bg-clip-text text-transparent">
@@ -202,7 +208,7 @@ export function TodayWorkoutCard({
                     {i + 1}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="line-clamp-2 break-words text-sm font-semibold leading-snug">{ex.exerciseName}</p>
+                    <p dir="ltr" className="line-clamp-2 break-words text-sm font-semibold leading-snug text-start">{ex.exerciseName}</p>
                     <p className="mt-1 text-xs tabular-nums text-muted-foreground">
                       <span dir="ltr">
                         {ex.sets} × {ex.reps}

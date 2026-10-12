@@ -11,6 +11,7 @@ import {
   toIntOrNull,
   toNumberOrNull,
 } from "@/lib/validations/exercise"
+import { syncExerciseVideoUrls } from "./exercise.service"
 
 export interface TrainingSplitWithDays extends TrainingSplit {
   days: (TrainingSplitDay & { exercises: SplitDayExercise[] })[]
@@ -23,16 +24,16 @@ async function getOwnedClient(clientId: string, trainerProfileId?: string) {
   try {
     if (scoped) {
       const res = await pool.query(
-        `SELECT "id", "fullName" FROM "Client" WHERE "id" = $1 AND "trainerId" = $2 LIMIT 1`,
+        `SELECT "id", "fullName", "trainerId" FROM "Client" WHERE "id" = $1 AND "trainerId" = $2 LIMIT 1`,
         [clientId, trainerProfileId]
       )
-      return (res.rows[0] as { id: string; fullName: string | null } | undefined) ?? null
+      return (res.rows[0] as { id: string; fullName: string | null; trainerId: string } | undefined) ?? null
     }
     const res = await pool.query(
-      `SELECT "id", "fullName" FROM "Client" WHERE "id" = $1 LIMIT 1`,
+      `SELECT "id", "fullName", "trainerId" FROM "Client" WHERE "id" = $1 LIMIT 1`,
       [clientId]
     )
-    return (res.rows[0] as { id: string; fullName: string | null } | undefined) ?? null
+    return (res.rows[0] as { id: string; fullName: string | null; trainerId: string } | undefined) ?? null
   } catch (err) {
     // Transient Neon cold-start / timeout — don't crash the whole RSC tree
     console.error("[training-split] getOwnedClient failed", { clientId, scoped, err })
@@ -146,7 +147,8 @@ export async function countSplitExerciseLogs(
 async function insertSplitDays(
   tx: PgClient,
   splitId: string,
-  data: TrainingSplitInput
+  data: TrainingSplitInput,
+  trainerProfileId?: string
 ): Promise<void> {
   for (let index = 0; index < data.days.length; index++) {
     const day = data.days[index]!
@@ -187,6 +189,11 @@ async function insertSplitDays(
         ]
       )
     }
+  }
+
+  if (trainerProfileId) {
+    const allExercises = data.days.flatMap((day) => day.exercises ?? [])
+    await syncExerciseVideoUrls(tx, trainerProfileId, allExercises)
   }
 }
 
@@ -295,7 +302,8 @@ export async function createTrainingSplit(
       ]
     )
 
-    await insertSplitDays(tx, splitId, data)
+    const effectiveTrainerId = trainerProfileId || client.trainerId
+    await insertSplitDays(tx, splitId, data, effectiveTrainerId)
 
     const res = await tx.query<TrainingSplit>(`SELECT * FROM "TrainingSplit" WHERE "id" = $1 LIMIT 1`, [splitId])
     return res.rows[0] as TrainingSplit
@@ -357,7 +365,7 @@ export async function updateTrainingSplit(
           data.status,
         ]
       )
-      await insertSplitDays(tx, newSplitId, data)
+      await insertSplitDays(tx, newSplitId, data, trainerProfileId)
 
       const res = await tx.query<TrainingSplit>(`SELECT * FROM "TrainingSplit" WHERE "id" = $1 LIMIT 1`, [newSplitId])
       return { ...(res.rows[0] as TrainingSplit), versioned: true }
@@ -378,7 +386,7 @@ export async function updateTrainingSplit(
     const updated = updatedRes.rows[0] as TrainingSplit
 
     await tx.query(`DELETE FROM "TrainingSplitDay" WHERE "splitId" = $1`, [splitId])
-    await insertSplitDays(tx, splitId, data)
+    await insertSplitDays(tx, splitId, data, trainerProfileId)
 
     return updated
   })

@@ -407,7 +407,7 @@ export function SessionMode({
               </p>
               <ul className="mt-1 list-inside list-disc text-muted-foreground">
                 {summary.skipped.map((name) => (
-                  <li key={name}>{name}</li>
+                  <li key={name} dir="ltr" className="text-start">{name}</li>
                 ))}
               </ul>
             </div>
@@ -454,7 +454,7 @@ export function SessionMode({
 
       <div className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-4">
         <div className="rounded-2xl border bg-card p-4">
-          <h1 className="text-lg font-semibold leading-snug">
+          <h1 dir="ltr" className="text-lg font-semibold leading-snug text-start">
             {current.exerciseName}
           </h1>
           <div className="mt-3 grid grid-cols-3 gap-2 text-center text-sm">

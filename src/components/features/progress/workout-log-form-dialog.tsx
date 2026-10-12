@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -135,6 +135,8 @@ export function WorkoutLogFormDialog({ clientId }: WorkoutLogFormDialogProps) {
             <Label htmlFor="exerciseName">Exercise Name</Label>
             <Input
               id="exerciseName"
+              dir="ltr"
+              className="text-start"
               placeholder="e.g. Barbell Bench Press"
               {...form.register("exerciseName")}
             />

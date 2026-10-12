@@ -63,12 +63,12 @@ export function ExerciseStrengthChart({ series }: ExerciseStrengthChartProps) {
   return (
     <div className="space-y-4">
       <Select value={selectedId} onValueChange={setSelectedId}>
-        <SelectTrigger className="w-full sm:w-64">
+        <SelectTrigger dir="ltr" className="w-full sm:w-64 text-start">
           <SelectValue placeholder={t.progress.selectExercise} />
         </SelectTrigger>
         <SelectContent>
           {series.map((item) => (
-            <SelectItem key={item.exerciseId} value={item.exerciseId}>
+            <SelectItem dir="ltr" className="text-start" key={item.exerciseId} value={item.exerciseId}>
               {item.name}
             </SelectItem>
           ))}

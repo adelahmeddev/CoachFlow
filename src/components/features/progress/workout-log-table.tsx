@@ -85,7 +85,7 @@ export function WorkoutLogTable({ logs, clientId }: WorkoutLogTableProps) {
                 <TableCell className="whitespace-nowrap">
                   {formatDate(log.date)}
                 </TableCell>
-                <TableCell className="font-medium">{log.exerciseName}</TableCell>
+                <TableCell dir="ltr" className="font-medium text-start">{log.exerciseName}</TableCell>
                 <TableCell>{log.sets ?? "—"}</TableCell>
                 <TableCell>{log.reps ?? "—"}</TableCell>
                 <TableCell>{log.weightKg ?? "—"}</TableCell>
@@ -113,7 +113,7 @@ export function WorkoutLogTable({ logs, clientId }: WorkoutLogTableProps) {
         {logs.map((log) => (
           <div key={log.id} className="rounded-lg border bg-card p-4">
             <div className="flex items-start justify-between gap-2">
-              <p className="text-sm font-medium">{log.exerciseName}</p>
+              <p dir="ltr" className="text-sm font-medium text-start">{log.exerciseName}</p>
               <Button variant="ghost" size="icon-sm" aria-label={`Delete workout log for ${log.exerciseName}`} onClick={() => setLogToDelete(log)}>
                 <Trash2 className="size-4 text-destructive" />
               </Button>

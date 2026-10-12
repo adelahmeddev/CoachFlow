@@ -2,13 +2,16 @@ import { pool } from "@/lib/db"
 import { ClientStatus, Goal } from "@/lib/db/enums"
 import { withCache, toIso } from "@/lib/cache"
 import { parseGoals } from "@/lib/goals"
+import { jsDayToWeekday, toDateKey } from "@/lib/calculations/week-schedule"
 
 export async function getDashboardData(trainerProfileId: string) {
+  const todayKey = toDateKey(new Date())
   return withCache(
     async () => {
       const now = Date.now()
       const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000)
       const sixtyDaysAgo = new Date(now - 60 * 24 * 60 * 60 * 1000)
+      const todayWeekday = jsDayToWeekday(new Date())
 
       // Reduced from 8 parallel queries to 2 to avoid pool exhaustion / Neon "Connection terminated"
       // Single aggregated stats query + recent clients
@@ -36,6 +39,18 @@ export async function getDashboardData(trainerProfileId: string) {
           AND s."endDate" >= NOW()
           AND s."endDate" <= NOW() + INTERVAL '7 days'
       `
+      const scheduledTodayQuery = `
+        SELECT COUNT(DISTINCT c.id)::int AS "scheduledToday"
+        FROM "Client" c
+        JOIN "TrainingSplit" ts ON ts."clientId" = c.id AND ts.status = 'ACTIVE'::"PlanStatus"
+        JOIN "TrainingSplitDay" tsd ON tsd."splitId" = ts.id
+        WHERE c."trainerId" = $1
+          AND (
+            (ts."scheduleMode" = 'FIXED_WEEKDAYS'::"ScheduleMode" AND tsd.weekday = $2::"Weekday")
+            OR
+            (ts."scheduleMode" = 'SEQUENTIAL'::"ScheduleMode")
+          )
+      `
       const recentQuery = `
         SELECT "id", "fullName", "phone", "goals", "status", "createdAt"
         FROM "Client"
@@ -56,10 +71,11 @@ export async function getDashboardData(trainerProfileId: string) {
         inPersonClients: number
       } | null = null
       let expiringSoonCount = 0
+      let scheduledTodayCount = 0
       let recentClientsRes: { rows: unknown[] } | null = null
 
       try {
-        const [statsRes, expiringSoonRes, recentRes] = await Promise.all([
+        const [statsRes, expiringSoonRes, scheduledTodayRes, recentRes] = await Promise.all([
           pool.query(statsQuery, [
             trainerProfileId,
             thirtyDaysAgo,
@@ -68,10 +84,12 @@ export async function getDashboardData(trainerProfileId: string) {
             ClientStatus.ACTIVE,
           ]),
           pool.query(expiringSoonQuery, [trainerProfileId]),
+          pool.query(scheduledTodayQuery, [trainerProfileId, todayWeekday]),
           pool.query(recentQuery, [trainerProfileId]),
         ])
         statsRow = statsRes.rows[0] as typeof statsRow
         expiringSoonCount = (expiringSoonRes.rows[0] as { expiringSoon: number })?.expiringSoon ?? 0
+        scheduledTodayCount = (scheduledTodayRes.rows[0] as { scheduledToday: number })?.scheduledToday ?? 0
         recentClientsRes = recentRes
       } catch (err) {
         // Fallback: log and return degraded data instead of crashing DashboardPage
@@ -107,6 +125,7 @@ export async function getDashboardData(trainerProfileId: string) {
       const onlineClients = Number(statsRow?.onlineClients) || 0
       const inPersonClients = Number(statsRow?.inPersonClients) || 0
       const expiringSoon = Number(expiringSoonCount) || 0
+      const scheduledToday = Number(scheduledTodayCount) || 0
 
       const recentClients = (recentClientsRes?.rows as unknown as {
         id: string
@@ -124,6 +143,7 @@ export async function getDashboardData(trainerProfileId: string) {
           activeClients,
           recentlyAdded,
           expiringSoon,
+          scheduledToday,
           onlineClients,
           inPersonClients,
           // Deltas: positive = up, negative = down, null = no previous data
@@ -147,7 +167,7 @@ export async function getDashboardData(trainerProfileId: string) {
         })),
       }
     },
-    ["trainer-dashboard", trainerProfileId],
+    ["trainer-dashboard", trainerProfileId, todayKey],
     [`trainer:${trainerProfileId}:dashboard`],
     300
   )()

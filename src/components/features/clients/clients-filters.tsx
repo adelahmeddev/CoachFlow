@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState, useTransition } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Loader2, RotateCcw, Search, SlidersHorizontal } from "lucide-react"
+import { Dumbbell, Loader2, RotateCcw, Search, SlidersHorizontal } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -52,19 +52,22 @@ export function ClientsFilters() {
   const currentCoachingMode = searchParams.get("coachingMode") ?? "ALL"
   const currentQ = searchParams.get("q") ?? ""
   const currentAddedWithin = searchParams.get("addedWithin")
+  const currentScheduledToday = searchParams.get("scheduledToday") === "true"
 
   const hasFilters =
     currentQ !== "" ||
     currentStatus !== "ALL" ||
     currentGoal !== "ALL" ||
     currentCoachingMode !== "ALL" ||
-    Boolean(currentAddedWithin)
+    Boolean(currentAddedWithin) ||
+    currentScheduledToday
 
   const activeCount = [
     currentStatus !== "ALL" ? currentStatus : null,
     currentGoal !== "ALL" ? currentGoal : null,
     currentCoachingMode !== "ALL" ? currentCoachingMode : null,
     currentAddedWithin,
+    currentScheduledToday ? "scheduledToday" : null,
   ].filter(Boolean).length
 
   const updateParams = useCallback(
@@ -88,6 +91,21 @@ export function ClientsFilters() {
 
   const filterContent = (
     <>
+      <Button
+        type="button"
+        variant={currentScheduledToday ? "default" : "outline"}
+        size="sm"
+        className={`h-10 gap-1.5 rounded-xl text-xs font-semibold transition-all ${
+          currentScheduledToday
+            ? "bg-gradient-to-r from-brand-600 to-energy-600 text-white shadow-soft hover:brightness-110"
+            : "bg-card shadow-soft hover:bg-muted"
+        }`}
+        onClick={() => updateParams({ scheduledToday: currentScheduledToday ? null : "true" })}
+      >
+        <Dumbbell className="size-3.5" aria-hidden="true" />
+        <span>{isAr ? "المفروض يتمرنوا النهاردة" : "Exercise Today"}</span>
+      </Button>
+
       <Select
         value={currentStatus}
         onValueChange={(value) => updateParams({ status: value })}
@@ -156,6 +174,21 @@ export function ClientsFilters() {
         </Badge>
       )}
 
+      {currentScheduledToday && (
+        <Badge
+          variant="secondary"
+          className="h-9 gap-1.5 cursor-pointer px-2.5 text-xs font-semibold bg-brand-500/15 text-brand-700 dark:bg-brand-500/20 dark:text-brand-300 border border-brand-500/30 hover:bg-brand-500/25"
+          onClick={() => updateParams({ scheduledToday: null })}
+          title={locale === "ar" ? "إزالة التصفية" : "Remove filter"}
+        >
+          <Dumbbell className="size-3.5 text-brand-600" aria-hidden="true" />
+          <span>
+            {locale === "ar" ? "المفروض يتمرنوا النهاردة" : "Exercise Today"}
+          </span>
+          <span className="text-muted-foreground ms-0.5 hover:text-foreground">✕</span>
+        </Badge>
+      )}
+
       {hasFilters && (
         <Button
           type="button"
@@ -163,7 +196,7 @@ export function ClientsFilters() {
           size="sm"
           className="gap-1.5"
           onClick={() =>
-            updateParams({ q: null, status: null, goal: null, coachingMode: null, addedWithin: null })
+            updateParams({ q: null, status: null, goal: null, coachingMode: null, addedWithin: null, scheduledToday: null })
           }
         >
           <RotateCcw className="size-3.5" aria-hidden="true" />

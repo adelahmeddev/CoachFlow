@@ -54,7 +54,7 @@ export async function LastSessionTargetsTable({
         <TableBody>
           {rows.map((row, index) => (
             <TableRow key={`${row.exerciseName}-${index}`}>
-              <TableCell className="font-medium">{row.exerciseName}</TableCell>
+              <TableCell dir="ltr" className="font-medium text-start">{row.exerciseName}</TableCell>
               <TableCell className="text-muted-foreground">
                 {row.targetSets != null ? (
                   <span dir="ltr">

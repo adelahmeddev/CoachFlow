@@ -175,7 +175,9 @@ export const authOptions: NextAuthOptions = {
     },
   },
   providers: [
-    CredentialsProvider({
+    (typeof CredentialsProvider === "function"
+      ? CredentialsProvider
+      : (CredentialsProvider as unknown as { default: typeof CredentialsProvider }).default)({
       name: "Credentials",
       credentials: {
         identifier: { label: "Username, phone or email", type: "text" },

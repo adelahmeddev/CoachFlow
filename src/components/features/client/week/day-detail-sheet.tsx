@@ -70,8 +70,16 @@ export function DayDetailSheet({
 
   const title = entry
     ? mode === "FIXED_WEEKDAYS" && entry.weekday
-      ? lookup(t, `trainingSplit.weekdays.${entry.weekday}`)
-      : interpolate(t.client.week.dayN, { n: entry.dayNumber ?? 0 })
+      ? ({
+          SATURDAY: "Saturday",
+          SUNDAY: "Sunday",
+          MONDAY: "Monday",
+          TUESDAY: "Tuesday",
+          WEDNESDAY: "Wednesday",
+          THURSDAY: "Thursday",
+          FRIDAY: "Friday",
+        }[entry.weekday.toUpperCase()] ?? entry.weekday)
+      : `Day ${entry.dayNumber ?? 0}`
     : ""
 
   const statusLabel = (() => {
@@ -97,7 +105,7 @@ export function DayDetailSheet({
       <SheetContent side="bottom" className="max-h-[85dvh] gap-0 overflow-y-auto rounded-t-2xl sm:mx-auto sm:max-w-lg">
         <SheetHeader className="border-b pb-3">
           <div className="flex items-center justify-between gap-2 pe-8">
-            <SheetTitle>{title}</SheetTitle>
+            <SheetTitle dir="ltr" className="text-start">{title}</SheetTitle>
             <Badge variant="secondary">{statusLabel}</Badge>
           </div>
           {mode === "FIXED_WEEKDAYS" && entry?.dateKey ? (
@@ -173,7 +181,7 @@ function DayDetailContent({
         {detail.exercises.map((ex) => (
           <li key={ex.id} className="rounded-xl border bg-white/40 p-3 dark:bg-white/5">
             <div className="flex items-start justify-between gap-3">
-              <p className="min-w-0 flex-1 line-clamp-2 text-sm font-medium">
+              <p dir="ltr" className="min-w-0 flex-1 line-clamp-2 text-sm font-medium text-start">
                 {ex.exerciseName}
               </p>
               {ex.done ? (

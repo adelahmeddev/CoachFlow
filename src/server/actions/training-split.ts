@@ -51,6 +51,7 @@ export async function createTrainingSplitAction(
   invalidate([
     `client:${clientId}:workout`,
     `client:${clientId}:profile`,
+    `trainer:${trainerProfileId}:exercises`,
   ])
   await notifyClientsPlanUpdated([clientId], "training", session.user.name ?? null)
   return { ok: true as const, splitId: split.id }
@@ -94,6 +95,7 @@ export async function updateTrainingSplitAction(
   invalidate([
     `client:${clientId}:workout`,
     `client:${clientId}:profile`,
+    `trainer:${trainerProfileId}:exercises`,
   ])
   // When the split had workout history, the edit created a new version
   // (history preserved) instead of mutating in place — return the live id.
