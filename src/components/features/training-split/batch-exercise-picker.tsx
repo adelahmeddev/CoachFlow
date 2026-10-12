@@ -30,6 +30,10 @@ import {
   Sparkles,
   RotateCcw,
   CheckCheck,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsUpDown,
+  SlidersHorizontal,
 } from "lucide-react"
 
 interface BatchExercisePickerProps {
@@ -144,6 +148,28 @@ export function BatchExercisePicker({
     return map
   })
   const [previewExercise, setPreviewExercise] = useState<ExerciseOption | null>(null)
+  const [isMuscleExpanded, setIsMuscleExpanded] = useState(false)
+  const [showInspector, setShowInspector] = useState(true)
+  const muscleScrollRef = React.useRef<HTMLDivElement>(null)
+  const subMuscleScrollRef = React.useRef<HTMLDivElement>(null)
+
+  function scrollMuscles(direction: "left" | "right") {
+    if (!muscleScrollRef.current) return
+    const delta = direction === "left" ? -240 : 240
+    muscleScrollRef.current.scrollBy({ left: delta, behavior: "smooth" })
+  }
+
+  function handleMuscleWheel(e: React.WheelEvent<HTMLDivElement>) {
+    if (e.deltaY !== 0 && !isMuscleExpanded) {
+      e.currentTarget.scrollLeft += e.deltaY
+    }
+  }
+
+  function handleSubMuscleWheel(e: React.WheelEvent<HTMLDivElement>) {
+    if (e.deltaY !== 0) {
+      e.currentTarget.scrollLeft += e.deltaY
+    }
+  }
 
   function handleExerciseCreated(newEx?: LibraryExercise) {
     if (!newEx) return
@@ -351,11 +377,11 @@ export function BatchExercisePicker({
       <DialogContent
         showCloseButton={true}
         className={cn(
-          /* Large spacious sizing */
-          "sm:max-w-6xl lg:max-w-7xl w-[96vw] sm:w-[94vw] h-[92vh] max-h-[92vh] sm:h-[90vh] sm:max-h-[90vh]",
+          /* Large spacious responsive sizing that never overflows the viewport */
+          "sm:max-w-6xl lg:max-w-7xl w-[98vw] sm:w-[95vw] h-[92dvh] max-h-[92dvh] sm:h-[90vh] sm:max-h-[90vh]",
           "p-0 flex flex-col rounded-3xl overflow-hidden border border-white/20 dark:border-white/10",
           "bg-neutral-950/95 backdrop-blur-3xl shadow-[0_24px_60px_rgba(0,0,0,0.65)]",
-          "text-foreground",
+          "text-foreground min-h-0",
           "gap-0"
         )}
       >
@@ -386,7 +412,7 @@ export function BatchExercisePicker({
             </div>
 
             {/* Action buttons & Selection Telemetry */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <ExerciseFormDialog
                 defaultMuscleGroup={activeMuscleGroup !== "ALL" ? activeMuscleGroup : undefined}
                 defaultSubMuscleGroup={activeSubMuscle !== "ALL" ? activeSubMuscle : undefined}
@@ -404,6 +430,20 @@ export function BatchExercisePicker({
                   </Button>
                 }
               />
+
+              {mode === "batch" && filtered.length > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSelectAllFiltered}
+                  className="h-8.5 rounded-xl border-white/15 bg-white/[0.04] hover:bg-white/[0.08] text-xs font-semibold gap-1.5 px-3"
+                >
+                  <CheckCheck className="size-3.5 text-brand-400" />
+                  <span>{isAr ? "تحديد الكل" : "Select All"}</span>
+                  <span className="font-mono text-[11px] opacity-75">({filtered.length})</span>
+                </Button>
+              )}
 
               {mode === "batch" && (
                 <>
@@ -431,15 +471,34 @@ export function BatchExercisePicker({
                       <span>Clear</span>
                     </Button>
                   )}
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => setShowInspector((prev) => !prev)}
+                    className={cn(
+                      "h-8.5 rounded-xl text-xs gap-1.5 px-2.5 border transition-all",
+                      showInspector
+                        ? "border-brand-400/40 bg-brand-500/10 text-brand-300"
+                        : "border-white/10 bg-white/[0.03] text-muted-foreground hover:text-foreground"
+                    )}
+                    title={showInspector ? (isAr ? "إخفاء لوحة المعاينة والمحددة" : "Hide Panel") : (isAr ? "إظهار لوحة المعاينة والمحددة" : "Show Panel")}
+                  >
+                    <SlidersHorizontal className="size-3.5" />
+                    <span className="hidden sm:inline">
+                      {showInspector ? (isAr ? "إخفاء اللوحة" : "Hide Panel") : (isAr ? `عرض اللوحة (${selectedMap.size})` : `Show Panel (${selectedMap.size})`)}
+                    </span>
+                  </Button>
                 </>
               )}
             </div>
           </div>
 
           {/* Search bar & Muscle Category Filter Chips in the SAME line */}
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
             {/* Search bar */}
-            <div className="relative w-40 sm:w-56 md:w-64 shrink-0">
+            <div className="relative w-full sm:w-44 md:w-56 shrink-0">
               <Search className="absolute start-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 autoFocus
@@ -462,85 +521,124 @@ export function BatchExercisePicker({
             {/* Subtle separator */}
             <div className="hidden sm:block h-5 w-px bg-white/15 shrink-0" aria-hidden="true" />
 
-            {/* Muscle Category Filter Chips (scrollable horizontally right beside the search bar) */}
-            <div className="flex-1 min-w-0 flex items-center gap-1.5 overflow-x-auto py-0.5 scrollbar-none">
-              <button
-                type="button"
-                onClick={() => handleSelectMuscleGroup("ALL")}
-                className={cn(
-                  "rounded-xl px-2.5 py-1 text-xs font-semibold whitespace-nowrap transition-all border shrink-0",
-                  activeMuscleGroup === "ALL"
-                    ? "border-brand-400/80 bg-brand-500 text-white shadow-glow"
-                    : "border-white/10 bg-white/[0.03] text-muted-foreground hover:border-white/20 hover:text-foreground"
-                )}
-              >
-                {isAr ? "جميع العضلات" : "All Muscles"} ({localExercises.length})
-              </button>
-              {mostUsedCount > 0 && (
+            {/* Muscle Category Filter Chips with Navigation Controls */}
+            <div className="flex-1 min-w-0 flex items-center gap-1">
+              {!isMuscleExpanded && (
                 <button
                   type="button"
-                  onClick={() => handleSelectMuscleGroup("MOST_USED")}
-                  className={cn(
-                    "rounded-xl px-2.5 py-1 text-xs font-semibold whitespace-nowrap transition-all border shrink-0 flex items-center gap-1.5",
-                    activeMuscleGroup === "MOST_USED"
-                      ? "border-amber-400/80 bg-amber-500 text-black font-bold shadow-[0_0_15px_rgba(245,158,11,0.35)]"
-                      : "border-amber-400/30 bg-amber-500/10 text-amber-300 hover:border-amber-400/50 hover:bg-amber-500/15"
-                  )}
+                  onClick={() => scrollMuscles("left")}
+                  className="size-7 rounded-lg border border-white/10 bg-black/40 hover:bg-white/10 flex items-center justify-center shrink-0 transition-colors text-muted-foreground hover:text-foreground"
+                  aria-label="Scroll left"
+                  title="Scroll left"
                 >
-                  <Sparkles className="size-3 text-amber-400 shrink-0" />
-                  <span>{isAr ? "الأكثر استخداماً" : "Most Used"}</span>
-                  <span className="text-[10px] opacity-80 font-mono">({mostUsedCount})</span>
+                  <ChevronLeft className="size-3.5" />
                 </button>
               )}
-              {muscleGroups.map((group) => {
-                const label = getMuscleGroupLabel(group, locale)
-                const count = localExercises.filter(
-                  (e) => (e.muscleGroup || "").toLowerCase() === group.toLowerCase()
-                ).length
-                const isCurrent = activeMuscleGroup.toLowerCase() === group.toLowerCase()
-                const accent = MUSCLE_ACCENTS[group.toUpperCase()]
 
-                return (
+              <div
+                ref={muscleScrollRef}
+                onWheel={handleMuscleWheel}
+                className={cn(
+                  "flex-1 min-w-0 flex items-center gap-1.5 py-0.5",
+                  isMuscleExpanded
+                    ? "flex-wrap overflow-visible"
+                    : "overflow-x-auto scroll-smooth scrollbar-thin scrollbar-thumb-white/15 scrollbar-track-transparent"
+                )}
+              >
+                <button
+                  type="button"
+                  onClick={() => handleSelectMuscleGroup("ALL")}
+                  className={cn(
+                    "rounded-xl px-2.5 py-1 text-xs font-semibold whitespace-nowrap transition-all border shrink-0",
+                    activeMuscleGroup === "ALL"
+                      ? "border-brand-400/80 bg-brand-500 text-white shadow-glow"
+                      : "border-white/10 bg-white/[0.03] text-muted-foreground hover:border-white/20 hover:text-foreground"
+                  )}
+                >
+                  {isAr ? "جميع العضلات" : "All Muscles"} ({localExercises.length})
+                </button>
+                {mostUsedCount > 0 && (
                   <button
-                    key={group}
                     type="button"
-                    onClick={() => handleSelectMuscleGroup(group)}
+                    onClick={() => handleSelectMuscleGroup("MOST_USED")}
                     className={cn(
-                      "rounded-xl px-2.5 py-1 text-xs font-semibold whitespace-nowrap transition-all border flex items-center gap-1.5 shrink-0",
-                      isCurrent
-                        ? "border-brand-400/80 bg-brand-500 text-white shadow-glow"
-                        : "border-white/10 bg-white/[0.03] text-muted-foreground hover:border-white/20 hover:text-foreground"
+                      "rounded-xl px-2.5 py-1 text-xs font-semibold whitespace-nowrap transition-all border shrink-0 flex items-center gap-1.5",
+                      activeMuscleGroup === "MOST_USED"
+                        ? "border-amber-400/80 bg-amber-500 text-black font-bold shadow-[0_0_15px_rgba(245,158,11,0.35)]"
+                        : "border-amber-400/30 bg-amber-500/10 text-amber-300 hover:border-amber-400/50 hover:bg-amber-500/15"
                     )}
                   >
-                    {accent && !isCurrent && (
-                      <span className={cn("size-1.5 rounded-full", accent.text.replace("text-", "bg-"))} />
-                    )}
-                    <span>{label}</span>
-                    <span className="text-[10px] opacity-70">({count})</span>
+                    <Sparkles className="size-3 text-amber-400 shrink-0" />
+                    <span>{isAr ? "الأكثر استخداماً" : "Most Used"}</span>
+                    <span className="text-[10px] opacity-80 font-mono">({mostUsedCount})</span>
                   </button>
-                )
-              })}
-            </div>
+                )}
+                {muscleGroups.map((group) => {
+                  const label = getMuscleGroupLabel(group, locale)
+                  const count = localExercises.filter(
+                    (e) => (e.muscleGroup || "").toLowerCase() === group.toLowerCase()
+                  ).length
+                  const isCurrent = activeMuscleGroup.toLowerCase() === group.toLowerCase()
+                  const accent = MUSCLE_ACCENTS[group.toUpperCase()]
 
-            {/* Quick action: Select All (Batch mode) */}
-            {mode === "batch" && filtered.length > 0 && (
-              <Button
+                  return (
+                    <button
+                      key={group}
+                      type="button"
+                      onClick={() => handleSelectMuscleGroup(group)}
+                      className={cn(
+                        "rounded-xl px-2.5 py-1 text-xs font-semibold whitespace-nowrap transition-all border flex items-center gap-1.5 shrink-0",
+                        isCurrent
+                          ? "border-brand-400/80 bg-brand-500 text-white shadow-glow"
+                          : "border-white/10 bg-white/[0.03] text-muted-foreground hover:border-white/20 hover:text-foreground"
+                      )}
+                    >
+                      {accent && !isCurrent && (
+                        <span className={cn("size-1.5 rounded-full", accent.text.replace("text-", "bg-"))} />
+                      )}
+                      <span>{label}</span>
+                      <span className="text-[10px] opacity-70">({count})</span>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {!isMuscleExpanded && (
+                <button
+                  type="button"
+                  onClick={() => scrollMuscles("right")}
+                  className="size-7 rounded-lg border border-white/10 bg-black/40 hover:bg-white/10 flex items-center justify-center shrink-0 transition-colors text-muted-foreground hover:text-foreground"
+                  aria-label="Scroll right"
+                  title="Scroll right"
+                >
+                  <ChevronRight className="size-3.5" />
+                </button>
+              )}
+
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleSelectAllFiltered}
-                className="h-8.5 rounded-xl border-white/15 bg-white/[0.04] hover:bg-white/[0.08] text-xs font-semibold gap-1.5 shrink-0 px-2.5"
+                onClick={() => setIsMuscleExpanded((prev) => !prev)}
+                className={cn(
+                  "size-7 rounded-lg border flex items-center justify-center shrink-0 transition-all",
+                  isMuscleExpanded
+                    ? "border-brand-400/80 bg-brand-500/20 text-brand-300"
+                    : "border-white/10 bg-black/40 text-muted-foreground hover:text-foreground hover:bg-white/10"
+                )}
+                title={isMuscleExpanded ? (isAr ? "طي العضلات في سطر واحد" : "Collapse to single row") : (isAr ? "عرض جميع العضلات" : "Show all muscles")}
+                aria-label={isMuscleExpanded ? "Collapse muscles" : "Expand muscles"}
               >
-                <CheckCheck className="size-3.5 text-brand-400" />
-                <span className="hidden md:inline">Select All</span>
-                <span>({filtered.length})</span>
-              </Button>
-            )}
+                <ChevronsUpDown className="size-3.5" />
+              </button>
+            </div>
           </div>
 
           {/* Sub-Muscle Filter Chips (shown when a specific muscle is selected) */}
           {activeMuscleGroup !== "ALL" && availableSubMuscles.length > 0 && (
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 scrollbar-none border-t border-white/5 animate-in fade-in duration-200">
+            <div
+              ref={subMuscleScrollRef}
+              onWheel={handleSubMuscleWheel}
+              className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 scroll-smooth scrollbar-thin scrollbar-thumb-white/15 scrollbar-track-transparent border-t border-white/5 animate-in fade-in duration-200"
+            >
               <span className="text-[11px] font-medium text-muted-foreground me-1 shrink-0">
                 {locale === "ar" ? "العضلة الفرعية:" : "Sub-muscle:"}
               </span>
@@ -548,7 +646,7 @@ export function BatchExercisePicker({
                 type="button"
                 onClick={() => setActiveSubMuscle("ALL")}
                 className={cn(
-                  "rounded-lg px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap transition-all border",
+                  "rounded-lg px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap transition-all border shrink-0",
                   activeSubMuscle === "ALL"
                     ? "border-brand-400/80 bg-brand-500/25 text-brand-300 shadow-sm"
                     : "border-white/10 bg-white/[0.02] text-muted-foreground hover:border-white/20 hover:text-foreground"
@@ -573,7 +671,7 @@ export function BatchExercisePicker({
                     type="button"
                     onClick={() => setActiveSubMuscle(sub)}
                     className={cn(
-                      "rounded-lg px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap transition-all border flex items-center gap-1.5",
+                      "rounded-lg px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap transition-all border flex items-center gap-1.5 shrink-0",
                       isCurrent
                         ? "border-brand-400/80 bg-brand-500/25 text-brand-300 shadow-sm"
                         : "border-white/10 bg-white/[0.02] text-muted-foreground hover:border-white/20 hover:text-foreground"
@@ -591,7 +689,26 @@ export function BatchExercisePicker({
         {/* 2. Main Content: Responsive Card Grid + Side Inspector */}
         <div className="flex-1 overflow-hidden flex flex-col md:flex-row min-h-0">
           {/* Exercises Grid Container */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 min-h-0">
+            {/* Status & Counter Bar */}
+            <div className="flex items-center justify-between text-xs text-muted-foreground px-1 pb-1">
+              <span>
+                {isAr
+                  ? `عرض ${filtered.length} من أصل ${localExercises.length} تمرين`
+                  : `Showing ${filtered.length} of ${localExercises.length} exercises`}
+              </span>
+              {!showInspector && mode === "batch" && selectedMap.size > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowInspector(true)}
+                  className="flex items-center gap-1.5 text-[11px] font-semibold text-brand-400 hover:text-brand-300 transition-colors"
+                >
+                  <Sparkles className="size-3 text-brand-400" />
+                  <span>{selectedMap.size} Selected</span>
+                </button>
+              )}
+            </div>
+
             {filtered.length === 0 ? (
               <div className="py-20 text-center space-y-3">
                 <Dumbbell className="size-10 mx-auto text-muted-foreground/40" />
@@ -624,7 +741,14 @@ export function BatchExercisePicker({
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              <div
+                className={cn(
+                  "grid gap-3.5",
+                  showInspector
+                    ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                    : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
+                )}
+              >
                 {filtered.map((exercise) => {
                   const isSelected = selectedMap.has(exercise.id)
                   const muscleLabel = getMuscleGroupLabel(exercise.muscleGroup, locale)
@@ -720,6 +844,7 @@ export function BatchExercisePicker({
                               onClick={(e) => {
                                 e.stopPropagation()
                                 setPreviewExercise(exercise)
+                                setShowInspector(true)
                               }}
                               className="size-7 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10"
                               title="Preview video demo"
@@ -746,8 +871,9 @@ export function BatchExercisePicker({
             )}
           </div>
 
-          {/* Right Inspector Panel: Video Demo or Selected Queue */}
-          <div className="w-full md:w-84 lg:w-96 border-t md:border-t-0 md:border-s border-white/10 bg-neutral-950/70 p-5 flex flex-col justify-between shrink-0">
+          {/* Right Inspector Panel: Video Demo or Selected Queue (Collapsible) */}
+          {showInspector && (
+            <div className="w-full md:w-84 lg:w-96 border-t md:border-t-0 md:border-s border-white/10 bg-neutral-950/70 p-5 flex flex-col justify-between shrink-0 min-h-0 overflow-y-auto">
             {previewExercise ? (
               /* Active Video Preview Inspector */
               <div className="space-y-4">
@@ -896,7 +1022,8 @@ export function BatchExercisePicker({
               </div>
             )}
           </div>
-        </div>
+        )}
+      </div>
 
         {/* 3. Bottom Action Dock / Footer */}
         {mode === "batch" && (
