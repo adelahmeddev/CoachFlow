@@ -277,6 +277,7 @@ export type TrainingSplitTemplate = {
   splitType: SplitType
   customSplitName: string | null
   daysPerWeek: number
+  scheduleMode: ScheduleMode
   description: string | null
   isGlobal: boolean
   createdAt: Date
@@ -289,6 +290,7 @@ export type TrainingSplitTemplateDay = {
   dayNumber: number
   focus: TrainingDayFocus
   customFocus: string | null
+  weekday: Weekday | null
   createdAt: Date
   updatedAt: Date
 }

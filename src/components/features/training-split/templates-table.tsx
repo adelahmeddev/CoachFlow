@@ -27,7 +27,7 @@ import {
   deleteTrainingSplitTemplateAction,
   duplicateTrainingSplitTemplateAction,
 } from "@/server/actions/training-split-template"
-import type { Goal, SplitType } from "@/lib/db/enums"
+import type { Goal, SplitType, ScheduleMode } from "@/lib/db/enums"
 
 export interface TemplateRow {
   id: string
@@ -37,6 +37,7 @@ export interface TemplateRow {
   splitType: SplitType
   customSplitName?: string | null
   daysPerWeek: number
+  scheduleMode?: ScheduleMode
   description: string | null
   isGlobal: boolean
 }
@@ -91,6 +92,11 @@ function TemplateCard({
           </Badge>
           <Badge variant="outline">
             {template.daysPerWeek} {t.templates.daysShort}
+          </Badge>
+          <Badge variant="outline" className="border-brand-400/30 bg-brand-500/10 text-brand-300">
+            {template.scheduleMode === "SEQUENTIAL"
+              ? t.trainingSplit.scheduleModeSequential
+              : t.trainingSplit.scheduleModeFixed}
           </Badge>
         </div>
 

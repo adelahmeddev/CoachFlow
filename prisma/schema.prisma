@@ -380,6 +380,7 @@ model TrainingSplitTemplate {
   splitType      SplitType
   customSplitName String?
   daysPerWeek    Int
+  scheduleMode   ScheduleMode               @default(FIXED_WEEKDAYS)
   description    String?
   isGlobal       Boolean                    @default(false)
   isMultiSplit   Boolean                    @default(false)
@@ -399,6 +400,7 @@ model TrainingSplitTemplateDay {
   dayNumber   Int
   focus       TrainingDayFocus
   customFocus String?
+  weekday     Weekday?
   createdAt   DateTime              @default(now())
   updatedAt   DateTime              @updatedAt
   exercises   TemplateDayExercise[]

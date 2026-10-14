@@ -30,7 +30,7 @@ import {
   createTrainingSplitTemplateAction,
   updateTrainingSplitTemplateAction,
 } from "@/server/actions/training-split-template"
-import { SplitType } from "@/lib/db/enums"
+import { SplitType, ScheduleMode } from "@/lib/db/enums"
 import type { ExerciseOption } from "@/lib/exercise-safety"
 import { cn } from "@/lib/utils"
 import { GlassCard } from "./liquid-glass/glass-card"
@@ -46,10 +46,12 @@ interface TemplateFormProps {
     splitType: SplitType
     customSplitName?: string | null
     daysPerWeek: number
+    scheduleMode?: ScheduleMode
     description: string | null
     days: {
       focus: TrainingSplitDayInput["focus"]
       customFocus: string | null
+      weekday?: TrainingSplitDayInput["weekday"]
       exercises: {
         exerciseId: string | null
         exerciseName: string
@@ -72,6 +74,7 @@ function templateDaysToState(
   return template.days.map((day) => ({
     focus: day.focus,
     customFocus: day.customFocus ?? "",
+    weekday: day.weekday ?? null,
     notes: "",
     exercises: day.exercises.map((exercise) =>
       toExerciseDraft({
@@ -97,6 +100,9 @@ export function TemplateForm({
   const isEdit = Boolean(template)
   const [serverError, setServerError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [scheduleMode, setScheduleMode] = useState<ScheduleMode>(
+    template?.scheduleMode ?? ScheduleMode.FIXED_WEEKDAYS
+  )
   const [days, setDays] = useState<TrainingSplitDayInput[]>(
     templateDaysToState(template, exercises)
   )
@@ -114,6 +120,7 @@ export function TemplateForm({
       splitType: template?.splitType ?? SplitType.FULL_BODY,
       customSplitName: template?.customSplitName ?? "",
       daysPerWeek: template?.daysPerWeek ?? 3,
+      scheduleMode: template?.scheduleMode ?? ScheduleMode.FIXED_WEEKDAYS,
       description: template?.description ?? "",
       days: template
         ? templateDaysToState(template)
@@ -125,6 +132,12 @@ export function TemplateForm({
           })),
     },
   })
+
+  function handleScheduleModeChange(value: ScheduleMode) {
+    if (value === scheduleMode) return
+    setScheduleMode(value)
+    form.setValue("scheduleMode", value, { shouldValidate: false })
+  }
 
   function handleSplitTypeChange(value: SplitType) {
     form.setValue("splitType", value, { shouldValidate: false })
@@ -150,6 +163,7 @@ export function TemplateForm({
           ? values.customSplitName?.trim() || null
           : null,
       daysPerWeek: values.daysPerWeek,
+      scheduleMode,
       description: values.description?.trim() || null,
       days,
     }
@@ -337,6 +351,62 @@ export function TemplateForm({
               {...form.register("description")}
             />
           </div>
+
+          {/* Schedule Mode Selector */}
+          <div className="space-y-2 pt-2 border-t border-white/10">
+            <Label className="text-xs font-semibold">{t.trainingSplit.scheduleMode}</Label>
+            <div
+              role="radiogroup"
+              aria-label={t.trainingSplit.scheduleMode}
+              className="grid gap-3 sm:grid-cols-2"
+            >
+              <button
+                type="button"
+                role="radio"
+                aria-checked={scheduleMode === ScheduleMode.FIXED_WEEKDAYS}
+                disabled={isSubmitting}
+                onClick={() =>
+                  handleScheduleModeChange(ScheduleMode.FIXED_WEEKDAYS)
+                }
+                className={cn(
+                  "rounded-2xl border p-3.5 text-start transition-colors",
+                  scheduleMode === ScheduleMode.FIXED_WEEKDAYS
+                    ? "border-brand-400/80 bg-brand-500/15 ring-1 ring-brand-400/40 shadow-glow"
+                    : "border-white/10 bg-white/[0.03] hover:border-white/25 hover:bg-white/[0.06]"
+                )}
+              >
+                <span className="block text-xs font-bold text-foreground">
+                  {t.trainingSplit.scheduleModeFixed}
+                </span>
+                <span className="mt-1 block text-[11px] text-muted-foreground leading-snug">
+                  {t.trainingSplit.scheduleModeFixedHint}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                role="radio"
+                aria-checked={scheduleMode === ScheduleMode.SEQUENTIAL}
+                disabled={isSubmitting}
+                onClick={() =>
+                  handleScheduleModeChange(ScheduleMode.SEQUENTIAL)
+                }
+                className={cn(
+                  "rounded-2xl border p-3.5 text-start transition-colors",
+                  scheduleMode === ScheduleMode.SEQUENTIAL
+                    ? "border-brand-400/80 bg-brand-500/15 ring-1 ring-brand-400/40 shadow-glow"
+                    : "border-white/10 bg-white/[0.03] hover:border-white/25 hover:bg-white/[0.06]"
+                )}
+              >
+                <span className="block text-xs font-bold text-foreground">
+                  {t.trainingSplit.scheduleModeSequential}
+                </span>
+                <span className="mt-1 block text-[11px] text-muted-foreground leading-snug">
+                  {t.trainingSplit.scheduleModeSequentialHint}
+                </span>
+              </button>
+            </div>
+          </div>
         </div>
       </GlassCard>
 
@@ -356,6 +426,7 @@ export function TemplateForm({
           disabled={isSubmitting}
           onChange={setDaysSynced}
           exerciseLibrary={exercises}
+          scheduleMode={scheduleMode}
         />
       </GlassCard>
 

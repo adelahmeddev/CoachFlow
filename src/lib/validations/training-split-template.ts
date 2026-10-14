@@ -3,6 +3,8 @@ import {
   Goal,
   SplitType,
   TrainingDayFocus,
+  ScheduleMode,
+  Weekday,
 } from "@/lib/db/enums"
 import {
   MAX_EXERCISES_PER_DAY,
@@ -15,6 +17,7 @@ const templateDaySchema = z
     customFocus: z
       .union([z.string().trim().max(60), z.literal(""), z.literal(null)])
       .optional(),
+    weekday: z.nativeEnum(Weekday).nullable().optional(),
     exercises: z
       .array(splitDayExerciseSchema)
       .max(MAX_EXERCISES_PER_DAY)
@@ -53,6 +56,7 @@ export const trainingSplitTemplateSchema = z
       ])
       .optional(),
     daysPerWeek: z.number().int().min(1).max(7),
+    scheduleMode: z.nativeEnum(ScheduleMode).default(ScheduleMode.FIXED_WEEKDAYS),
     description: z
       .union([
         z.string().trim().max(1000),

@@ -10,7 +10,7 @@ import {
   toNumberOrNull,
 } from "@/lib/validations/exercise"
 import { withCache } from "@/lib/cache"
-import { SplitType } from "@/lib/db/enums"
+import { SplitType, ScheduleMode } from "@/lib/db/enums"
 import { syncExerciseVideoUrls } from "./exercise.service"
 
 type TemplateWithDays = TrainingSplitTemplate & {
@@ -151,8 +151,8 @@ export async function createTrainingSplitTemplate(
         : null
 
     await tx.query(
-      `INSERT INTO "TrainingSplitTemplate" ("id", "trainerId", "name", "goal", "level", "splitType", "customSplitName", "daysPerWeek", "description", "isGlobal", "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, $4::"Goal", $5, $6::"SplitType", $7, $8, $9, $10, NOW(), NOW())`,
+      `INSERT INTO "TrainingSplitTemplate" ("id", "trainerId", "name", "goal", "level", "splitType", "customSplitName", "daysPerWeek", "scheduleMode", "description", "isGlobal", "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, $4::"Goal", $5, $6::"SplitType", $7, $8, $9::"ScheduleMode", $10, $11, NOW(), NOW())`,
       [
         templateId,
         trainerProfileId,
@@ -162,6 +162,7 @@ export async function createTrainingSplitTemplate(
         data.splitType,
         customSplitName,
         data.daysPerWeek,
+        data.scheduleMode ?? ScheduleMode.FIXED_WEEKDAYS,
         data.description?.trim() || null,
         false,
       ]
@@ -171,9 +172,9 @@ export async function createTrainingSplitTemplate(
       const day = data.days[index]!
       const dayId = generateId()
       await tx.query(
-        `INSERT INTO "TrainingSplitTemplateDay" ("id", "templateId", "dayNumber", "focus", "customFocus", "createdAt", "updatedAt")
-         VALUES ($1, $2, $3, $4::"TrainingDayFocus", $5, NOW(), NOW())`,
-        [dayId, templateId, index + 1, day.focus, day.customFocus?.trim() || null]
+        `INSERT INTO "TrainingSplitTemplateDay" ("id", "templateId", "dayNumber", "focus", "customFocus", "weekday", "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, $4::"TrainingDayFocus", $5, $6::"Weekday", NOW(), NOW())`,
+        [dayId, templateId, index + 1, day.focus, day.customFocus?.trim() || null, day.weekday ?? null]
       )
       const exercises = day.exercises ?? []
       for (let exIndex = 0; exIndex < exercises.length; exIndex++) {
@@ -228,7 +229,7 @@ export async function updateTrainingSplitTemplate(
         : null
 
     const updatedRes = await tx.query<TrainingSplitTemplate>(
-      `UPDATE "TrainingSplitTemplate" SET "name" = $1, "goal" = $2::"Goal", "level" = $3, "splitType" = $4::"SplitType", "customSplitName" = $5, "daysPerWeek" = $6, "description" = $7, "updatedAt" = NOW() WHERE "id" = $8 RETURNING *`,
+      `UPDATE "TrainingSplitTemplate" SET "name" = $1, "goal" = $2::"Goal", "level" = $3, "splitType" = $4::"SplitType", "customSplitName" = $5, "daysPerWeek" = $6, "scheduleMode" = $7::"ScheduleMode", "description" = $8, "updatedAt" = NOW() WHERE "id" = $9 RETURNING *`,
       [
         data.name.trim(),
         data.goal ?? null,
@@ -236,6 +237,7 @@ export async function updateTrainingSplitTemplate(
         data.splitType,
         customSplitName,
         data.daysPerWeek,
+        data.scheduleMode ?? ScheduleMode.FIXED_WEEKDAYS,
         data.description?.trim() || null,
         templateId,
       ]
@@ -250,9 +252,9 @@ export async function updateTrainingSplitTemplate(
       const dayId = generateId()
       createdDayIds.push(dayId)
       await tx.query(
-        `INSERT INTO "TrainingSplitTemplateDay" ("id", "templateId", "dayNumber", "focus", "customFocus", "createdAt", "updatedAt")
-         VALUES ($1, $2, $3, $4::"TrainingDayFocus", $5, NOW(), NOW())`,
-        [dayId, templateId, index + 1, day.focus, day.customFocus?.trim() || null]
+        `INSERT INTO "TrainingSplitTemplateDay" ("id", "templateId", "dayNumber", "focus", "customFocus", "weekday", "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, $4::"TrainingDayFocus", $5, $6::"Weekday", NOW(), NOW())`,
+        [dayId, templateId, index + 1, day.focus, day.customFocus?.trim() || null, day.weekday ?? null]
       )
     }
 
@@ -306,8 +308,8 @@ export async function duplicateTrainingSplitTemplate(
   return withTransaction(async (tx) => {
     const newTemplateId = generateId()
     await tx.query(
-      `INSERT INTO "TrainingSplitTemplate" ("id", "trainerId", "name", "goal", "level", "splitType", "customSplitName", "daysPerWeek", "description", "isGlobal", "createdAt", "updatedAt")
-       VALUES ($1, $2, $3, $4::"Goal", $5, $6::"SplitType", $7, $8, $9, $10, NOW(), NOW())`,
+      `INSERT INTO "TrainingSplitTemplate" ("id", "trainerId", "name", "goal", "level", "splitType", "customSplitName", "daysPerWeek", "scheduleMode", "description", "isGlobal", "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, $4::"Goal", $5, $6::"SplitType", $7, $8, $9::"ScheduleMode", $10, $11, NOW(), NOW())`,
       [
         newTemplateId,
         trainerProfileId,
@@ -317,6 +319,7 @@ export async function duplicateTrainingSplitTemplate(
         template.splitType,
         template.customSplitName ?? null,
         template.daysPerWeek,
+        template.scheduleMode ?? ScheduleMode.FIXED_WEEKDAYS,
         template.description,
         false,
       ]
@@ -325,9 +328,9 @@ export async function duplicateTrainingSplitTemplate(
     for (const day of days) {
       const newDayId = generateId()
       await tx.query(
-        `INSERT INTO "TrainingSplitTemplateDay" ("id", "templateId", "dayNumber", "focus", "customFocus", "createdAt", "updatedAt")
-         VALUES ($1, $2, $3, $4::"TrainingDayFocus", $5, NOW(), NOW())`,
-        [newDayId, newTemplateId, day.dayNumber, day.focus, day.customFocus]
+        `INSERT INTO "TrainingSplitTemplateDay" ("id", "templateId", "dayNumber", "focus", "customFocus", "weekday", "createdAt", "updatedAt")
+         VALUES ($1, $2, $3, $4::"TrainingDayFocus", $5, $6::"Weekday", NOW(), NOW())`,
+        [newDayId, newTemplateId, day.dayNumber, day.focus, day.customFocus, day.weekday ?? null]
       )
       for (const exercise of day.exercises) {
         const newExId = generateId()

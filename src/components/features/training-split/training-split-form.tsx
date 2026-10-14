@@ -321,13 +321,26 @@ export function TrainingSplitForm({
 
   function handleTemplateApply(template: TemplatePreviewData) {
     executeOrConfirm(() => {
-      const nextDays: TrainingSplitDayInput[] = template.days.map((day) => ({
+      const targetMode = template.scheduleMode ?? scheduleMode
+      if (template.scheduleMode && template.scheduleMode !== scheduleMode) {
+        setScheduleMode(template.scheduleMode)
+        form.setValue("scheduleMode", template.scheduleMode, { shouldValidate: false })
+      }
+      const rawDays: TrainingSplitDayInput[] = template.days.map((day) => ({
         focus: day.focus,
         customFocus: day.customFocus ?? "",
+        weekday: day.weekday ?? null,
         notes: "",
         exercises: (day.exercises ?? []).map((ex) => toExerciseDraft(ex, exercises)),
       }))
-      applyDays(nextDays, template.splitType)
+      const resolved =
+        targetMode === ScheduleMode.FIXED_WEEKDAYS
+          ? (rawDays.some((d) => !d.weekday) ? withAssignedWeekdays(rawDays) : rawDays)
+          : rawDays
+      setDaysSynced(resolved)
+      setSplitType(template.splitType)
+      form.setValue("splitType", template.splitType, { shouldValidate: false })
+      checkSafety(resolved)
     })
   }
 

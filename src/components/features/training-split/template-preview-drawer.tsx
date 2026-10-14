@@ -15,7 +15,7 @@ import { GlassSheen } from "./liquid-glass/glass-sheen"
 import { useI18n } from "@/lib/i18n/client"
 import { lookup } from "@/lib/i18n/lookup"
 import { Dumbbell, Calendar, Zap, Check } from "lucide-react"
-import type { TrainingDayFocus, SplitType } from "@/lib/db/enums"
+import type { TrainingDayFocus, SplitType, ScheduleMode, Weekday } from "@/lib/db/enums"
 
 export interface TemplatePreviewData {
   id: string
@@ -23,10 +23,12 @@ export interface TemplatePreviewData {
   splitType: SplitType
   customSplitName?: string | null
   daysPerWeek: number
+  scheduleMode?: ScheduleMode
   description?: string | null
   days: {
     focus: TrainingDayFocus
     customFocus?: string | null
+    weekday?: Weekday | null
     exercises: {
       exerciseId?: string | null
       exerciseName: string
@@ -78,7 +80,7 @@ export function TemplatePreviewDrawer({
         <GlassSheen opacity={0.6} />
 
         <SheetHeader className="p-6 border-b border-white/10 text-start">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline" className="border-brand-500/40 bg-brand-500/10 text-brand-300">
               {template.daysPerWeek} {t.trainingSplit.activeDays}
             </Badge>
@@ -86,6 +88,11 @@ export function TemplatePreviewDrawer({
               {template.splitType === "CUSTOM" && template.customSplitName
                 ? template.customSplitName
                 : lookup(t, `trainingSplit.splitTypes.${template.splitType.toLowerCase()}`) ?? template.splitType}
+            </Badge>
+            <Badge variant="outline" className="border-white/15 bg-white/[0.04] text-xs">
+              {template.scheduleMode === "SEQUENTIAL"
+                ? t.trainingSplit.scheduleModeSequential
+                : t.trainingSplit.scheduleModeFixed}
             </Badge>
           </div>
           <SheetTitle className="text-xl font-bold pt-1">{template.name}</SheetTitle>
