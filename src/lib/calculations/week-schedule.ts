@@ -305,6 +305,34 @@ export function buildSequentialBoard(
 }
 
 /**
+ * FLEXIBLE board: all training days are available on-demand.
+ * Logged → DONE; unlogged → TODAY (available to start anytime).
+ */
+export function buildFlexibleBoard(
+  days: BoardSplitDay[],
+  loggedByDayId: Record<string, boolean>,
+  today: Date
+): BoardEntry[] {
+  const todayKey = toDateKey(today)
+
+  return days.map((day) => {
+    const done = Boolean(loggedByDayId[day.id])
+    return {
+      key: `flex-${day.id}`,
+      dayId: day.id,
+      dayNumber: day.dayNumber,
+      focus: day.focus,
+      customFocus: day.customFocus ?? null,
+      weekday: null,
+      dateKey: todayKey,
+      status: done ? "DONE" : "TODAY",
+      done,
+      extraWorkout: false,
+    }
+  })
+}
+
+/**
  * Consecutive completed training entries counting backwards from the
  * active entry (today / current turn). Rest days never break the chain.
  */
@@ -312,6 +340,10 @@ export function computeStreak(
   board: BoardEntry[],
   scheduleMode: ScheduleMode | string
 ): number {
+  if (scheduleMode === "FLEXIBLE") {
+    return board.filter((entry) => entry.done).length
+  }
+
   const trainingEntries =
     scheduleMode === "SEQUENTIAL"
       ? [...board].reverse()

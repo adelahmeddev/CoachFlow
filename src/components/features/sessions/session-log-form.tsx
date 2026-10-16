@@ -330,17 +330,10 @@ export function SessionLogForm({ clientId, split }: SessionLogFormProps) {
       <div className="flex gap-4">
         <Button
           type="submit"
-          disabled={isSubmitting}
+          loading={isSubmitting}
           className="min-w-[160px]"
         >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="me-2 h-4 w-4 animate-spin" />
-              {t.common.saving}
-            </>
-          ) : (
-            t.sessions.saveSession
-          )}
+          {isSubmitting ? t.common.saving : t.sessions.saveSession}
         </Button>
         <Button
           type="button"

@@ -272,40 +272,59 @@ export function SessionMode({
     if (!current || savingId) return
     const values = forms[current.id]
     if (!values) return
-    setSavingId(current.id)
+
+    const exerciseId = current.id
+    const ticksArr = setTicks[exerciseId] ?? []
+    const parseNum = (v?: string | null): number | null => {
+      if (!v || v.trim() === "") return null
+      const n = Number(v)
+      return Number.isNaN(n) ? null : n
+    }
+    let setsPayload = (values.sets || [])
+      .map((sv) => ({
+        weightKg: parseNum(sv?.weightKg),
+        reps: parseNum(sv?.reps),
+      }))
+      .filter((_, i) => ticksArr[i])
+    if (setsPayload.length === 0 && values?.sets?.[0]) {
+      setsPayload = [
+        {
+          weightKg: parseNum(values.sets[0]?.weightKg),
+          reps: parseNum(values.sets[0]?.reps),
+        },
+      ]
+    }
+
+    // 1. Optimistic transition: advance UI immediately in 0ms!
+    const nextSaved = new Set(savedIds)
+    nextSaved.add(exerciseId)
+    setSavedIds(nextSaved)
+    goToNextAfter(index, nextSaved, skippedIds)
+
+    // 2. Perform server action in background with rollback on failure
+    setSavingId(exerciseId)
     try {
-      const ticksArr = setTicks[current.id] ?? []
-      const parseNum = (v?: string | null): number | null => {
-        if (!v || v.trim() === "") return null
-        const n = Number(v)
-        return Number.isNaN(n) ? null : n
-      }
-      let setsPayload = (values.sets || [])
-        .map((sv) => ({
-          weightKg: parseNum(sv?.weightKg),
-          reps: parseNum(sv?.reps),
-        }))
-        .filter((_, i) => ticksArr[i])
-      if (setsPayload.length === 0 && values?.sets?.[0]) {
-        setsPayload = [
-          {
-            weightKg: parseNum(values.sets[0]?.weightKg),
-            reps: parseNum(values.sets[0]?.reps),
-          },
-        ]
-      }
-      const result = await saveExerciseLogAction(current.id, {
+      const result = await saveExerciseLogAction(exerciseId, {
         sets: setsPayload,
         notes: values.notes.trim() || undefined,
       })
       if (!result.ok) {
+        // Rollback
+        setSavedIds((prev) => {
+          const reverted = new Set(prev)
+          reverted.delete(exerciseId)
+          return reverted
+        })
         toast.error(t.auth.errors.generic)
-        return
       }
-      const nextSaved = new Set(savedIds)
-      nextSaved.add(current.id)
-      setSavedIds(nextSaved)
-      goToNextAfter(index, nextSaved, skippedIds)
+    } catch {
+      // Rollback
+      setSavedIds((prev) => {
+        const reverted = new Set(prev)
+        reverted.delete(exerciseId)
+        return reverted
+      })
+      toast.error(t.auth.errors.generic)
     } finally {
       setSavingId(null)
     }
@@ -624,7 +643,7 @@ export function SessionMode({
             <Button
               variant="outline"
               className="min-h-[48px]"
-              disabled={index === 0 || savingId !== null}
+              disabled={index === 0}
               onClick={handlePrev}
             >
               <ChevronLeft className="size-4 rtl:-scale-x-100" />
@@ -633,19 +652,15 @@ export function SessionMode({
             <Button
               variant="ghost"
               className="min-h-[48px]"
-              disabled={savingId !== null}
               onClick={handleSkip}
             >
               {t.client.workout.skipExercise}
             </Button>
             <Button
               className="min-h-[48px] flex-1"
-              disabled={savingId !== null}
+              loading={savingId === current?.id}
               onClick={handleSaveAndNext}
             >
-              {savingId === current.id ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : null}
               {s.saveAndNext}
             </Button>
           </div>

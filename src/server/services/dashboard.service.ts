@@ -48,7 +48,7 @@ export async function getDashboardData(trainerProfileId: string) {
           AND (
             (ts."scheduleMode" = 'FIXED_WEEKDAYS'::"ScheduleMode" AND tsd.weekday = $2::"Weekday")
             OR
-            (ts."scheduleMode" = 'SEQUENTIAL'::"ScheduleMode")
+            (ts."scheduleMode" IN ('SEQUENTIAL'::"ScheduleMode", 'FLEXIBLE'::"ScheduleMode"))
           )
       `
       const recentQuery = `

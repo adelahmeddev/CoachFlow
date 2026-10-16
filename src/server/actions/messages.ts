@@ -46,16 +46,15 @@ export async function sendMessageAction(input: unknown) {
       body,
     })
 
-    // revalidate both sides
-    revalidatePath("/messages")
-    revalidatePath(`/messages/${result.conversationId}`)
-    revalidatePath("/client/messages")
-    if (clientId) revalidatePath(`/clients/${clientId}`)
-    if (result.conversationId) {
-      const conv = await getConversationById(result.conversationId)
-      if (conv) {
-        revalidatePath(`/messages/${conv.clientId}`)
+    // Revalidate only context-specific message paths
+    if (role === "COACH") {
+      revalidatePath("/messages")
+      if (clientId) {
+        revalidatePath(`/messages/${clientId}`)
+        revalidatePath(`/clients/${clientId}`)
       }
+    } else {
+      revalidatePath("/client/messages")
     }
 
     return { ok: true as const, conversationId: result.conversationId, messageId: result.message.id }

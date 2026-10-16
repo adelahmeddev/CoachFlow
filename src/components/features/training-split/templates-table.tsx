@@ -96,7 +96,9 @@ function TemplateCard({
           <Badge variant="outline" className="border-brand-400/30 bg-brand-500/10 text-brand-300">
             {template.scheduleMode === "SEQUENTIAL"
               ? t.trainingSplit.scheduleModeSequential
-              : t.trainingSplit.scheduleModeFixed}
+              : template.scheduleMode === "FLEXIBLE"
+                ? t.trainingSplit.scheduleModeFlexible
+                : t.trainingSplit.scheduleModeFixed}
           </Badge>
         </div>
 

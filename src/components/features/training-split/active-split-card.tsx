@@ -17,7 +17,7 @@ interface ActiveSplitCardProps {
 export async function ActiveSplitCard({ split, clientId }: ActiveSplitCardProps) {
   const { t, locale } = await getI18n()
   const isAr = locale === "ar"
-  const isFixed = split.scheduleMode !== ScheduleMode.SEQUENTIAL
+  const isFixed = split.scheduleMode === ScheduleMode.FIXED_WEEKDAYS
 
   const focusIcon: Record<string, typeof Dumbbell> = {
     CHEST: Dumbbell, BACK: Dumbbell, SHOULDERS: Dumbbell, ARMS: Dumbbell, LEGS: Dumbbell, GLUTES: Zap, CORE: Flame, CARDIO: Heart,
@@ -41,9 +41,11 @@ export async function ActiveSplitCard({ split, clientId }: ActiveSplitCardProps)
                 {getPlanStatusLabel(split.status)}
               </Badge>
               <Badge variant="secondary" className="rounded-full bg-white/80 dark:bg-white/10">
-                {isFixed
+                {split.scheduleMode === ScheduleMode.FIXED_WEEKDAYS
                   ? t.trainingSplit.scheduleModeFixed
-                  : t.trainingSplit.scheduleModeSequential}
+                  : split.scheduleMode === ScheduleMode.FLEXIBLE
+                    ? t.trainingSplit.scheduleModeFlexible
+                    : t.trainingSplit.scheduleModeSequential}
               </Badge>
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">

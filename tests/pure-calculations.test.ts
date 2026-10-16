@@ -8,6 +8,7 @@ import {
   addDaysToDateKey,
   buildFixedBoard,
   buildSequentialBoard,
+  buildFlexibleBoard,
   computeStreak,
   summarizeBoard,
   type BoardSplitDay,
@@ -120,6 +121,26 @@ describe("Week Schedule Calculations", () => {
       assert.equal(board[0].status, "DONE")
       assert.equal(board[1].status, "CURRENT")
       assert.equal(board[2].status, "UPCOMING")
+    })
+
+    it("builds flexible board with all unlogged days as TODAY and ready", () => {
+      const today = new Date(2026, 8, 14)
+      const loggedByDayId = { d2: true }
+      const board = buildFlexibleBoard(splitDays, loggedByDayId, today)
+
+      assert.equal(board.length, 3)
+      // d1 not logged -> TODAY
+      assert.equal(board[0].status, "TODAY")
+      assert.equal(board[0].done, false)
+      // d2 logged -> DONE
+      assert.equal(board[1].status, "DONE")
+      assert.equal(board[1].done, true)
+      // d3 not logged -> TODAY
+      assert.equal(board[2].status, "TODAY")
+      assert.equal(board[2].done, false)
+
+      // Streak in flexible mode counts done days
+      assert.equal(computeStreak(board, "FLEXIBLE"), 1)
     })
 
     it("computes streak correctly in sequential mode", () => {

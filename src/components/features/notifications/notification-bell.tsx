@@ -6,16 +6,32 @@ import { Bell } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useI18n } from "@/lib/i18n/client"
 
-/** Bell with unread badge. Polls every 60s (visible tab only), like messages. */
-export function NotificationBell({ href }: { href: string }) {
+/** Bell with unread badge. If count is provided by parent, avoids duplicate polling. */
+export function NotificationBell({
+  href,
+  count: propCount,
+}: {
+  href: string
+  count?: number
+}) {
   const { t } = useI18n()
-  const [count, setCount] = useState(0)
+  const [internalCount, setInternalCount] = useState(0)
+  const isControlled = typeof propCount === "number"
+  const count = isControlled ? propCount : internalCount
 
   useEffect(() => {
+    if (isControlled) return
+
     let cancelled = false
     let id: NodeJS.Timeout | undefined
+    let lastFetched = 0
+
     const fetchCount = () => {
       if (document.visibilityState !== "visible") return
+      const now = Date.now()
+      if (now - lastFetched < 45_000) return
+      lastFetched = now
+
       fetch("/api/notifications/unread-count", {
         credentials: "include",
         cache: "no-store" as RequestCache,
@@ -28,22 +44,22 @@ export function NotificationBell({ href }: { href: string }) {
           return r.ok ? r.json() : Promise.reject()
         })
         .then((data) => {
-          if (!cancelled) setCount(data.count ?? 0)
+          if (!cancelled && typeof data?.count === "number") setInternalCount(data.count)
         })
         .catch(() => {})
     }
     fetchCount()
-    id = setInterval(fetchCount, 60000)
-    
+    id = setInterval(fetchCount, 90_000)
+
     const markHandler = (e: Event) => {
       if (e instanceof CustomEvent && e.detail && typeof e.detail.count === "number") {
-        setCount(e.detail.count)
+        setInternalCount(e.detail.count)
       } else {
-        // Fallback to fetch if no count provided
+        lastFetched = 0
         fetchCount()
       }
     }
-    
+
     const visHandler = () => {
       if (document.visibilityState === "visible") fetchCount()
     }
@@ -55,7 +71,7 @@ export function NotificationBell({ href }: { href: string }) {
       window.removeEventListener("notifications:read", markHandler)
       document.removeEventListener("visibilitychange", visHandler)
     }
-  }, [])
+  }, [isControlled])
 
   return (
     <Button

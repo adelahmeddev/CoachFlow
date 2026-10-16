@@ -126,7 +126,7 @@ export async function getTrainerClients(
           AND (
             (ts."scheduleMode" = 'FIXED_WEEKDAYS'::"ScheduleMode" AND tsd.weekday = $${paramIdx}::"Weekday")
             OR
-            (ts."scheduleMode" = 'SEQUENTIAL'::"ScheduleMode")
+            (ts."scheduleMode" IN ('SEQUENTIAL'::"ScheduleMode", 'FLEXIBLE'::"ScheduleMode"))
           )
       )
     `)
@@ -210,7 +210,7 @@ export async function getTrainerClients(
            AND (
              (ts."scheduleMode" = 'FIXED_WEEKDAYS'::"ScheduleMode" AND tsd.weekday = $${clientIds.length + 1}::"Weekday")
              OR
-             (ts."scheduleMode" = 'SEQUENTIAL'::"ScheduleMode")
+             (ts."scheduleMode" IN ('SEQUENTIAL'::"ScheduleMode", 'FLEXIBLE'::"ScheduleMode"))
            )
          ORDER BY ts."clientId", ts."createdAt" DESC, tsd."dayNumber" ASC`,
         [...clientIds, todayWeekday]

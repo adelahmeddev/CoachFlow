@@ -165,6 +165,7 @@ export type Weekday = (typeof Weekday)[keyof typeof Weekday]
 export const ScheduleMode = {
   FIXED_WEEKDAYS: 'FIXED_WEEKDAYS',
   SEQUENTIAL: 'SEQUENTIAL',
+  FLEXIBLE: 'FLEXIBLE',
 } as const
 export type ScheduleMode = (typeof ScheduleMode)[keyof typeof ScheduleMode]
 

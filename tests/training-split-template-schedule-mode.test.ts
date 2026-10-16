@@ -37,6 +37,23 @@ describe("trainingSplitTemplateSchema scheduleMode & weekday validation", () => 
     assert.equal(parsed.scheduleMode, ScheduleMode.SEQUENTIAL)
   })
 
+  it("accepts FLEXIBLE scheduleMode", () => {
+    const data = {
+      name: "Flexible On-Demand Template",
+      splitType: SplitType.FULL_BODY,
+      daysPerWeek: 3,
+      scheduleMode: ScheduleMode.FLEXIBLE,
+      days: [
+        {
+          focus: TrainingDayFocus.FULL_BODY,
+          exercises: [],
+        },
+      ],
+    }
+    const parsed = trainingSplitTemplateSchema.parse(data)
+    assert.equal(parsed.scheduleMode, ScheduleMode.FLEXIBLE)
+  })
+
   it("persists optional weekday in template days", () => {
     const data = {
       name: "Fixed Days Template",

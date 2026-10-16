@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import type { WorkoutDisplayMode } from "@/lib/db/enums"
+import { ScheduleMode, type WorkoutDisplayMode } from "@/lib/db/enums"
 import { RestDayCard } from "./rest-day-card"
 import { getMyDayDetailAction } from "@/server/actions/client-portal"
 
@@ -62,14 +62,14 @@ export function DayDetailSheet({
   open: boolean
   onOpenChange: (open: boolean) => void
   entry: BoardEntry | null
-  mode: "FIXED_WEEKDAYS" | "SEQUENTIAL"
+  mode: ScheduleMode
   displayMode: WorkoutDisplayMode
 }) {
   const { t, locale } = useI18n()
   const nameOnly = displayMode === "DAY_NAME_ONLY"
 
   const title = entry
-    ? mode === "FIXED_WEEKDAYS" && entry.weekday
+    ? mode === ScheduleMode.FIXED_WEEKDAYS && entry.weekday
       ? ({
           SATURDAY: "Saturday",
           SUNDAY: "Sunday",
@@ -79,7 +79,7 @@ export function DayDetailSheet({
           THURSDAY: "Thursday",
           FRIDAY: "Friday",
         }[entry.weekday.toUpperCase()] ?? entry.weekday)
-      : `Day ${entry.dayNumber ?? 0}`
+      : entry.customFocus || entry.focus || `Day ${entry.dayNumber ?? 0}`
     : ""
 
   const statusLabel = (() => {
@@ -90,7 +90,7 @@ export function DayDetailSheet({
       case "MISSED":
         return t.client.week.missed
       case "TODAY":
-        return t.client.week.today
+        return mode === ScheduleMode.FLEXIBLE ? (locale === "ar" ? "متاح للبدء" : "Available") : t.client.week.today
       case "CURRENT":
         return t.client.week.currentTurn
       case "UPCOMING":
@@ -108,7 +108,7 @@ export function DayDetailSheet({
             <SheetTitle dir="ltr" className="text-start">{title}</SheetTitle>
             <Badge variant="secondary">{statusLabel}</Badge>
           </div>
-          {mode === "FIXED_WEEKDAYS" && entry?.dateKey ? (
+          {mode === ScheduleMode.FIXED_WEEKDAYS && entry?.dateKey ? (
             <p className="text-xs tabular-nums text-muted-foreground" dir="ltr">
               {entry.dateKey}
             </p>
@@ -134,6 +134,7 @@ export function DayDetailSheet({
               key={entry.dayId}
               dayId={entry.dayId}
               status={entry.status}
+              mode={mode}
             />
           ) : null}
         </div>
@@ -145,9 +146,11 @@ export function DayDetailSheet({
 function DayDetailContent({
   dayId,
   status,
+  mode,
 }: {
   dayId: string
   status: NonNullable<BoardEntry["status"]>
+  mode: ScheduleMode
 }) {
   const { t } = useI18n()
   const [detail, setDetail] = useState<DayDetail | null>(null)
@@ -172,8 +175,14 @@ function DayDetailContent({
     )
   }
 
-  const canStart = status === "TODAY" || status === "CURRENT"
-  const isLocked = status === "UPCOMING" || status === "MISSED"
+  const canStart =
+    mode === ScheduleMode.FLEXIBLE ||
+    status === "TODAY" ||
+    status === "CURRENT" ||
+    status === "DONE"
+  const isLocked =
+    mode !== ScheduleMode.FLEXIBLE &&
+    (status === "UPCOMING" || status === "MISSED")
 
   return (
     <>

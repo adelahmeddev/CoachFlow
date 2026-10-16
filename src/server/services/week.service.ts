@@ -6,6 +6,7 @@ import {
   addDaysToDateKey,
   buildFixedBoard,
   buildSequentialBoard,
+  buildFlexibleBoard,
   summarizeBoard,
   toDateKey,
   weekStartDate,
@@ -171,6 +172,51 @@ export async function getClientWeekBoardUncached(
     }
   }
 
+  if (split.scheduleMode === ScheduleMode.FLEXIBLE) {
+    const exerciseToDay = new Map<string, string>()
+    const dayIds = days.map((d) => d.id)
+    if (dayIds.length > 0) {
+      const exRes = await pool.query(
+        `SELECT "id", "splitDayId" FROM "SplitDayExercise" WHERE "splitDayId" = ANY($1::text[])`,
+        [dayIds]
+      )
+      for (const row of exRes.rows as Array<{ id: string; splitDayId: string }>) {
+        exerciseToDay.set(row.id, row.splitDayId)
+      }
+    }
+
+    const rangeStartDate = weekStartDate(weekStartDay as unknown as import("@/lib/db/enums").WeekStartDay, today)
+    const rangeStartKey = toDateKey(rangeStartDate)
+    const rangeEndKey = addDaysToDateKey(rangeStartKey, 7)
+
+    const logsRes = await pool.query(
+      `SELECT DISTINCT "splitDayExerciseId" FROM "ExerciseLog" WHERE "clientId" = $1 AND "date" >= $2 AND "date" < $3`,
+      [clientId, new Date(`${rangeStartKey}T00:00:00`), new Date(`${rangeEndKey}T00:00:00`)]
+    )
+    const logs = logsRes.rows as Array<{ splitDayExerciseId: string }>
+
+    const loggedByDayId: Record<string, boolean> = {}
+    for (const log of logs) {
+      const dayId = exerciseToDay.get(log.splitDayExerciseId)
+      if (dayId) loggedByDayId[dayId] = true
+    }
+
+    const board = withExerciseCounts(
+      buildFlexibleBoard(days, loggedByDayId, today)
+    )
+    return {
+      mode: ScheduleMode.FLEXIBLE,
+      weekStartDay,
+      board,
+      summary: summarizeBoard(board, ScheduleMode.FLEXIBLE),
+      activeDayId:
+        board.find((entry) => !entry.done)?.dayId ?? board[0]?.dayId ?? null,
+      rangeStartKey,
+      rangeEndKey,
+      workoutDisplayMode,
+    }
+  }
+
   // FIXED_WEEKDAYS
   const rangeStartDate = weekStartDate(weekStartDay as unknown as import("@/lib/db/enums").WeekStartDay, today)
   const rangeStartKey = toDateKey(rangeStartDate)
@@ -284,7 +330,9 @@ export async function getDayDetail(
   }>
 
   const entry = boardData.board.find((item) => item.dayId === dayId) ?? null
-  const status = entry?.status ?? "UPCOMING"
+  const status =
+    entry?.status ??
+    (boardData.mode === ScheduleMode.FLEXIBLE ? "TODAY" : "UPCOMING")
 
   const logsRes = await pool.query(
     `SELECT * FROM "ExerciseLog" WHERE "clientId" = $1 AND "splitDayExerciseId" = ANY($2::text[]) ORDER BY "date" DESC`,

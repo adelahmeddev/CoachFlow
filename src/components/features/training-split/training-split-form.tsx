@@ -636,7 +636,7 @@ export function TrainingSplitForm({
             <div
               role="radiogroup"
               aria-label={t.trainingSplit.scheduleMode}
-              className="grid gap-3 sm:grid-cols-2"
+              className="grid gap-3 sm:grid-cols-3"
             >
               <button
                 type="button"
@@ -681,6 +681,29 @@ export function TrainingSplitForm({
                 </span>
                 <span className="mt-1 block text-[11px] text-muted-foreground leading-snug">
                   {t.trainingSplit.scheduleModeSequentialHint}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                role="radio"
+                aria-checked={scheduleMode === ScheduleMode.FLEXIBLE}
+                disabled={isSubmitting}
+                onClick={() =>
+                  handleScheduleModeChange(ScheduleMode.FLEXIBLE)
+                }
+                className={cn(
+                  "rounded-2xl border p-3.5 text-start transition-colors",
+                  scheduleMode === ScheduleMode.FLEXIBLE
+                    ? "border-brand-400/80 bg-brand-500/15 ring-1 ring-brand-400/40 shadow-glow"
+                    : "border-white/10 bg-white/[0.03] hover:border-white/25 hover:bg-white/[0.06]"
+                )}
+              >
+                <span className="block text-xs font-bold text-foreground">
+                  {t.trainingSplit.scheduleModeFlexible}
+                </span>
+                <span className="mt-1 block text-[11px] text-muted-foreground leading-snug">
+                  {t.trainingSplit.scheduleModeFlexibleHint}
                 </span>
               </button>
             </div>

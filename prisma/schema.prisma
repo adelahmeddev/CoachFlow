@@ -779,6 +779,7 @@ enum Weekday {
 enum ScheduleMode {
   FIXED_WEEKDAYS
   SEQUENTIAL
+  FLEXIBLE
 }
 
 enum BodyCompositionSource {

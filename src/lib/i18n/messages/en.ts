@@ -762,6 +762,8 @@ export const en = {
     scheduleModeFixedHint: "Training is tied to specific weekdays; missed days show as missed.",
     scheduleModeSequential: "Sequential",
     scheduleModeSequentialHint: "Next workout = first uncompleted day; no missed concept.",
+    scheduleModeFlexible: "Open & Flexible",
+    scheduleModeFlexibleHint: "All workouts are always unlocked; trainee can pick and start any workout anytime with no fixed days or strict order.",
     autoAssignDays: "Auto-assign Days",
     autoAssignConfirm: "Re-run auto-assign? This replaces current weekday assignments with an even distribution.",
     weekday: "Weekday",

@@ -45,7 +45,6 @@ export async function createSessionLogAction(
   }
 
   revalidatePath(`/clients/${clientId}`)
-  revalidatePath(`/clients/${clientId}?tab=progress`)
   invalidate([
     `client:${clientId}:progress`,
     `client:${clientId}:workout`,

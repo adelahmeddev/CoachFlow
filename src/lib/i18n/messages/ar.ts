@@ -763,6 +763,8 @@ export const ar: Dictionary = {
     scheduleModeFixedHint: "يرتبط التدريب بأيام محددة من الأسبوع؛ تظهر الأيام الفائتة كمفوتة.",
     scheduleModeSequential: "بالترتيب",
     scheduleModeSequentialHint: "التمرين التالي = أول يوم غير مكتمل؛ لا يوجد مفهوم للتخلف.",
+    scheduleModeFlexible: "حر ومفتوح",
+    scheduleModeFlexibleHint: "جميع التمارين متاحة دائمًا؛ يمكن للمتدرب اختيار وبدء أي تمرين في أي وقت بحرية دون التقيد بأيام محددة أو ترتيب إلزامي.",
     autoAssignDays: "توزيع تلقائي للأيام",
     autoAssignConfirm: "إعادة التوزيع التلقائي؟ سيتم استبدال الأيام الحالية بتوزيع متساوٍ.",
     weekday: "يوم الأسبوع",

@@ -121,7 +121,7 @@ function dayTitle(
       ? WEEKDAY_EN_LABELS[entry.weekday.toUpperCase()] ?? entry.weekday
       : "—"
   }
-  return `Day ${entry.dayNumber ?? 0}`
+  return entry.customFocus || entry.focus || `Day ${entry.dayNumber ?? 0}`
 }
 
 export function BentoWeekMatrix({
@@ -170,7 +170,7 @@ export function BentoWeekMatrix({
   )
 
   const rangeLabel = useMemo(() => {
-    if (mode === ScheduleMode.SEQUENTIAL) return null
+    if (mode === ScheduleMode.SEQUENTIAL || mode === ScheduleMode.FLEXIBLE) return null
     if (!rangeStartKey || !rangeEndKey) return null
     const end = new Date(rangeEndKey)
     end.setDate(end.getDate() - 1)
@@ -374,7 +374,9 @@ function HeroTile({
           ) : (
             <span className="bg-[#961112]/25 border border-[#961112]/60 text-white shadow-[0_0_12px_rgba(150,17,18,0.25)] backdrop-blur-md flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold">
               <span className="size-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" aria-hidden="true" />
-              {isAr ? "مباشر • تمرين اليوم" : "LIVE • Today's workout"}
+              {mode === ScheduleMode.FLEXIBLE
+                ? (isAr ? "مباشر • تمرين مقترح" : "LIVE • Suggested Workout")
+                : (isAr ? "مباشر • تمرين اليوم" : "LIVE • Today's workout")}
             </span>
           )}
           <span dir="ltr" className="ms-auto rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.18)] ring-1 ring-white/15 text-start">
@@ -525,14 +527,20 @@ function BentoDayTile({
   hideCounts: boolean
   onOpen: () => void
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const isDone = entry.status === "DONE" || entry.done
-  const isActive = entry.status === "TODAY" || entry.status === "CURRENT"
-  const isMissed = entry.status === "MISSED"
+  const isActive =
+    mode === ScheduleMode.FLEXIBLE ||
+    entry.status === "TODAY" ||
+    entry.status === "CURRENT"
+  const isMissed = mode !== ScheduleMode.FLEXIBLE && entry.status === "MISSED"
   const FocusIcon = FOCUS_ICONS[entry.focus] ?? Dumbbell
 
   const statusLabel = (() => {
     if (isDone) return t.client.week.done
+    if (mode === ScheduleMode.FLEXIBLE) {
+      return locale === "ar" ? "متاح للبدء" : "Available"
+    }
     switch (entry.status) {
       case "MISSED":
         return t.client.week.missed

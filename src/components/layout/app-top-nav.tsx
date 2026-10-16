@@ -128,8 +128,14 @@ export function AppTopNav({
   useEffect(() => {
     let cancelled = false
     let id: NodeJS.Timeout | undefined
+    let lastFetched = 0
+
     const fetchCount = () => {
       if (document.visibilityState !== "visible") return
+      const now = Date.now()
+      if (now - lastFetched < 45_000) return
+      lastFetched = now
+
       fetch("/api/notifications/unread-count", { credentials: "include", cache: "no-store" as RequestCache })
         .then((r) => {
           if (r.status === 401) {
@@ -139,13 +145,20 @@ export function AppTopNav({
           return r.ok ? r.json() : Promise.reject()
         })
         .then((data) => {
-          if (!cancelled) setNotifCount(data.count ?? 0)
+          if (!cancelled && typeof data?.count === "number") setNotifCount(data.count)
         })
         .catch(() => {})
     }
     fetchCount()
-    id = setInterval(fetchCount, 60000)
-    const handler = () => fetchCount()
+    id = setInterval(fetchCount, 90_000)
+    const handler = (e: Event) => {
+      if (e instanceof CustomEvent && typeof e.detail?.count === "number") {
+        setNotifCount(e.detail.count)
+      } else {
+        lastFetched = 0
+        fetchCount()
+      }
+    }
     const visHandler = () => {
       if (document.visibilityState === "visible") fetchCount()
     }
@@ -520,7 +533,7 @@ export function AppTopNav({
             </Button>
           )}
 
-          {showNotificationShortcuts && <NotificationBell href={notificationsHref} />}
+          {showNotificationShortcuts && <NotificationBell href={notificationsHref} count={notifCount} />}
 
           <div className="h-4 w-px bg-border/80 mx-1 hidden sm:block" aria-hidden="true" />
 

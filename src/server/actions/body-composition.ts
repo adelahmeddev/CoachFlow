@@ -12,7 +12,6 @@ import {
 } from "@/server/services/body-composition.service"
 import { getRecipientPair, notifySafe } from "@/server/services/notification.service"
 import { invalidateDashboard } from "@/lib/cache"
-import { z } from "zod"
 
 const createSchema = bodyCompositionSchema
 
@@ -64,13 +63,12 @@ export async function createBodyCompositionAction(
     notes: parsed.data.notes ?? null,
   })
 
-  revalidatePath(`/clients/${clientId}`)
-  revalidatePath(`/clients/${clientId}?tab=body-composition`)
-  revalidatePath(`/client/profile`)
-  revalidatePath(`/client/home`)
-  revalidatePath(`/dashboard`)
-  revalidatePath(`/needs-action`)
-  revalidatePath(`/clients`)
+  if (isClient) {
+    revalidatePath("/client/profile")
+    revalidatePath("/client/home")
+  } else {
+    revalidatePath(`/clients/${clientId}`)
+  }
   const pair = await getRecipientPair(clientId)
   if (pair?.trainerId) {
     invalidateDashboard(pair.trainerId)

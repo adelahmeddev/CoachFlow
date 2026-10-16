@@ -92,7 +92,9 @@ export function TemplatePreviewDrawer({
             <Badge variant="outline" className="border-white/15 bg-white/[0.04] text-xs">
               {template.scheduleMode === "SEQUENTIAL"
                 ? t.trainingSplit.scheduleModeSequential
-                : t.trainingSplit.scheduleModeFixed}
+                : template.scheduleMode === "FLEXIBLE"
+                  ? t.trainingSplit.scheduleModeFlexible
+                  : t.trainingSplit.scheduleModeFixed}
             </Badge>
           </div>
           <SheetTitle className="text-xl font-bold pt-1">{template.name}</SheetTitle>

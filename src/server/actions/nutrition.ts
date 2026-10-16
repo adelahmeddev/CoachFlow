@@ -12,7 +12,6 @@ import {
   createNutritionTemplate,
   updateNutritionTemplate,
   deleteNutritionTemplate,
-  getTemplatesForTrainer,
   assignTemplateToClients,
   refreshPlanFromTemplate,
   savePlanContent,
@@ -151,9 +150,9 @@ export async function assignTemplateAction(
     )
     for (const clientId of parsed.data.clientIds) {
       invalidate([`client:${clientId}:nutrition`, `client:${clientId}:profile`])
-      revalidatePath(`/clients/${clientId}?tab=nutrition`)
-      revalidatePath("/client/nutrition")
+      revalidatePath(`/clients/${clientId}`)
     }
+    revalidatePath("/client/nutrition")
     revalidatePath("/clients")
     await notifyClientsPlanUpdated(parsed.data.clientIds, "nutrition", session?.user?.name ?? null)
     return { ok: true as const, count }
@@ -185,7 +184,7 @@ export async function refreshPlanFromTemplateAction(planId: string, clientId: st
     `client:${clientId}:nutrition`,
     `client:${clientId}:profile`,
   ])
-  revalidatePath(`/clients/${clientId}?tab=nutrition`)
+  revalidatePath(`/clients/${clientId}`)
   revalidatePath("/client/nutrition")
   await notifyClientsPlanUpdated([clientId], "nutrition", (await getCurrentSession())?.user.name ?? null)
   return { ok: true as const, newPlanId: updated.newPlanId }
@@ -215,7 +214,7 @@ export async function savePlanContentAction(
     `client:${clientId}:nutrition`,
     `client:${clientId}:profile`,
   ])
-  revalidatePath(`/clients/${clientId}?tab=nutrition`)
+  revalidatePath(`/clients/${clientId}`)
   revalidatePath("/client/nutrition")
   await notifyClientsPlanUpdated([clientId], "nutrition", (await getCurrentSession())?.user.name ?? null)
   return { ok: true as const, newPlanId: plan.id }
@@ -237,7 +236,8 @@ export async function toggleMealChoiceAction(mealItemId: string) {
   }
 
   invalidate([`client:${clientId}:nutrition`])
-  revalidatePath(`/clients/${clientId}?tab=nutrition`)
+  revalidatePath("/client/nutrition")
+  revalidatePath(`/clients/${clientId}`)
 
   if (result.chosen) {
     const todayStr = new Date().toISOString().split("T")[0]
@@ -284,7 +284,7 @@ export async function saveMealNoteAction(input: { mealId: string; note: string }
 
   invalidate([`client:${clientId}:nutrition`])
   revalidatePath("/client/nutrition")
-  revalidatePath(`/clients/${clientId}?tab=nutrition`)
+  revalidatePath(`/clients/${clientId}`)
 
   return { ok: true as const }
 }
@@ -312,7 +312,6 @@ export async function deleteClientNutritionPlanAction(planId: string) {
     `client:${clientId}:nutrition`,
     `client:${clientId}:profile`,
   ])
-  revalidatePath(`/clients/${clientId}?tab=nutrition`)
   revalidatePath(`/clients/${clientId}`)
   revalidatePath("/client/nutrition")
 

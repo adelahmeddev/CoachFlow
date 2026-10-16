@@ -19,6 +19,12 @@ export type NotifyResult =
   | { ok: true; notification: null; deduped: true }
   | { ok: false; error: "USER_NOT_FOUND" }
 
+const unreadCountCache = new Map<string, { count: number; expiresAt: number }>()
+
+export function invalidateUnreadNotificationCount(userId: string): void {
+  unreadCountCache.delete(userId)
+}
+
 /**
  * Create one notification. With `dedupeKey`, concurrent/duplicate calls are
  * safe: `ON CONFLICT DO NOTHING` guarantees at most one row per key, so
@@ -46,6 +52,7 @@ export async function createNotification(input: NotifyInput): Promise<NotifyResu
     ]
   )
   const row = (res.rows[0] as Notification | undefined) ?? null
+  invalidateUnreadNotificationCount(input.userId)
   // Without a dedupeKey no conflict is possible, so a missing row always
   // means "already existed" for a deduped insert.
   if (!row) return { ok: true, notification: null, deduped: true }
@@ -112,6 +119,7 @@ export async function upsertNotification(
     ]
   )
   const row = (res.rows[0] as Notification | undefined) ?? null
+  invalidateUnreadNotificationCount(input.userId)
   if (!row) return { ok: true, notification: null, deduped: true }
   return { ok: true, notification: row }
 }
@@ -197,14 +205,23 @@ export async function listNotifications(
 }
 
 export async function countUnreadNotifications(userId: string): Promise<number> {
+  const now = Date.now()
+  const cached = unreadCountCache.get(userId)
+  if (cached && cached.expiresAt > now) {
+    return cached.count
+  }
+
   const res = await pool.query(
     `SELECT COUNT(*)::int AS count FROM "Notification" WHERE "userId" = $1 AND "readAt" IS NULL`,
     [userId]
   )
-  return (res.rows[0] as { count: number }).count
+  const count = (res.rows[0] as { count: number } | undefined)?.count ?? 0
+  unreadCountCache.set(userId, { count, expiresAt: now + 30_000 })
+  return count
 }
 
 export async function markNotificationRead(userId: string, notificationId: string): Promise<boolean> {
+  invalidateUnreadNotificationCount(userId)
   const res = await pool.query(
     `UPDATE "Notification" SET "readAt" = NOW() WHERE "id" = $1 AND "userId" = $2 AND "readAt" IS NULL`,
     [notificationId, userId]
@@ -213,6 +230,7 @@ export async function markNotificationRead(userId: string, notificationId: strin
 }
 
 export async function markAllNotificationsRead(userId: string): Promise<number> {
+  invalidateUnreadNotificationCount(userId)
   const res = await pool.query(
     `UPDATE "Notification" SET "readAt" = NOW() WHERE "userId" = $1 AND "readAt" IS NULL`,
     [userId]
